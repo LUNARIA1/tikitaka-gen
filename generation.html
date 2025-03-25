@@ -55,6 +55,11 @@
             cursor: pointer;
         }
         
+        .slider-input {
+            width: 100px;
+            cursor: pointer;
+        }
+        
         .color-label {
             margin-top: 8px;
             font-size: 14px;
@@ -100,8 +105,10 @@
             border-radius: 5px;
             padding: 15px;
             overflow-x: auto;
+            overflow-y: auto;
             font-family: monospace;
             font-size: 14px;
+            max-height: 100px;
         }
         
         .footer {
@@ -120,9 +127,28 @@
             box-sizing: border-box;
         }
         
-        /* Base theme styles for preview */
+        /* Base theme styles (copied from user's CSS) */
+        .risu-preview :root {
+            --preview-bg: #bacee0;
+            --char-box-bg: #ffffff;
+            --char-box-sh: rgba(114, 137, 218, 0.3);
+            --user-box-bg: #ffde00;
+            --user-box-sh: rgba(114, 137, 218, 0.2);
+            --button-color: #99aab5;
+            --button-color-hv: #7289da;
+            --button-color-on: #43b581;
+            --button-send: #99aab5;
+            --button-send-hv: #7289da;
+            --border-radius: 20px;
+            --profile-size: 60px;
+            --profile-radius: 50px;
+            --chat-width: 100%;
+            --profile-margin: 5px;
+            --profile-vertical-margin: 5px;
+        }
+
         .risu-preview {
-            background-color: var(--preview-bg, #bacee0);
+            background-color: var(--preview-bg);
             display: flex;
             justify-content: center;
             align-items: center;
@@ -170,12 +196,12 @@
         .risu-preview .user-image > div {
             background-position: center !important;
             background-size: cover !important;
-            border-radius: 50px;
-            width: 60px !important;
-            height: 60px !important;
-            margin-top: 5px;
+            border-radius: var(--profile-radius);
+            width: var(--profile-size) !important;
+            height: var(--profile-size) !important;
+            margin-top: var(--profile-vertical-margin);
             background-color: #888;
-            min-width: 60px;
+            min-width: var(--profile-size);
         }
 
         .risu-preview .char-box-wrapper,
@@ -202,24 +228,20 @@
             display: flex;
             flex-direction: column;
             flex-grow: 1;
-        }
-        
-        .risu-preview .char-chat-box {
-            margin-left: 5px;
+            margin-left: var(--profile-margin);
         }
 
         .risu-preview .user-chat-box {
             align-items: flex-end;
             text-align: left;
-            margin-right: 5px; /* 유저 말풍선과 프로필 사이 여백 추가 */
+            margin-right: 0px;
         }
 
-        /* 여기가 중요! 미리보기에서 버블 모양을 직접 설정합니다 */
         .risu-preview .chat-box > span {
             max-width: 90%;
             width: fit-content;
             display: inline-block;
-            border-radius: 20px; /* 더 둥글게 조정 */
+            border-radius: var(--border-radius);
             padding: 0.7rem 1rem;
             word-break: break-word;
             overflow-wrap: break-word;
@@ -227,18 +249,18 @@
         }
 
         .risu-preview .char-chat-box > span {
-            background-color: #ffffff;
-            box-shadow: rgba(114, 137, 218, 0.3);
+            background-color: var(--char-box-bg);
+            box-shadow: var(--char-box-sh);
             margin-top: 10px;
-            color: #333333;
+            color: var(--text-color, #333333);
         }
 
         .risu-preview .user-chat-box > span {
-            background-color: #ffde00;
+            background-color: var(--user-box-bg);
             text-align: left;
-            box-shadow: rgba(114, 137, 218, 0.2);
+            box-shadow: var(--user-box-sh);
             margin-top: 10px;
-            color: #333333;
+            color: var(--text-color, #333333);
         }
 
         .risu-preview .character-image, 
@@ -254,7 +276,7 @@
 
         .risu-preview .character-textbox {
             width: auto;
-            margin-left: 5px;
+            margin-left: var(--profile-margin);
             flex: 1;
         }
 
@@ -304,10 +326,10 @@
                 <input type="color" id="user-bubble-color" value="#ffde00" class="color-input" title="유저 말풍선 색">
                 <label class="color-label">유저 말풍선 색</label>
             </div>
-
+            
             <div class="color-picker">
-                <input type="range" id="bubble-radius" min="5" max="30" value="20" class="color-input" style="height: 30px;" title="말풍선 둥글기">
-                <label class="color-label">말풍선 둥글기</label>
+                <input type="range" id="border-radius" min="5" max="30" value="20" class="slider-input" title="말풍선 둥글기">
+                <label class="color-label">말풍선 둥글기: <span id="radius-value">20</span>px</label>
             </div>
         </div>
         
@@ -504,16 +526,13 @@ body {
     display: flex;
     flex-direction: column;
     flex-grow: 1;
-}
-
-.char-chat-box {
     margin-left: var(--profile-margin);
 }
 
 .user-chat-box {
     align-items: flex-end;
     text-align: left;
-    margin-right: var(--profile-margin); /* 유저 말풍선과 프로필 사이 여백 추가 */
+    margin-right: 0px;
 }
 
 .chat-box > span {
@@ -602,50 +621,51 @@ body {
     </div>
     
     <script>
-        // Color picker and slider functionality
+        // Color picker functionality
         const backgroundColorPicker = document.getElementById('background-color');
         const charBubbleColorPicker = document.getElementById('char-bubble-color');
         const userBubbleColorPicker = document.getElementById('user-bubble-color');
-        const bubbleRadiusSlider = document.getElementById('bubble-radius');
+        const borderRadiusSlider = document.getElementById('border-radius');
+        const radiusValue = document.getElementById('radius-value');
         const themePreview = document.getElementById('theme-preview');
         const cssCode = document.getElementById('css-code');
         
         // Function to update preview and CSS code
         function updateColors() {
-            // Update preview background
+            // Update preview
             themePreview.style.backgroundColor = backgroundColorPicker.value;
-            
-            // Get bubble radius value
-            const borderRadius = bubbleRadiusSlider.value + 'px';
             
             // Update chat bubbles in preview
             const charBubbles = document.querySelectorAll('.risu-preview .char-chat-box > span');
             charBubbles.forEach(bubble => {
                 bubble.style.backgroundColor = charBubbleColorPicker.value;
-                bubble.style.borderRadius = borderRadius;
+                bubble.style.borderRadius = borderRadiusSlider.value + 'px';
             });
             
             const userBubbles = document.querySelectorAll('.risu-preview .user-chat-box > span');
             userBubbles.forEach(bubble => {
                 bubble.style.backgroundColor = userBubbleColorPicker.value;
-                bubble.style.borderRadius = borderRadius;
+                bubble.style.borderRadius = borderRadiusSlider.value + 'px';
             });
+            
+            // Update radius display
+            radiusValue.textContent = borderRadiusSlider.value;
             
             // Update CSS code
             let updatedCss = cssCode.textContent;
             updatedCss = updatedCss.replace(/--preview-bg: #[0-9a-fA-F]{6};/, `--preview-bg: ${backgroundColorPicker.value};`);
             updatedCss = updatedCss.replace(/--char-box-bg: #[0-9a-fA-F]{6};/, `--char-box-bg: ${charBubbleColorPicker.value};`);
             updatedCss = updatedCss.replace(/--user-box-bg: #[0-9a-fA-F]{6};/, `--user-box-bg: ${userBubbleColorPicker.value};`);
-            updatedCss = updatedCss.replace(/--border-radius: [0-9]+px;/, `--border-radius: ${borderRadius};`);
+            updatedCss = updatedCss.replace(/--border-radius: \d+px;/, `--border-radius: ${borderRadiusSlider.value}px;`);
             
             cssCode.textContent = updatedCss;
         }
         
-        // Add event listeners
+        // Add event listeners to color pickers and slider
         backgroundColorPicker.addEventListener('input', updateColors);
         charBubbleColorPicker.addEventListener('input', updateColors);
         userBubbleColorPicker.addEventListener('input', updateColors);
-        bubbleRadiusSlider.addEventListener('input', updateColors);
+        borderRadiusSlider.addEventListener('input', updateColors);
         
         // Copy buttons functionality
         document.getElementById('copy-html').addEventListener('click', function() {
@@ -666,7 +686,7 @@ body {
             });
         }
         
-        // Initialize colors and bubble radius
+        // Initialize colors
         updateColors();
     </script>
 </body>
