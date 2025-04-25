@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSS 커스터마이저</title>
+    <style>
+        :root {
+            --primary-color: #4a6bff;
+            --secondary-color: #e0e0e0;
+            --bg-color: #f5f5f5;
+            --text-color: #333;
+            --border-radius: 8px;
+            --shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        h1 {
+            grid-column: 1 / -1;
+            text-align: center;
+            margin-bottom: 20px;
+            color: var(--primary-color);
+        }
+
+        .customizer-section {
+            background-color: white;
+            padding: 20px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+        }
+
+        .preview-section {
+            background-color: white;
+            padding: 20px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+        }
+
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--secondary-color);
+        }
+
+        .tab {
+            color: var(--primary-color);
+            padding: 10px 20px;
+            cursor: pointer;
+            border: none;
+            background-color: transparent;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .tab.active {
+            color: var(--primary-color);
+            border-bottom: 2px solid var(--primary-color);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .style-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid var(--secondary-color);
+            border-radius: var(--border-radius);
+        }
+
+        .style-section h3 {
+            margin-bottom: 10px;
+            color: var(--primary-color);
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        textarea {
+            width: 100%;
+            height: 100px;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid var(--secondary-color);
+            border-radius: var(--border-radius);
+            font-family: monospace;
+            font-size: 14px;
+        }
+
+        input[type="text"], input[type="color"], input[type="number"] {
+            width: 100%;
+            padding: 8px 10px;
+            margin-bottom: 10px;
+            border: 1px solid var(--secondary-color);
+            border-radius: var(--border-radius);
+        }
+
+        input[type="color"] {
+            height: 40px;
+        }
+
+        button {
+            padding: 10px 20px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #3a5bef;
+        }
+
+        .copy-button {
+            grid-column: 1 / -1;
+            margin: 20px auto;
+            display: block;
+            font-size: 18px;
+            padding: 12px 30px;
+        }
+
+        .final-css {
+            grid-column: 1 / -1;
+            width: 100%;
+            height: 200px;
+            background-color: white;
+            padding: 15px;
+            border: 1px solid var(--secondary-color);
+            border-radius: var(--border-radius);
+            overflow-y: auto;
+            font-family: monospace;
+            white-space: pre;
+        }
+
+        .property-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .preview-chat {
+            padding: 15px;
+            border-radius: var(--border-radius);
+            margin-bottom: 20px;
+            overflow-y: auto;
+        }
+
+        .bubble-container {
+            margin-bottom: 15px;
+            clear: both;
+        }
+
+        .chat-bubble {
+            max-width: 70%;
+            padding: 10px 15px;
+            border-radius: 18px;
+            position: relative;
+            margin-bottom: 8px;
+        }
+
+        .char-bubble {
+            background-color: #f0f0f0;
+            float: left;
+            border-top-left-radius: 0;
+        }
+
+        .user-bubble {
+            background-color: #dcf8c6;
+            float: right;
+            border-top-right-radius: 0;
+        }
+
+        .preview-controls {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid var(--secondary-color);
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .style-toggle {
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .style-toggle input {
+            margin-right: 10px;
+        }
+
+        /* 미리보기 스타일 */
+        .preview-container {
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 15px;
+            max-height: 500px;
+            overflow-y: auto;
+            background-color: #f5f5f5; /* 기본 배경색 */
+        }
+
+        .apply-button {
+            margin-top: 10px;
+            display: block;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>CSS 커스터마이저</h1>
+
+        <div class="customizer-section">
+            <div class="tabs">
+                <button class="tab active" data-tab="character">캐릭터</button>
+                <button class="tab" data-tab="user">유저</button>
+            </div>
+
+            <div class="tab-content active" id="character-tab">
+                <div class="style-section" id="char-normal">
+                    <div class="style-toggle">
+                        <input type="checkbox" id="char-normal-toggle">
+                        <h3>일반 텍스트</h3>
+                    </div>
+                    <div class="style-content">
+                        <label>폰트 정보:</label>
+                        <textarea id="char-normal-font" placeholder="@font-face { ... } 형식으로 입력하세요"></textarea>
+                        <div class="property-row">
+                            <div>
+                                <label>폰트명:</label>
+                                <input type="text" id="char-normal-family" value="">
+                            </div>
+                            <div>
+                                <label>색상:</label>
+                                <input type="color" id="char-normal-color" value="#ff8181">
+                            </div>
+                            <div>
+                                <label>크기:</label>
+                                <input type="number" id="char-normal-size" value="14" min="8" max="36">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="style-section" id="char-italic">
+                    <div class="style-toggle">
+                        <input type="checkbox" id="char-italic-toggle">
+                        <h3>이탤릭 텍스트</h3>
+                    </div>
+                    <div class="style-content" style="display: none;">
+                        <label>폰트 정보:</label>
+                        <textarea id="char-italic-font" placeholder="@font-face { ... } 형식으로 입력하세요"></textarea>
+                        <div class="property-row">
+                            <div>
+                                <label>폰트명:</label>
+                                <input type="text" id="char-italic-family" value="">
+                            </div>
+                            <div>
+                                <label>색상:</label>
+                                <input type="color" id="char-italic-color" value="#ff8181">
+                            </div>
+                            <div>
+                                <label>크기:</label>
+                                <input type="number" id="char-italic-size" value="14" min="8" max="36">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="style-section" id="char-bold">
+                    <div class="style-toggle">
+                        <input type="checkbox" id="char-bold-toggle">
+                        <h3>굵은 텍스트</h3>
+                    </div>
+                    <div class="style-content" style="display: none;">
+                        <label>폰트 정보:</label>
+                        <textarea id="char-bold-font" placeholder="@font-face { ... } 형식으로 입력하세요"></textarea>
+                        <div class="property-row">
+                            <div>
+                                <label>폰트명:</label>
+                                <input type="text" id="char-bold-family" value="">
+                            </div>
+                            <div>
+                                <label>색상:</label>
+                                <input type="color" id="char-bold-color" value="#ff8181">
+                            </div>
+                            <div>
+                                <label>크기:</label>
+                                <input type="number" id="char-bold-size" value="14" min="8" max="36">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="style-section" id="char-quote2">
+                    <div class="style-toggle">
+                        <input type="checkbox" id="char-quote2-toggle">
+                        <h3>큰따옴표 텍스트</h3>
+                    </div>
+                    <div class="style-content" style="display: none;">
+                        <label>폰트 정보:</label>
+                        <textarea id="char-quote2-font" placeholder="@font-face { ... } 형식으로 입력하세요"></textarea>
+                        <div class="property-row">
+                            <div>
+                                <label>폰트명:</label>
+                                <input type="text" id="char-quote2-family" value="">
+                            </div>
+                            <div>
+                                <label>색상:</label>
+                                <input type="color" id="char-quote2-color" value="#197400">
+                            </div>
+                            <div>
+                                <label>크기:</label>
+                                <input type="number" id="char-quote2-size" value="14" min="8" max="36">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="style-section" id="char-quote1">
+                    <div class="style-toggle">
+                        <input type="checkbox" id="char-quote1-toggle">
+                        <h3>작은따옴표 텍스트</h3>
+                    </div>
+                    <div class="style-content" style="display: none;">
+                        <label>폰트 정보:</label>
+                        <textarea id="char-quote1-font" placeholder="@font-face { ... } 형식으로 입력하세요"></textarea>
+                        <div class="property-row">
+                            <div>
+                                <label>폰트명:</label>
+                                <input type="text" id="char-quote1-family" value="">
+                            </div>
+                            <div>
+                                <label>색상:</label>
+                                <input type="color" id="char-quote1-color" value="#197400">
+                            </div>
+                            <div>
+                                <label>크기:</label>
+                                <input type="number" id="char-quote1-size" value="14" min="8" max="36">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="style-section" id="char-heading">
+                    <div class="style-toggle">
+                        <input type="checkbox" id="char-heading-toggle">
+                        <h3>큰 텍스트</h3>
+                    </div>
+                    <div class="style-content" style="display: none;">
+                        <label>폰트 정보:</label>
+                        <textarea id="char-heading-font" placeholder="@font-face { ... } 형식으로 입력하세요"></textarea>
+                        <div class="property-row">
+                            <div>
+                                <label>폰트명:</label>
+                                <input type="text" id="char-heading-family" value="">
+                            </div>
+                            <div>
+                                <label>색상:</label>
+                                <input type="color" id="char-heading-color" value="#ff8181">
+                            </div>
+                            <div>
+                                <label>크기:</label>
+                                <input type="number" id="char-heading-size" value="18" min="8" max="36">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-content" id="user-tab">
+                <div class="style-section" id="user-normal">
+                    <div class="style-toggle">
+                        <input type="checkbox" id="user-normal-toggle">
+                        <h3>일반 텍스트</h3>
+                    </div>
+                    <div class="style-content" style="display: none;">
+                        <label>폰트 정보:</label>
+                        <textarea id="user-normal-font" placeholder="@font-face { ... } 형식으로 입력하세요"></textarea>
+                        <div class="property-row">
+                            <div>
+                                <label>폰트명:</label>
+                                <input type="text" id="user-normal-family" value="">
+                            </div>
+                            <div>
+                                <label>색상:</label>
+                                <input type="color" id="user-normal-color" value="#ff8181">
+                            </div>
+                            <div>
+                                <label>크기:</label>
+                                <input type="number" id="user-normal-size" value="14" min="8" max="36">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="style-section" id="user-italic">
+                    <div class="style-toggle">
+                        <input type="checkbox" id="user-italic-toggle">
+                        <h3>이탤릭 텍스트</h3>
+                    </div>
+                    <div class="style-content" style="display: none;">
+                        <label>폰트 정보:</label>
+                        <textarea id="user-italic-font" placeholder="@font-face { ... } 형식으로 입력하세요"></textarea>
+                        <div class="property-row">
+                            <div>
+                                <label>폰트명:</label>
+                                <input type="text" id="user-italic-family" value="">
+                            </div>
+                            <div>
+                                <label>색상:</label>
+                                <input type="color" id="user-italic-color" value="#ff8181">
+                            </div>
+                            <div>
+                                <label>크기:</label>
+                                <input type="number" id="user-italic-size" value="14" min="8" max="36">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="style-section" id="user-bold">
+                    <div class="style-toggle">
+                        <input type="checkbox" id="user-bold-toggle">
+                        <h3>굵은 텍스트</h3>
+                    </div>
+                    <div class="style-content" style="display: none;">
+                        <label>폰트 정보:</label>
+                        <textarea id="user-bold-font" placeholder="@font-face { ... } 형식으로 입력하세요"></textarea>
+                        <div class="property-row">
+                            <div>
+                                <label>폰트명:</label>
+                                <input type="text" id="user-bold-family" value="">
+                            </div>
+                            <div>
+                                <label>색상:</label>
+                                <input type="color" id="user-bold-color" value="#ff8181">
+                            </div>
+                            <div>
+                                <label>크기:</label>
+                                <input type="number" id="user-bold-size" value="14" min="8" max="36">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="style-section" id="user-quote2">
+                    <div class="style-toggle">
+                        <input type="checkbox" id="user-quote2-toggle">
+                        <h3>큰따옴표 텍스트</h3>
+                    </div>
+                    <div class="style-content" style="display: none;">
+                        <label>폰트 정보:</label>
+                        <textarea id="user-quote2-font" placeholder="@font-face { ... } 형식으로 입력하세요"></textarea>
+                        <div class="property-row">
+                            <div>
+                                <label>폰트명:</label>
+                                <input type="text" id="user-quote2-family" value="">
+                            </div>
+                            <div>
+                                <label>색상:</label>
+                                <input type="color" id="user-quote2-color" value="#197400">
+                            </div>
+                            <div>
+                                <label>크기:</label>
+                                <input type="number" id="user-quote2-size" value="14" min="8" max="36">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="style-section" id="user-quote1">
+                    <div class="style-toggle">
+                        <input type="checkbox" id="user-quote1-toggle">
+                        <h3>작은따옴표 텍스트</h3>
+                    </div>
+                    <div class="style-content" style="display: none;">
+                        <label>폰트 정보:</label>
+                        <textarea id="user-quote1-font" placeholder="@font-face { ... } 형식으로 입력하세요"></textarea>
+                        <div class="property-row">
+                            <div>
+                                <label>폰트명:</label>
+                                <input type="text" id="user-quote1-family" value="">
+                            </div>
+                            <div>
+                                <label>색상:</label>
+                                <input type="color" id="user-quote1-color" value="#197400">
+                            </div>
+                            <div>
+                                <label>크기:</label>
+                                <input type="number" id="user-quote1-size" value="14" min="8" max="36">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="style-section" id="user-heading">
+                    <div class="style-toggle">
+                        <input type="checkbox" id="user-heading-toggle">
+                        <h3>큰 텍스트</h3>
+                    </div>
+                    <div class="style-content" style="display: none;">
+                        <label>폰트 정보:</label>
+                        <textarea id="user-heading-font" placeholder="@font-face { ... } 형식으로 입력하세요"></textarea>
+                        <div class="property-row">
+                            <div>
+                                <label>폰트명:</label>
+                                <input type="text" id="user-heading-family" value="">
+                            </div>
+                            <div>
+                                <label>색상:</label>
+                                <input type="color" id="user-heading-color" value="#ff8181">
+                            </div>
+                            <div>
+                                <label>크기:</label>
+                                <input type="number" id="user-heading-size" value="18" min="8" max="36">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="preview-section">
+            <h2>미리보기</h2>
+            <div class="preview-controls">
+                <div class="input-group">
+                    <label>배경색:</label>
+                    <input type="color" id="background-color" value="#000000">
+                </div>
+                <div class="input-group">
+                    <label>캐릭터 말풍선 색상:</label>
+                    <input type="color" id="char-bubble-color" value="#f0f0f0">
+                </div>
+                <div class="input-group">
+                    <label>유저 말풍선 색상:</label>
+                    <input type="color" id="user-bubble-color" value="#dcf8c6">
+                </div>
+                <button id="update-preview" class="apply-button">미리보기 업데이트</button>
+            </div>
+            
+            <div class="preview-container" id="preview-box">
+                <div class="bubble-container">
+                    <div class="chat-bubble char-bubble char-chat-box">
+                        <p>안녕하세요! 이것은 일반 텍스트와 <em>이탤릭</em> 텍스트입니다.</p>
+                        <p><strong>굵은 텍스트</strong>와 <mark risu-mark="quote2">큰따옴표 텍스트</mark>와 <mark risu-mark="quote1">작은따옴표 텍스트</mark>도 있습니다.</p>
+                        <h3>이것은 큰 텍스트입니다</h3>
+                    </div>
+                </div>
+                <div class="bubble-container">
+                    <div class="chat-bubble user-bubble user-chat-box">
+                        <p>안녕하세요! 이것은 일반 텍스트와 <em>이탤릭</em> 텍스트입니다.</p>
+                        <p><strong>굵은 텍스트</strong>와 <mark risu-mark="quote2">큰따옴표 텍스트</mark>와 <mark risu-mark="quote1">작은따옴표 텍스트</mark>도 있습니다.</p>
+                        <h3>이것은 큰 텍스트입니다</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <button id="copy-css" class="copy-button">CSS 코드 복사하기</button>
+        <pre class="final-css" id="final-css"></pre>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 탭 기능
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(tab => {
+                tab.addEventListener('click', function() {
+                    const tabType = this.getAttribute('data-tab');
+                    
+                    // 탭 활성화
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // 탭 컨텐츠 활성화
+                    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+                    document.getElementById(`${tabType}-tab`).classList.add('active');
+                });
+            });
+
+            // 스타일 토글 기능
+            document.querySelectorAll('.style-toggle').forEach(toggle => {
+                toggle.addEventListener('click', function(e) {
+                    if (e.target === this.querySelector('input') || e.target === this) {
+                        const content = this.nextElementSibling;
+                        const checkbox = this.querySelector('input');
+                        
+                        if (checkbox.checked) {
+                            content.style.display = 'block';
+                        } else {
+                            content.style.display = 'none';
+                        }
+                    }
+                });
+
+                // 초기 상태 설정
+                const checkbox = toggle.querySelector('input');
+                const content = toggle.nextElementSibling;
+                if (checkbox.checked) {
+                    content.style.display = 'block';
+                } else {
+                    content.style.display = 'none';
+                }
+            });
+
+            // 폰트 정보 파싱 기능
+            document.querySelectorAll('textarea[id$="-font"]').forEach(textarea => {
+                textarea.addEventListener('input', function() {
+                    const fontText = this.value;
+                    const fontFamilyMatch = fontText.match(/font-family:\s*['"]([^'"]+)['"]/);
+                    
+                    if (fontFamilyMatch && fontFamilyMatch[1]) {
+                        const inputId = this.id.replace('-font', '-family');
+                        document.getElementById(inputId).value = fontFamilyMatch[1] + ', sans-serif';
+                    }
+                });
+            });
+
+            // 미리보기 업데이트
+            document.getElementById('update-preview').addEventListener('click', function() {
+                updatePreview();
+                updateFinalCSS();
+            });
+
+            // CSS 코드 복사
+            document.getElementById('copy-css').addEventListener('click', function() {
+                const cssCode = document.getElementById('final-css').textContent;
+                navigator.clipboard.writeText(cssCode).then(() => {
+                    alert('CSS 코드가 클립보드에 복사되었습니다!');
+                }).catch(err => {
+                    console.error('클립보드 복사 실패:', err);
+                    alert('복사에 실패했습니다. 수동으로 코드를 선택하여 복사해주세요.');
+                });
+            });
+
+            // 미리보기 업데이트 함수
+            function updatePreview() {
+                // 배경 및 말풍선 색상 변경
+                const backgroundColor = document.getElementById('background-color').value;
+                const charBubbleColor = document.getElementById('char-bubble-color').value;
+                const userBubbleColor = document.getElementById('user-bubble-color').value;
+                
+                document.querySelector('.preview-container').style.backgroundColor = backgroundColor;
+                document.querySelectorAll('.char-bubble').forEach(bubble => {
+                    bubble.style.backgroundColor = charBubbleColor;
+                });
+                document.querySelectorAll('.user-bubble').forEach(bubble => {
+                    bubble.style.backgroundColor = userBubbleColor;
+                });
+
+                // CSS 스타일 요소를 동적 생성 또는 업데이트
+                let styleEl = document.getElementById('preview-styles');
+                if (!styleEl) {
+                    styleEl = document.createElement('style');
+                    styleEl.id = 'preview-styles';
+                    document.head.appendChild(styleEl);
+                }
+
+                // 각 스타일 설정 업데이트
+                let styleRules = '';
+
+                // 폰트 정의 추가
+                const fontDefinitions = new Set();
+                document.querySelectorAll('textarea[id$="-font"]').forEach(textarea => {
+                    if (textarea.value.trim() && document.getElementById(textarea.id.replace('-font', '-toggle')).checked) {
+                        fontDefinitions.add(textarea.value);
+                    }
+                });
+
+                // 폰트 정의 CSS 생성
+                fontDefinitions.forEach(def => {
+                    styleRules += def + '\n\n';
+                });
+
+                // 캐릭터 스타일
+                if (document.getElementById('char-normal-toggle').checked) {
+                    styleRules += `.char-chat-box p, .char-chat-box li {
+  font-family: ${document.getElementById('char-normal-family').value};
+  color: ${document.getElementById('char-normal-color').value};
+  font-size: ${document.getElementById('char-normal-size').value}px;
+}\n\n`;
+                }
+
+                if (document.getElementById('char-italic-toggle').checked) {
+                    styleRules += `.char-chat-box em {
+  font-family: ${document.getElementById('char-italic-family').value};
+  color: ${document.getElementById('char-italic-color').value};
+  font-size: ${document.getElementById('char-italic-size').value}px;
+}\n\n`;
+                }
+
+                if (document.getElementById('char-bold-toggle').checked) {
+                    styleRules += `.char-chat-box strong {
+  font-family: ${document.getElementById('char-bold-family').value};
+  color: ${document.getElementById('char-bold-color').value};
+  font-size: ${document.getElementById('char-bold-size').value}px;
+}\n\n`;
+                }
+
+                if (document.getElementById('char-quote2-toggle').checked) {
+                    styleRules += `.char-chat-box mark[risu-mark="quote2"] {
+  font-family: ${document.getElementById('char-quote2-family').value};
+  color: ${document.getElementById('char-quote2-color').value};
+  font-size: ${document.getElementById('char-quote2-size').value}px;
+  background-color: transparent;
+}\n\n`;
+                }
+
+                if (document.getElementById('char-quote1-toggle').checked) {
+                    styleRules += `.char-chat-box mark[risu-mark="quote1"] {
+  font-family: ${document.getElementById('char-quote1-family').value};
+  color: ${document.getElementById('char-quote1-color').value};
+  font-size: ${document.getElementById('char-quote1-size').value}px;
+  background-color: transparent;
+}\n\n`;
+                }
+
+                if (document.getElementById('char-heading-toggle').checked) {
+                    styleRules += `.char-chat-box h1, .char-chat-box h2, .char-chat-box h3 {
+  font-family: ${document.getElementById('char-heading-family').value};
+  color: ${document.getElementById('char-heading-color').value};
+  font-size: ${document.getElementById('char-heading-size').value}px;
+}\n\n`;
+                }
+
+                // 유저 스타일
+                if (document.getElementById('user-normal-toggle').checked) {
+                    styleRules += `.user-chat-box p, .user-chat-box li {
+  font-family: ${document.getElementById('user-normal-family').value};
+  color: ${document.getElementById('user-normal-color').value};
+  font-size: ${document.getElementById('user-normal-size').value}px;
+}\n\n`;
+                }
+
+                if (document.getElementById('user-italic-toggle').checked) {
+                    styleRules += `.user-chat-box em {
+  font-family: ${document.getElementById('user-italic-family').value};
+  color: ${document.getElementById('user-italic-color').value};
+  font-size: ${document.getElementById('user-italic-size').value}px;
+}\n\n`;
+                }
+
+                if (document.getElementById('user-bold-toggle').checked) {
+                    styleRules += `.user-chat-box strong {
+  font-family: ${document.getElementById('user-bold-family').value};
+  color: ${document.getElementById('user-bold-color').value};
+  font-size: ${document.getElementById('user-bold-size').value}px;
+}\n\n`;
+                }
+
+                if (document.getElementById('user-quote2-toggle').checked) {
+                    styleRules += `.user-chat-box mark[risu-mark="quote2"] {
+  font-family: ${document.getElementById('user-quote2-family').value};
+  color: ${document.getElementById('user-quote2-color').value};
+  font-size: ${document.getElementById('user-quote2-size').value}px;
+  background-color: transparent;
+}\n\n`;
+                }
+
+                if (document.getElementById('user-quote1-toggle').checked) {
+                    styleRules += `.user-chat-box mark[risu-mark="quote1"] {
+  font-family: ${document.getElementById('user-quote1-family').value};
+  color: ${document.getElementById('user-quote1-color').value};
+  font-size: ${document.getElementById('user-quote1-size').value}px;
+  background-color: transparent;
+}\n\n`;
+                }
+
+                if (document.getElementById('user-heading-toggle').checked) {
+                    styleRules += `.user-chat-box h1, .user-chat-box h2, .user-chat-box h3 {
+  font-family: ${document.getElementById('user-heading-family').value};
+  color: ${document.getElementById('user-heading-color').value};
+  font-size: ${document.getElementById('user-heading-size').value}px;
+}\n\n`;
+                }
+
+                styleEl.textContent = styleRules;
+            }
+
+            // 최종 CSS 업데이트 함수
+            function updateFinalCSS() {
+                const fontDefinitions = new Set();
+                let cssRules = '';
+
+                // 폰트 정의 수집
+                document.querySelectorAll('textarea[id$="-font"]').forEach(textarea => {
+                    if (textarea.value.trim() && document.getElementById(textarea.id.replace('-font', '-toggle')).checked) {
+                        fontDefinitions.add(textarea.value);
+                    }
+                });
+
+                // 폰트 정의 추가
+                fontDefinitions.forEach(def => {
+                    cssRules += def + '\n\n';
+                });
+
+                // 캐릭터 스타일
+                if (document.getElementById('char-normal-toggle').checked) {
+                    cssRules += `.char-chat-box p, .char-chat-box li{
+  font-family: ${document.getElementById('char-normal-family').value};
+  color: ${document.getElementById('char-normal-color').value};
+  font-size: ${document.getElementById('char-normal-size').value}px
+}\n\n`;
+                }
+
+                if (document.getElementById('char-italic-toggle').checked) {
+                    cssRules += `.char-chat-box em{
+  font-family: ${document.getElementById('char-italic-family').value};
+  color: ${document.getElementById('char-italic-color').value};
+  font-size: ${document.getElementById('char-italic-size').value}px
+}\n\n`;
+                }
+
+                if (document.getElementById('char-bold-toggle').checked) {
+                    cssRules += `.char-chat-box strong{
+  font-family: ${document.getElementById('char-bold-family').value};
+  color: ${document.getElementById('char-bold-color').value};
+  font-size: ${document.getElementById('char-bold-size').value}px
+}\n\n`;
+                }
+
+                if (document.getElementById('char-quote2-toggle').checked) {
+                    cssRules += `.char-chat-box mark[risu-mark="quote2"] {
+  font-family: ${document.getElementById('char-quote2-family').value};
+  color: ${document.getElementById('char-quote2-color').value};
+  font-size: ${document.getElementById('char-quote2-size').value}px
+}\n\n`;
+                }
+
+                if (document.getElementById('char-quote1-toggle').checked) {
+                    cssRules += `.char-chat-box mark[risu-mark="quote1"] {
+  font-family: ${document.getElementById('char-quote1-family').value};
+  color: ${document.getElementById('char-quote1-color').value};
+  font-size: ${document.getElementById('char-quote1-size').value}px
+}\n\n`;
+                }
+
+                if (document.getElementById('char-heading-toggle').checked) {
+                    cssRules += `.char-chat-box h1, .char-chat-box h2, .char-chat-box h3{
+  font-family: ${document.getElementById('char-heading-family').value};
+  color: ${document.getElementById('char-heading-color').value};
+  font-size: ${document.getElementById('char-heading-size').value}px
+}\n\n`;
+                }
+
+                // 유저 스타일
+                if (document.getElementById('user-normal-toggle').checked) {
+                    cssRules += `.user-chat-box p, .user-chat-box li{
+  font-family: ${document.getElementById('user-normal-family').value};
+  color: ${document.getElementById('user-normal-color').value};
+  font-size: ${document.getElementById('user-normal-size').value}px
+}\n\n`;
+                }
+
+                if (document.getElementById('user-italic-toggle').checked) {
+                    cssRules += `.user-chat-box em{
+  font-family: ${document.getElementById('user-italic-family').value};
+  color: ${document.getElementById('user-italic-color').value};
+  font-size: ${document.getElementById('user-italic-size').value}px
+}\n\n`;
+                }
+
+                if (document.getElementById('user-bold-toggle').checked) {
+                    cssRules += `.user-chat-box strong{
+  font-family: ${document.getElementById('user-bold-family').value};
+  color: ${document.getElementById('user-bold-color').value};
+  font-size: ${document.getElementById('user-bold-size').value}px
+}\n\n`;
+                }
+
+                if (document.getElementById('user-quote2-toggle').checked) {
+                    cssRules += `.user-chat-box mark[risu-mark="quote2"] {
+  font-family: ${document.getElementById('user-quote2-family').value};
+  color: ${document.getElementById('user-quote2-color').value};
+  font-size: ${document.getElementById('user-quote2-size').value}px
+}\n\n`;
+                }
+
+                if (document.getElementById('user-quote1-toggle').checked) {
+                    cssRules += `.user-chat-box mark[risu-mark="quote1"] {
+  font-family: ${document.getElementById('user-quote1-family').value};
+  color: ${document.getElementById('user-quote1-color').value};
+  font-size: ${document.getElementById('user-quote1-size').value}px
+}\n\n`;
+                }
+
+                if (document.getElementById('user-heading-toggle').checked) {
+                    cssRules += `.user-chat-box h1, .user-chat-box h2, .user-chat-box h3{
+  font-family: ${document.getElementById('user-heading-family').value};
+  color: ${document.getElementById('user-heading-color').value};
+  font-size: ${document.getElementById('user-heading-size').value}px
+}\n\n`;
+                }
+
+                document.getElementById('final-css').textContent = cssRules.trim();
+            }
+
+            // 초기 미리보기 렌더링
+            updatePreview();
+            updateFinalCSS();
+        });
+    </script>
+</body>
+</html>
