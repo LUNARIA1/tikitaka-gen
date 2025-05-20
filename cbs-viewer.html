@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>중괄호 구문 검사기</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            width: 90%;
+            max-width: 800px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        textarea {
+            width: calc(100% - 20px);
+            min-height: 150px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
+            font-size: 14px;
+            margin-bottom: 10px;
+            box-sizing: border-box;
+        }
+        #output {
+            border: 1px solid #ddd;
+            padding: 10px;
+            min-height: 150px;
+            background-color: #f9f9f9;
+            border-radius: 4px;
+            font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
+            font-size: 14px;
+            white-space: pre-wrap; /* 줄바꿈 유지 */
+            word-wrap: break-word; /* 긴 단어 자동 줄바꿈 */
+        }
+        .token {
+            padding: 1px 3px;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+        .token-error {
+            background-color: #ffcccc !important; /* 빨간색 배경 */
+            color: #a80000 !important; /* 어두운 빨간색 텍스트 */
+            border: 1px solid #ff7f7f;
+            cursor: help; /* 마우스 오버 시 도움말 커서 */
+        }
+        button {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            background-color: #5cb85c;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #4cae4c;
+        }
+        .info {
+            margin-top: 15px;
+            padding: 10px;
+            background-color: #e7f3fe;
+            border-left: 6px solid #2196F3;
+            font-size: 0.9em;
+        }
+        .info p { margin: 5px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>중괄호 구문 시각화 도구</h1>
+        <textarea id="inputCode" placeholder="여기에 중괄호 구문을 입력하세요... 예: {{#if condition}} Hello {{name}} {{/if}}">{{#if A}} 바깥 IF {{#if B}} 안쪽 IF {{var}} {{/if}} {{else}} 바깥 ELSE {{/if}}
+{{unclosed_if_example
+{{#if C}} 이프는 있는데
+{{#if {{equal::{{char}}::name}} }}
+  {{#if D}} {{/if}}
+{{/if}}
+{{#if E}} 
+  이런것도 {{name}}
+  {{#if F}}
+    {{#if G}} {{/G}}
+  {{/if}}
+{{/if}} {{/E}}
+{{#if H}}
+  {{/if}}
+
+{{#if NO_CLOSE_BRACE
+{{/if}}
+
+{{#if NOT_CLOSED_IF_BLOCK }}
+  이 IF는 닫히지 않았습니다.
+{{unmatched_open_brace
+
+{{#if VALID_BLOCK}} {{/if}}
+
+{{/extraneous_closing_if}}
+
+{{extraneous_slash_close/}}
+</textarea>
+        <button onclick="render()">구문 분석 및 시각화</button>
+        <div id="output"></div>
+        <div class="info">
+            <p><strong>규칙:</strong></p>
+            <p>- 각 <code>{{ }}</code> 쌍은 고유한 배경색으로 표시됩니다 (중첩 깊이에 따라).</p>
+            <p>- <code>}}</code>로 닫히지 않은 <code>{{</code>는 빨간색으로 표시됩니다.</p>
+            <p>- <code>{{#if ...}}</code>는 <code>{{/if}}</code> 또는 <code>{{/}}</code>로 닫혀야 합니다.</p>
+            <p>- 닫히지 않은 <code>{{#if}}</code> 블록 또는 매칭되는 <code>{{#if}}</code>가 없는 닫는 태그는 빨간색으로 표시됩니다.</p>
+        </div>
+    </div>
+
+    <script>
+        function escapeHtml(unsafe) {
+            if (typeof unsafe !== 'string') {
+                return '';
+            }
+            return unsafe
+                 .replace(/&/g, "&")
+                 .replace(/</g, "<")
+                 .replace(/>/g, ">")
+                 .replace(/"/g, """)
+                 .replace(/'/g, "'");
+        }
+
+        function render() {
+            const code = document.getElementById('inputCode').value;
+            const outputDiv = document.getElementById('output');
+            outputDiv.innerHTML = ''; // 이전 내용 지우기
+
+            const colors = [
+                "#E1BEE7", "#D1C4E9", "#C5CAE9", "#BBDEFB", 
+                "#B3E5FC", "#B2EBF2", "#B2DFDB", "#C8E6C9"
+            ];
+            
+            let i = 0;
+            const ifStack = []; // { span: HTMLElement, color: string, type: 'if' }
+            let currentDepth = 0; // For cycling colors based on #if depth
+
+            function createSpan(text, className, bgColor, title) {
+                const span = document.createElement('span');
+                span.textContent = escapeHtml(text);
+                if (className) {
+                    span.classList.add(className);
+                }
+                if (bgColor && !className) { // className이 'token-error'면 bgColor 무시
+                    span.style.backgroundColor = bgColor;
+                    span.classList.add('token');
+                }
+                if (title) {
+                    span.title = title;
+                }
+                return span;
+            }
+
+            while (i < code.length) {
+                const openBraceIndex = code.indexOf('{{', i);
+
+                if (openBraceIndex === -1) { // 더 이상 {{ 없음
+                    if (i < code.length) {
+                        outputDiv.appendChild(document.createTextNode(code.substring(i)));
+                    }
+                    break;
+                }
+
+                // {{ 이전 텍스트 추가
+                if (openBraceIndex > i) {
+                    outputDiv.appendChild(document.createTextNode(code.substring(i, openBraceIndex)));
+                }
+
+                const closeBraceIndex = code.indexOf('}}', openBraceIndex + 2);
+
+                if (closeBraceIndex === -1) { // {{ 가 있지만 }} 가 없음
+                    const errorText = code.substring(openBraceIndex);
+                    outputDiv.appendChild(createSpan(errorText, 'token-error', null, '닫는 중괄호 "}}"가 없습니다.'));
+                    i = code.length; // 처리 종료
+                    break;
+                }
+
+                // {{ 와 }} 둘 다 찾음
+                const fullToken = code.substring(openBraceIndex, closeBraceIndex + 2);
+                const tokenContent = code.substring(openBraceIndex + 2, closeBraceIndex);
+                let tokenSpan;
+
+                if (tokenContent.startsWith('#if')) {
+                    const color = colors[currentDepth % colors.length];
+                    tokenSpan = createSpan(fullToken, null, color, `IF 블록 (깊이 ${currentDepth})`);
+                    ifStack.push({ span: tokenSpan, color: color, type: 'if' });
+                    currentDepth++;
+                } else if (tokenContent.startsWith('/if') || tokenContent === '/') {
+                    if (ifStack.length > 0) {
+                        const lastIf = ifStack.pop();
+                        currentDepth--; // 스택에서 꺼냈으므로 깊이 감소
+                        // 닫는 태그는 여는 태그의 색상을 사용
+                        tokenSpan = createSpan(fullToken, null, lastIf.color, `"${lastIf.span.textContent}" 블록을 닫습니다.`);
+                    } else {
+                        // 여는 #if 없이 닫는 태그만 있는 경우
+                        tokenSpan = createSpan(fullToken, 'token-error', null, '매칭되는 여는 "{{#if ...}}" 블록이 없습니다.');
+                    }
+                } else {
+                    // 일반 토큰. 현재 #if 깊이에 따라 색상 지정
+                    const color = colors[currentDepth % colors.length];
+                    tokenSpan = createSpan(fullToken, null, color, `일반 토큰 (현재 깊이 ${currentDepth > 0 ? currentDepth -1 : 0})`);
+                }
+                
+                outputDiv.appendChild(tokenSpan);
+                i = closeBraceIndex + 2;
+            }
+
+            // 처리가 끝난 후 ifStack에 남아있는 항목들은 닫히지 않은 #if 블록들임
+            ifStack.forEach(unclosedIf => {
+                unclosedIf.span.classList.add('token-error');
+                unclosedIf.span.style.backgroundColor = ''; // 기본 에러 배경색 사용하도록 기존 색상 제거
+                unclosedIf.span.title = '이 "{{#if ...}}" 블록은 닫히지 않았습니다.';
+            });
+
+            // 페이지 로드 시 기본 텍스트로 한 번 실행
+            if (document.getElementById('inputCode').value && outputDiv.childNodes.length === 0) {
+                 // 이 부분은 render()가 수동으로 호출될 때만 실행되므로, 자동 실행은 아래로 옮깁니다.
+            }
+        }
+
+        // 페이지 로드 시 초기 렌더링
+        document.addEventListener('DOMContentLoaded', function() {
+            render();
+        });
+    </script>
+</body>
+</html>
