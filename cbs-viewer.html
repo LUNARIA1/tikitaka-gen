@@ -44,7 +44,6 @@
             font-size: 14px;
             white-space: pre-wrap;
             line-height: 1.5;
-            /* min-height: 100px; /* 하이라이트 내용 부분 최소 높이 */
             overflow-x: auto;
         }
         .unmatched {
@@ -75,7 +74,6 @@
             margin-bottom: 20px;
             border-left: 4px solid #0088cc;
         }
-        /* --- 수정된/추가된 스타일 --- */
         #clear-button {
             padding: 8px 15px;
             background-color: #e74c3c;
@@ -84,13 +82,13 @@
             border-radius: 4px;
             cursor: pointer;
             font-size: 14px;
-            align-self: flex-start; /* 버튼을 왼쪽 정렬 */
-            margin-bottom: 10px; /* 텍스트 영역과의 간격 */
+            align-self: flex-start; 
+            margin-bottom: 10px; 
         }
         #clear-button:hover {
             background-color: #c0392b;
         }
-        .status-message { /* 기존 error-count에서 이름 변경 및 스타일 개선 */
+        .status-message { 
             font-weight: bold;
             margin-bottom: 10px;
             padding: 8px 12px;
@@ -107,7 +105,6 @@
             background-color: #f8d7da;
             border-color: #f5c6cb;
         }
-        /* --- --- */
     </style>
 </head>
 <body>
@@ -124,187 +121,204 @@
     </div>
 
     <div class="container">
-        <!-- "전부 지우기" 버튼 추가 -->
         <button id="clear-button">전부 지우기</button>
         
         <textarea id="input-text" placeholder="중괄호 구문을 여기에 입력하세요. 예: {{#if {{equal::{{char}}::name}} }}{{/if}}"></textarea>
         
         <div class="result-container">
-            <!-- 상태 메시지 위치 변경 -->
             <div class="status-message" id="status-message"></div>
             <div class="highlighted-content" id="highlighted-output"></div>
-            <!-- 기존 error-count div는 status-message로 대체됨 -->
         </div>
 
         <div class="color-info" id="color-info">
             <div class="color-item">
                 <div class="color-box" style="background-color: red;"></div>
-                <span>닫히지 않은 중괄호 (짝 없는 닫힘)</span>
+                <span>짝 없는 닫힌 중괄호</span>
             </div>
         </div>
     </div>
 
     <script>
+        console.log('Script execution started.'); 
+
         const inputText = document.getElementById('input-text');
         const highlightedOutput = document.getElementById('highlighted-output');
-        const statusMessage = document.getElementById('status-message'); // errorCount -> statusMessage
+        const statusMessage = document.getElementById('status-message'); 
         const colorInfo = document.getElementById('color-info');
-        const clearButton = document.getElementById('clear-button'); // "전부 지우기" 버튼
+        const clearButton = document.getElementById('clear-button'); 
         
-        inputText.value = '{{#if {{equal::{{char}}::name}} }}{{/if}}\n{{#if {{equal::{{char}}::name}}{{/if}}';
-        
-        const colors = [
-            '#3498db', '#2ecc71', '#9b59b6', '#e67e22', '#f1c40f', 
-            '#1abc9c', '#e74c3c', '#34495e', '#16a085', '#27ae60',
-            '#8e44ad', '#d35400', '#c0392b', '#7f8c8d', '#2c3e50'
-        ];
-        
-        function analyzeBraces(text) {
-            let resultHtml = ''; // 변수명 변경 (result -> resultHtml)
-            let stack = [];
-            let colorStack = [];
-            let unmatchedCount = 0;
-            let usedColorPairs = {}; // { 'openPos-closePos': color }
-            let colorIndex = 0;
+        // DOM 요소들이 제대로 선택되었는지 확인
+        if (!inputText || !highlightedOutput || !statusMessage || !colorInfo || !clearButton) {
+            console.error('Error: One or more DOM elements not found. Check IDs in HTML and JavaScript.');
+            // 스크립트 실행을 중단하거나, 사용자에게 알림을 줄 수 있습니다.
+            // 여기서는 이후 로직이 DOM 요소에 의존하므로, 더 이상 진행하지 않는 것이 안전할 수 있습니다.
+            // alert('페이지 구성 요소를 찾을 수 없어 스크립트를 실행할 수 없습니다.');
+        } else {
+            console.log('All DOM elements successfully found.');
             
-            let openBracesPositions = []; // 닫히지 않은 열린 중괄호의 원본 텍스트 인덱스 저장용
-
-            for (let i = 0; i < text.length; i++) {
-                if (text[i] === '{' && text[i + 1] === '{') {
-                    stack.push(i);
-                    const currentColor = colors[colorIndex % colors.length];
-                    colorStack.push(currentColor);
-                    
-                    resultHtml += `<span style="color: ${currentColor};">{{</span>`;
-                    i++; 
-                } else if (text[i] === '}' && text[i + 1] === '}') {
-                    if (stack.length > 0) {
-                        const openPos = stack.pop();
-                        const color = colorStack.pop();
-                        
-                        const pairKey = `${openPos}-${i}`; // 키는 고유해야 함
-                        usedColorPairs[pairKey] = color;
-                        
-                        resultHtml += `<span style="color: ${color};">}}</span>`;
-                        // 매칭된 후에는 colorIndex를 변경하여 다음 중첩 레벨 (또는 동일 레벨의 다음 쌍)이 다른 색을 갖도록 함
-                        // 중첩이 끝나고 새로운 쌍이 시작될 때 색상이 바뀌도록 하는 것이 의도라면,
-                        // 스택이 비었을 때 닫는 괄호를 만나면 colorIndex를 초기화하거나 다음으로 넘겨야 함.
-                        // 현재 로직: 닫는 괄호를 만나면 다음 열린 괄호 색이 바뀜
-                        colorIndex++; 
-                    } else {
-                        resultHtml += `<span class="unmatched">}}</span>`;
-                        unmatchedCount++;
-                    }
-                    i++;
-                } else {
-                    if (text[i] === '\n') {
-                        resultHtml += '<br>';
-                    } else {
-                        resultHtml += text[i].replace(/[&<>"']/g, function (match) { // HTML 특수문자 이스케이프
-                            return {
-                                '&': '&',
-                                '<': '<',
-                                '>': '>',
-                                '"': '"',
-                                "'": '''
-                            }[match];
-                        });
-                    }
-                }
+            inputText.value = '{{#if {{equal::{{char}}::name}} }}{{/if}}\n{{#if {{equal::{{char}}::name}}{{/if}}';
+            console.log('Initial text set to textarea.');
+            
+            const colors = [
+                '#3498db', '#2ecc71', '#9b59b6', '#e67e22', '#f1c40f', 
+                '#1abc9c', '#e74c3c', '#34495e', '#16a085', '#27ae60',
+                '#8e44ad', '#d35400', '#c0392b', '#7f8c8d', '#2c3e50'
+            ];
+            
+            function escapeHtml(char) {
+                const map = {
+                    '&': '&',
+                    '<': '<',
+                    '>': '>',
+                    '"': '"',
+                    "'": '''
+                };
+                return map[char] || char;
             }
-            
-            // 닫히지 않은 열린 중괄호 처리
-            while (stack.length > 0) {
-                const pos = stack.pop();
-                openBracesPositions.push(pos); // 닫히지 않은 열린 중괄호 위치 저장
-                unmatchedCount++;
-                // 닫히지 않은 열린 중괄호는 resultHtml에서 특별히 스타일을 바꾸지 않고,
-                // 상태 메시지로 위치를 알려줌. (사용법 설명과 약간 다름)
-            }
-            
-            updateColorInfo(usedColorPairs);
-            
-            return { 
-                html: resultHtml, 
-                unmatchedCount,
-                unmatchedOpenBracesPos: openBracesPositions.reverse() // 순서를 원래대로
-            };
-        }
-        
-        function updateColorInfo(usedColors) {
-            colorInfo.innerHTML = ''; // 초기화
-            
-            const unmatchedColorItem = document.createElement('div');
-            unmatchedColorItem.className = 'color-item';
-            unmatchedColorItem.innerHTML = `
-                <div class="color-box" style="background-color: red;"></div>
-                <span>짝 없는 닫힌 중괄호</span>
-            `;
-            colorInfo.appendChild(unmatchedColorItem);
-            
-            const uniqueColors = [...new Set(Object.values(usedColors))];
-            uniqueColors.forEach((color, index) => {
-                const colorItem = document.createElement('div');
-                colorItem.className = 'color-item';
-                colorItem.innerHTML = `
-                    <div class="color-box" style="background-color: ${color};"></div>
-                    <span>중괄호 쌍 ${index + 1}</span>
-                `;
-                colorInfo.appendChild(colorItem);
-            });
-        }
-        
-        function reanalyzeText() {
-            const text = inputText.value;
-            const analysisResult = analyzeBraces(text); // 변수명 변경 (result -> analysisResult)
-            
-            highlightedOutput.innerHTML = analysisResult.html;
-            
-            statusMessage.classList.remove('success', 'error'); // 이전 상태 클래스 제거
-            statusMessage.textContent = ''; // 메시지 초기화
 
-            if (analysisResult.unmatchedCount > 0) {
-                statusMessage.classList.add('error');
-                let message = `오류: 짝이 맞지 않는 중괄호가 ${analysisResult.unmatchedCount}개 있습니다.`;
-                
-                if (analysisResult.unmatchedOpenBracesPos.length > 0) {
-                    let unmatchedPositionsText = [];
-                    analysisResult.unmatchedOpenBracesPos.forEach(pos => {
-                        let line = 1;
-                        let col = 1;
-                        for (let i = 0; i < pos; i++) {
-                            if (text[i] === '\n') {
-                                line++;
-                                col = 1;
-                            } else {
-                                col++;
-                            }
+            function analyzeBraces(text) {
+                console.log('analyzeBraces called with text length:', text.length);
+                let resultHtml = ''; 
+                let stack = [];
+                let colorStack = [];
+                let unmatchedCount = 0;
+                let usedColorPairs = {}; 
+                let colorIndex = 0;
+                let openBracesPositions = []; 
+
+                for (let i = 0; i < text.length; i++) {
+                    if (text[i] === '{' && i + 1 < text.length && text[i + 1] === '{') {
+                        stack.push(i);
+                        const currentColor = colors[colorIndex % colors.length];
+                        colorStack.push(currentColor);
+                        resultHtml += `<span style="color: ${currentColor};">{{</span>`;
+                        i++; 
+                    } else if (text[i] === '}' && i + 1 < text.length && text[i + 1] === '}') {
+                        if (stack.length > 0) {
+                            const openPos = stack.pop();
+                            const color = colorStack.pop();
+                            const pairKey = `${openPos}-${i}`; 
+                            usedColorPairs[pairKey] = color;
+                            resultHtml += `<span style="color: ${color};">}}</span>`;
+                            colorIndex++; 
+                        } else {
+                            resultHtml += `<span class="unmatched">}}</span>`;
+                            unmatchedCount++;
                         }
-                        unmatchedPositionsText.push(`'{{' (L${line},C${col})`);
-                    });
-                    message += ` 닫히지 않은 열린 중괄호 위치: ${unmatchedPositionsText.join(', ')}`;
+                        i++;
+                    } else {
+                        if (text[i] === '\n') {
+                            resultHtml += '<br>';
+                        } else {
+                            resultHtml += escapeHtml(text[i]); 
+                        }
+                    }
                 }
-                statusMessage.textContent = message;
-
-            } else {
-                if (text.trim() === '') { // 입력이 비어있거나 공백만 있을 경우
-                    statusMessage.textContent = '분석할 내용이 없습니다. 중괄호 구문을 입력해주세요.';
-                    // 특별한 클래스 없이 기본 스타일로 표시하거나, info 클래스 등을 추가할 수 있음
-                } else {
-                    statusMessage.classList.add('success');
-                    statusMessage.textContent = '모든 중괄호가 올바르게 짝을 이루고 있습니다.';
+                
+                while (stack.length > 0) {
+                    const pos = stack.pop();
+                    openBracesPositions.push(pos); 
+                    unmatchedCount++;
                 }
+                
+                updateColorInfo(usedColorPairs);
+                
+                const analysisResult = { 
+                    html: resultHtml, 
+                    unmatchedCount,
+                    unmatchedOpenBracesPos: openBracesPositions.reverse() 
+                };
+                console.log('analyzeBraces result - HTML length:', analysisResult.html.length, 'Unmatched:', analysisResult.unmatchedCount);
+                return analysisResult;
             }
+            
+            function updateColorInfo(usedColors) {
+                console.log('updateColorInfo called.');
+                colorInfo.innerHTML = ''; 
+                
+                const unmatchedColorItem = document.createElement('div');
+                unmatchedColorItem.className = 'color-item';
+                unmatchedColorItem.innerHTML = `
+                    <div class="color-box" style="background-color: red;"></div>
+                    <span>짝 없는 닫힌 중괄호</span>
+                `;
+                colorInfo.appendChild(unmatchedColorItem);
+                
+                const uniqueColors = [...new Set(Object.values(usedColors))];
+                uniqueColors.forEach((color, index) => {
+                    const colorItem = document.createElement('div');
+                    colorItem.className = 'color-item';
+                    colorItem.innerHTML = `
+                        <div class="color-box" style="background-color: ${color};"></div>
+                        <span>중괄호 쌍 ${index + 1}</span>
+                    `;
+                    colorInfo.appendChild(colorItem);
+                });
+            }
+            
+            function reanalyzeText() {
+                console.log('reanalyzeText called.');
+                const text = inputText.value;
+                console.log('Text to analyze length:', text.length);
+                
+                const analysisResult = analyzeBraces(text); 
+                
+                highlightedOutput.innerHTML = analysisResult.html;
+                console.log('Highlighted output updated.');
+                
+                statusMessage.className = 'status-message'; 
+                statusMessage.textContent = ''; 
+
+                if (analysisResult.unmatchedCount > 0) {
+                    statusMessage.classList.add('error');
+                    let message = `오류: 짝이 맞지 않는 중괄호가 ${analysisResult.unmatchedCount}개 있습니다.`;
+                    
+                    if (analysisResult.unmatchedOpenBracesPos.length > 0) {
+                        let unmatchedPositionsText = [];
+                        analysisResult.unmatchedOpenBracesPos.forEach(pos => {
+                            let line = 1;
+                            let col = 1;
+                            for (let i = 0; i < pos; i++) {
+                                if (text[i] === '\n') {
+                                    line++;
+                                    col = 1;
+                                } else {
+                                    col++;
+                                }
+                            }
+                            unmatchedPositionsText.push(`'{{' (L${line},C${col})`);
+                        });
+                        message += ` 닫히지 않은 열린 중괄호 위치: ${unmatchedPositionsText.join(', ')}`;
+                    }
+                    statusMessage.textContent = message;
+
+                } else {
+                    if (text.trim() === '') { 
+                        statusMessage.textContent = '분석할 내용이 없습니다. 중괄호 구문을 입력해주세요.';
+                    } else {
+                        statusMessage.classList.add('success');
+                        statusMessage.textContent = '모든 중괄호가 올바르게 짝을 이루고 있습니다.';
+                    }
+                }
+                console.log('Status message updated:', statusMessage.textContent);
+            }
+
+            clearButton.addEventListener('click', () => {
+                console.log('Clear button clicked.');
+                inputText.value = '';
+                reanalyzeText(); 
+            });
+            
+            inputText.addEventListener('input', () => {
+                console.log('Input event triggered.');
+                reanalyzeText();
+            });
+            
+            console.log('Performing initial analysis.');
+            reanalyzeText(); // 초기 분석
         }
 
-        // "전부 지우기" 버튼 이벤트 리스너
-        clearButton.addEventListener('click', () => {
-            inputText.value = '';
-            reanalyzeText(); // 분석 함수 호출하여 모든 관련 UI 업데이트
-        });
-        
-        reanalyzeText(); // 초기 분석
-        inputText.addEventListener('input', reanalyzeText);
+        console.log('Script execution finished.');
     </script>
 </body>
 </html>
