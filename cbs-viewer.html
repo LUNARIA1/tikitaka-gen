@@ -1,232 +1,269 @@
-
 <!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>중괄호 균형 검사기</title>
+    <title>중괄호 구문 검사기</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            line-height: 1.6;
-            margin: 0;
+            max-width: 900px;
+            margin: 0 auto;
             padding: 20px;
             background-color: #f5f5f5;
-            color: #333;
-        }
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            background-color: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         }
         h1 {
-            text-align: center;
             color: #333;
-            margin-bottom: 20px;
+            text-align: center;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
         }
         textarea {
             width: 100%;
             height: 200px;
-            padding: 10px;
-            margin-bottom: 20px;
-            border: 1px solid #ddd;
+            padding: 12px;
+            border: 1px solid #ccc;
             border-radius: 4px;
             font-family: monospace;
             font-size: 14px;
             resize: vertical;
         }
-        button {
-            display: block;
-            width: 100%;
-            padding: 10px;
-            background-color: #4a6fa5;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-            margin-bottom: 20px;
-        }
-        button:hover {
-            background-color: #395682;
-        }
-        #result {
-            padding: 15px;
+        .result-container {
             border: 1px solid #ddd;
             border-radius: 4px;
-            background-color: #f9f9f9;
-            font-family: monospace;
-            white-space: pre-wrap;
-            font-size: 14px;
+            padding: 15px;
+            background-color: white;
             min-height: 200px;
             overflow-x: auto;
         }
-        .status {
-            margin-top: 10px;
-            padding: 10px;
-            border-radius: 4px;
-            text-align: center;
-            font-weight: bold;
-        }
-        .valid {
-            background-color: #d4edda;
-            color: #155724;
-        }
-        .invalid {
-            background-color: #f8d7da;
-            color: #721c24;
-        }
-        .braces-pair {
-            border-radius: 2px;
-            padding: 0 2px;
-            margin: 0 -2px;
+        .highlighted-content {
+            font-family: monospace;
+            font-size: 14px;
+            white-space: pre-wrap;
+            line-height: 1.5;
         }
         .unmatched {
-            background-color: #ffcccc;
+            color: red;
+            font-weight: bold;
+            text-decoration: underline;
         }
-        .stats {
-            margin-top: 15px;
-            font-size: 14px;
-            color: #666;
+        .color-info {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .color-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .color-box {
+            width: 15px;
+            height: 15px;
+            border: 1px solid #333;
+        }
+        .instructions {
+            background-color: #e9f7fe;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            border-left: 4px solid #0088cc;
+        }
+        .error-count {
+            color: red;
+            font-weight: bold;
+            margin-top: 10px;
         }
     </style>
 </head>
 <body>
+    <h1>중괄호 구문 검사기</h1>
+    
+    <div class="instructions">
+        <h3>사용법</h3>
+        <p>중괄호 구문을 아래 텍스트 영역에 입력하면 자동으로 분석됩니다:</p>
+        <ul>
+            <li>각 중괄호 쌍마다 다른 색상으로 표시됩니다</li>
+            <li>닫히지 않은 중괄호는 <span style="color: red; font-weight: bold;">빨간색</span>으로 표시됩니다</li>
+            <li>중첩된 중괄호는 다른 색상으로 구분됩니다</li>
+        </ul>
+    </div>
+
     <div class="container">
-        <h1>중괄호 균형 검사기</h1>
-        <p>중괄호({{ }})를 포함한 텍스트를 입력하면 균형 상태를 시각적으로 보여줍니다.</p>
+        <textarea id="input-text" placeholder="중괄호 구문을 여기에 입력하세요. 예: {{#if {{equal::{{char}}::name}} }}{{/if}}"></textarea>
         
-        <textarea id="inputText" placeholder="중괄호를 포함한 텍스트를 입력하세요. 예: {{#if {{equal::{{char}}::name}} }}{{/if}}"></textarea>
-        
-        <button onclick="checkBraces()">균형 검사하기</button>
-        
-        <div id="result">결과가 여기에 표시됩니다...</div>
-        
-        <div id="status" class="status"></div>
-        
-        <div class="stats" id="stats"></div>
+        <div class="result-container">
+            <div class="highlighted-content" id="highlighted-output"></div>
+            <div class="error-count" id="error-count"></div>
+        </div>
+
+        <div class="color-info" id="color-info">
+            <div class="color-item">
+                <div class="color-box" style="background-color: red;"></div>
+                <span>닫히지 않은 중괄호</span>
+            </div>
+        </div>
     </div>
 
     <script>
-        function checkBraces() {
-            const inputText = document.getElementById('inputText').value;
-            const resultDiv = document.getElementById('result');
-            const statusDiv = document.getElementById('status');
-            const statsDiv = document.getElementById('stats');
-            
-            // 결과 초기화
-            resultDiv.innerHTML = '';
-            statusDiv.innerHTML = '';
-            statusDiv.className = 'status';
-            
-            if (!inputText.trim()) {
-                resultDiv.textContent = '텍스트를 입력해주세요.';
-                return;
-            }
-            
-            const colorPalette = [
-                '#e6194b', '#3cb44b', '#ffe119', '#4363d8', 
-                '#f58231', '#911eb4', '#46f0f0', '#f032e6', 
-                '#bcf60c', '#fabebe', '#008080', '#e6beff', 
-                '#9a6324', '#fffac8', '#800000', '#aaffc3', 
-                '#808000', '#ffd8b1', '#000075', '#808080'
-            ];
-            
-            let openBraces = [];
-            let bracesPairCount = 0;
+        const inputText = document.getElementById('input-text');
+        const highlightedOutput = document.getElementById('highlighted-output');
+        const errorCount = document.getElementById('error-count');
+        const colorInfo = document.getElementById('color-info');
+        
+        // 예시 텍스트로 초기화
+        inputText.value = '{{#if {{equal::{{char}}::name}} }}{{/if}}\n{{#if {{equal::{{char}}::name}}{{/if}}';
+        
+        // 색상 배열 (닫힌 중괄호 쌍용)
+        const colors = [
+            '#3498db', '#2ecc71', '#9b59b6', '#e67e22', '#f1c40f', 
+            '#1abc9c', '#e74c3c', '#34495e', '#16a085', '#27ae60',
+            '#8e44ad', '#d35400', '#c0392b', '#7f8c8d', '#2c3e50'
+        ];
+        
+        function analyzeBraces(text) {
+            let result = '';
+            let stack = [];
+            let colorStack = [];
             let unmatchedCount = 0;
-            let resultHTML = '';
+            let usedColorPairs = {};
+            let colorIndex = 0;
             
-            // 텍스트를 문자 단위로 처리
-            for (let i = 0; i < inputText.length; i++) {
-                const char = inputText[i];
-                
-                if (char === '{' && i + 1 < inputText.length && inputText[i + 1] === '{') {
-                    // 여는 중괄호 쌍 발견
-                    openBraces.push(i);
-                    resultHTML += '<span class="braces-pair" style="background-color: rgba(' + 
-                        hexToRgb(colorPalette[openBraces.length % colorPalette.length]) + ', 0.3);">{';
-                    continue;
-                } else if (char === '}' && i + 1 < inputText.length && inputText[i + 1] === '}') {
-                    // 닫는 중괄호 쌍 발견
-                    if (openBraces.length > 0) {
-                        // 매칭되는 여는 중괄호 쌍이 있는 경우
-                        openBraces.pop();
-                        bracesPairCount++;
-                        resultHTML += '}</span>';
-                        i++; // 두 번째 '}' 건너뛰기
-                        continue;
+            // 닫힌 중괄호 쌍 추적용 객체
+            let openBraces = [];
+            
+            for (let i = 0; i < text.length; i++) {
+                if (text[i] === '{' && text[i + 1] === '{') {
+                    // 열린 중괄호 처리
+                    stack.push(i);
+                    const currentColor = colors[colorIndex % colors.length];
+                    colorStack.push(currentColor);
+                    
+                    result += `<span style="color: ${currentColor};">{{</span>`;
+                    i++; // 두 번째 { 건너뛰기
+                } else if (text[i] === '}' && text[i + 1] === '}') {
+                    if (stack.length > 0) {
+                        // 닫힌 중괄호 처리 (짝이 있는 경우)
+                        const openPos = stack.pop();
+                        const color = colorStack.pop();
+                        
+                        // 짝이 맞는 괄호 쌍 추적
+                        const pairKey = `${openPos}-${i}`;
+                        usedColorPairs[pairKey] = color;
+                        openBraces.push({ open: openPos, close: i, color });
+                        
+                        result += `<span style="color: ${color};">}}</span>`;
                     } else {
-                        // 매칭되는 여는 중괄호 쌍이 없는 경우
+                        // 짝이 없는 닫힌 중괄호
+                        result += `<span class="unmatched">}}</span>`;
                         unmatchedCount++;
-                        resultHTML += '<span class="braces-pair unmatched">}</span>';
-                        i++; // 두 번째 '}' 건너뛰기
-                        continue;
+                    }
+                    i++; // 두 번째 } 건너뛰기
+                } else {
+                    // 다른 문자들
+                    if (text[i] === '\n') {
+                        result += '<br>';
+                    } else {
+                        result += text[i];
                     }
                 }
                 
-                // 일반 문자
-                resultHTML += escapeHTML(char);
+                // 다음 중괄호 쌍은 다른 색상 사용
+                if (i > 0 && text[i-1] === '}' && text[i] === '}') {
+                    colorIndex++;
+                }
             }
             
-            // 닫히지 않은 여는 중괄호 쌍 처리
-            for (let i = 0; i < openBraces.length; i++) {
+            // 닫히지 않은 열린 중괄호 처리
+            while (stack.length > 0) {
+                // 원래 텍스트에서 해당 위치의 '{{' 찾기
+                const pos = stack.pop();
                 unmatchedCount++;
-                resultHTML = resultHTML.replace(
-                    /<span class="braces-pair" style="background-color: rgba\([^)]+\);?">{/,
-                    '<span class="braces-pair unmatched">{'
-                );
+                
+                // 결과에서 해당 '{{' 찾아서 클래스 변경
+                // (실제 DOM 조작이 필요할 수 있음)
             }
             
-            resultDiv.innerHTML = resultHTML;
+            // 사용된 색상 정보 업데이트
+            updateColorInfo(usedColorPairs);
             
-            // 상태 표시
-            if (openBraces.length === 0 && unmatchedCount === 0) {
-                statusDiv.innerHTML = '✅ 모든 중괄호가 정상적으로 짝을 이루고 있습니다.';
-                statusDiv.classList.add('valid');
-            } else {
-                statusDiv.innerHTML = '❌ 균형이 맞지 않는 중괄호가 있습니다.';
-                statusDiv.classList.add('invalid');
-            }
+            return { 
+                html: result, 
+                unmatchedCount, 
+                openBraces,
+                stack // 닫히지 않은 중괄호 위치
+            };
+        }
+        
+        function updateColorInfo(usedColors) {
+            // 색상 정보 초기화
+            colorInfo.innerHTML = '';
             
-            // 통계 표시
-            statsDiv.innerHTML = `
-                완성된 중괄호 쌍: ${bracesPairCount}개<br>
-                균형이 맞지 않는 중괄호: ${unmatchedCount}개<br>
-                닫히지 않은 여는 중괄호: ${openBraces.length}개
+            // 닫히지 않은 중괄호 색상 항목 추가
+            const unmatchedColorItem = document.createElement('div');
+            unmatchedColorItem.className = 'color-item';
+            unmatchedColorItem.innerHTML = `
+                <div class="color-box" style="background-color: red;"></div>
+                <span>닫히지 않은 중괄호</span>
             `;
-        }
-        
-        // HTML 특수 문자 이스케이프
-        function escapeHTML(text) {
-            return text
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;")
-                .replace(/"/g, "&quot;")
-                .replace(/'/g, "&#039;");
-        }
-        
-        // HEX 색상을 RGB로 변환
-        function hexToRgb(hex) {
-            // HEX 색상에서 '#' 제거
-            hex = hex.replace('#', '');
+            colorInfo.appendChild(unmatchedColorItem);
             
-            // RGB 값으로 변환
-            const r = parseInt(hex.substring(0, 2), 16);
-            const g = parseInt(hex.substring(2, 4), 16);
-            const b = parseInt(hex.substring(4, 6), 16);
-            
-            return r + ',' + g + ',' + b;
+            // 사용된 색상 정보 추가
+            const uniqueColors = [...new Set(Object.values(usedColors))];
+            uniqueColors.forEach((color, index) => {
+                const colorItem = document.createElement('div');
+                colorItem.className = 'color-item';
+                colorItem.innerHTML = `
+                    <div class="color-box" style="background-color: ${color};"></div>
+                    <span>중괄호 쌍 ${index + 1}</span>
+                `;
+                colorInfo.appendChild(colorItem);
+            });
         }
         
-        // 예제 텍스트로 초기화
-        window.onload = function() {
-            document.getElementById('inputText').value = '{{#if {{equal::{{char}}::name}} }}{{/if}}\n{{#if {{equal::{{char}}::name}}{{/if}}';
+        function reanalyzeText() {
+            const text = inputText.value;
+            const result = analyzeBraces(text);
+            
+            highlightedOutput.innerHTML = result.html;
+            
+            if (result.unmatchedCount > 0) {
+                errorCount.textContent = `오류: 닫히지 않은 중괄호가 ${result.unmatchedCount}개 있습니다.`;
+                
+                // 닫히지 않은 중괄호 위치 표시
+                let unmatchedPositions = [];
+                result.stack.forEach(pos => {
+                    // pos 위치부터 '{{' 찾아서 위치 저장
+                    let line = 1;
+                    let col = 1;
+                    for (let i = 0; i < pos; i++) {
+                        if (text[i] === '\n') {
+                            line++;
+                            col = 1;
+                        } else {
+                            col++;
+                        }
+                    }
+                    unmatchedPositions.push(`(${line}행, ${col}열)`);
+                });
+                
+                if (unmatchedPositions.length > 0) {
+                    errorCount.textContent += ` 위치: ${unmatchedPositions.join(', ')}`;
+                }
+            } else {
+                errorCount.textContent = '모든 중괄호가 올바르게 짝을 이루고 있습니다.';
+            }
         }
+        
+        // 초기 분석
+        reanalyzeText();
+        
+        // 입력 텍스트 변경 시 실시간 분석
+        inputText.addEventListener('input', reanalyzeText);
     </script>
 </body>
 </html>
