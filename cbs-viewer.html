@@ -1,254 +1,232 @@
+
 <!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>중괄호 구문 검사기</title>
+    <title>중괄호 균형 검사기</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
             margin: 0;
             padding: 20px;
-            background-color: #f4f4f4;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+            background-color: #f5f5f5;
+            color: #333;
         }
         .container {
-            background-color: #fff;
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
             padding: 20px;
             border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-            width: 90%;
-            max-width: 800px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         }
         h1 {
             text-align: center;
             color: #333;
+            margin-bottom: 20px;
         }
         textarea {
-            width: calc(100% - 22px); /* padding 고려 */
-            min-height: 150px;
+            width: 100%;
+            height: 200px;
             padding: 10px;
+            margin-bottom: 20px;
             border: 1px solid #ddd;
             border-radius: 4px;
-            font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
+            font-family: monospace;
             font-size: 14px;
-            margin-bottom: 10px;
-            box-sizing: border-box;
-        }
-        #output {
-            border: 1px solid #ddd;
-            padding: 10px;
-            min-height: 150px;
-            background-color: #f9f9f9;
-            border-radius: 4px;
-            font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
-            font-size: 14px;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-        }
-        .token {
-            padding: 1px 3px;
-            border-radius: 3px;
-            font-weight: bold;
-        }
-        .token-error {
-            background-color: #ffcccc !important;
-            color: #a80000 !important;
-            border: 1px solid #ff7f7f;
-            cursor: help;
+            resize: vertical;
         }
         button {
             display: block;
             width: 100%;
             padding: 10px;
-            background-color: #5cb85c;
+            background-color: #4a6fa5;
             color: white;
             border: none;
             border-radius: 4px;
             cursor: pointer;
             font-size: 16px;
-            margin-top: 10px;
+            margin-bottom: 20px;
         }
         button:hover {
-            background-color: #4cae4c;
+            background-color: #395682;
         }
-        .info {
-            margin-top: 15px;
+        #result {
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+            font-family: monospace;
+            white-space: pre-wrap;
+            font-size: 14px;
+            min-height: 200px;
+            overflow-x: auto;
+        }
+        .status {
+            margin-top: 10px;
             padding: 10px;
-            background-color: #e7f3fe;
-            border-left: 6px solid #2196F3;
-            font-size: 0.9em;
+            border-radius: 4px;
+            text-align: center;
+            font-weight: bold;
         }
-        .info p { margin: 5px 0; }
+        .valid {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .invalid {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .braces-pair {
+            border-radius: 2px;
+            padding: 0 2px;
+            margin: 0 -2px;
+        }
+        .unmatched {
+            background-color: #ffcccc;
+        }
+        .stats {
+            margin-top: 15px;
+            font-size: 14px;
+            color: #666;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>중괄호 구문 시각화 도구</h1>
-        <textarea id="inputCode" placeholder="여기에 중괄호 구문을 입력하세요... 예: {{#if condition}} Hello {{name}} {{/if}}">{{#if A}} 바깥 IF {{#if B}} 안쪽 IF {{var}} {{/if}} {{else}} 바깥 ELSE {{/if}}
-{{unclosed_if_example
-{{#if C}} 이프는 있는데
-{{#if {{equal::{{char}}::name}} }}
-  {{#if D}} {{/if}}
-{{/if}}
-{{#if E}} 
-  이런것도 {{name}}
-  {{#if F}}
-    {{#if G}} {{/G}} <!-- G를 /if로 닫아야 하지만, 예시상 /G 허용 -->
-  {{/if}}
-{{/if}} {{/E}} <!-- E 닫는 태그는 {{/if}} 또는 {{/}} 여야 함. 예시 오류 -->
-{{#if H}}
-  {{/if}}
-
-{{#if NO_CLOSE_BRACE
-{{/if}}
-
-{{#if NOT_CLOSED_IF_BLOCK }}
-  이 IF는 닫히지 않았습니다.
-{{unmatched_open_brace
-
-{{#if VALID_BLOCK}} {{/if}}
-
-{{/extraneous_closing_if}}
-
-{{extraneous_slash_close/}}
-</textarea>
-        <button id="renderButton">구문 분석 및 시각화</button>
-        <div id="output"></div>
-        <div class="info">
-            <p><strong>규칙:</strong></p>
-            <p>- 각 <code>{{ }}</code> 쌍은 고유한 배경색으로 표시됩니다 (중첩 깊이에 따라).</p>
-            <p>- <code>}}</code>로 닫히지 않은 <code>{{</code>는 빨간색으로 표시됩니다.</p>
-            <p>- <code>{{#if ...}}</code>는 <code>{{/if}}</code> 또는 <code>{{/}}</code>로 닫혀야 합니다.</p>
-            <p>- 닫히지 않은 <code>{{#if}}</code> 블록 또는 매칭되는 <code>{{#if}}</code>가 없는 닫는 태그는 빨간색으로 표시됩니다.</p>
-        </div>
+        <h1>중괄호 균형 검사기</h1>
+        <p>중괄호({{ }})를 포함한 텍스트를 입력하면 균형 상태를 시각적으로 보여줍니다.</p>
+        
+        <textarea id="inputText" placeholder="중괄호를 포함한 텍스트를 입력하세요. 예: {{#if {{equal::{{char}}::name}} }}{{/if}}"></textarea>
+        
+        <button onclick="checkBraces()">균형 검사하기</button>
+        
+        <div id="result">결과가 여기에 표시됩니다...</div>
+        
+        <div id="status" class="status"></div>
+        
+        <div class="stats" id="stats"></div>
     </div>
 
     <script>
-        function escapeHtml(unsafe) {
-            if (typeof unsafe !== 'string') {
-                return '';
-            }
-            return unsafe
-                 .replace(/&/g, "&")
-                 .replace(/</g, "<")
-                 .replace(/>/g, ">")
-                 .replace(/"/g, """)
-                 .replace(/'/g, "'");
-        }
-
-        function render() {
-            console.log("render function called"); // 함수 호출 확인
-            const code = document.getElementById('inputCode').value;
-            const outputDiv = document.getElementById('output');
-            if (!outputDiv) {
-                console.error("Output div not found!");
+        function checkBraces() {
+            const inputText = document.getElementById('inputText').value;
+            const resultDiv = document.getElementById('result');
+            const statusDiv = document.getElementById('status');
+            const statsDiv = document.getElementById('stats');
+            
+            // 결과 초기화
+            resultDiv.innerHTML = '';
+            statusDiv.innerHTML = '';
+            statusDiv.className = 'status';
+            
+            if (!inputText.trim()) {
+                resultDiv.textContent = '텍스트를 입력해주세요.';
                 return;
             }
-            outputDiv.innerHTML = ''; 
-
-            const colors = [
-                "#E1BEE7", "#D1C4E9", "#C5CAE9", "#BBDEFB", 
-                "#B3E5FC", "#B2EBF2", "#B2DFDB", "#C8E6C9"
+            
+            const colorPalette = [
+                '#e6194b', '#3cb44b', '#ffe119', '#4363d8', 
+                '#f58231', '#911eb4', '#46f0f0', '#f032e6', 
+                '#bcf60c', '#fabebe', '#008080', '#e6beff', 
+                '#9a6324', '#fffac8', '#800000', '#aaffc3', 
+                '#808000', '#ffd8b1', '#000075', '#808080'
             ];
             
-            let i = 0;
-            const ifStack = []; // { span: HTMLElement, color: string, openTag: string }
-
-            function createSpan(text, className, bgColor, title) {
-                const span = document.createElement('span');
-                span.textContent = escapeHtml(text); // escapeHtml 적용
-                if (className) {
-                    span.classList.add(className);
-                }
-                if (bgColor && !span.classList.contains('token-error')) { 
-                    span.style.backgroundColor = bgColor;
-                    span.classList.add('token');
-                }
-                if (title) {
-                    span.title = title;
-                }
-                return span;
-            }
-
-            while (i < code.length) {
-                const openBraceIndex = code.indexOf('{{', i);
-
-                if (openBraceIndex === -1) {
-                    if (i < code.length) {
-                        outputDiv.appendChild(document.createTextNode(escapeHtml(code.substring(i))));
-                    }
-                    break;
-                }
-
-                if (openBraceIndex > i) {
-                    outputDiv.appendChild(document.createTextNode(escapeHtml(code.substring(i, openBraceIndex))));
-                }
-
-                const closeBraceIndex = code.indexOf('}}', openBraceIndex + 2);
-
-                if (closeBraceIndex === -1) {
-                    const errorText = code.substring(openBraceIndex);
-                    outputDiv.appendChild(createSpan(errorText, 'token-error', null, '닫는 중괄호 "}}"가 없습니다.'));
-                    i = code.length;
-                    break;
-                }
-
-                const fullToken = code.substring(openBraceIndex, closeBraceIndex + 2);
-                const tokenContent = code.substring(openBraceIndex + 2, closeBraceIndex).trim(); // 공백 제거
-                let tokenSpan;
-
-                if (tokenContent.startsWith('#if')) {
-                    const color = colors[ifStack.length % colors.length];
-                    tokenSpan = createSpan(fullToken, null, color, `IF 블록 시작 (깊이 ${ifStack.length})`);
-                    ifStack.push({ span: tokenSpan, color: color, openTag: fullToken }); 
-                } else if (tokenContent.startsWith('/if') || tokenContent === '/') {
-                    if (ifStack.length > 0) {
-                        const lastIf = ifStack.pop();
-                        tokenSpan = createSpan(fullToken, null, lastIf.color, `"${lastIf.openTag}" 블록을 닫습니다.`);
+            let openBraces = [];
+            let bracesPairCount = 0;
+            let unmatchedCount = 0;
+            let resultHTML = '';
+            
+            // 텍스트를 문자 단위로 처리
+            for (let i = 0; i < inputText.length; i++) {
+                const char = inputText[i];
+                
+                if (char === '{' && i + 1 < inputText.length && inputText[i + 1] === '{') {
+                    // 여는 중괄호 쌍 발견
+                    openBraces.push(i);
+                    resultHTML += '<span class="braces-pair" style="background-color: rgba(' + 
+                        hexToRgb(colorPalette[openBraces.length % colorPalette.length]) + ', 0.3);">{';
+                    continue;
+                } else if (char === '}' && i + 1 < inputText.length && inputText[i + 1] === '}') {
+                    // 닫는 중괄호 쌍 발견
+                    if (openBraces.length > 0) {
+                        // 매칭되는 여는 중괄호 쌍이 있는 경우
+                        openBraces.pop();
+                        bracesPairCount++;
+                        resultHTML += '}</span>';
+                        i++; // 두 번째 '}' 건너뛰기
+                        continue;
                     } else {
-                        tokenSpan = createSpan(fullToken, 'token-error', null, '매칭되는 여는 "{{#if ...}}" 블록이 없습니다.');
+                        // 매칭되는 여는 중괄호 쌍이 없는 경우
+                        unmatchedCount++;
+                        resultHTML += '<span class="braces-pair unmatched">}</span>';
+                        i++; // 두 번째 '}' 건너뛰기
+                        continue;
                     }
-                } else {
-                    let color;
-                    let titleInfo;
-                    if (ifStack.length > 0) {
-                        color = ifStack[ifStack.length - 1].color;
-                        titleInfo = `블록 "${ifStack[ifStack.length - 1].openTag}" 내부 (깊이 ${ifStack.length - 1})`;
-                    } else {
-                        // #if 블록 바깥의 최상위 일반 토큰은 첫번째 색상 사용 또는 다른 색상
-                        color = colors[0]; 
-                        titleInfo = "최상위 레벨 토큰";
-                    }
-                    tokenSpan = createSpan(fullToken, null, color, `일반 토큰 (${titleInfo})`);
                 }
                 
-                outputDiv.appendChild(tokenSpan);
-                i = closeBraceIndex + 2;
-            }
-
-            ifStack.forEach(unclosedIf => {
-                unclosedIf.span.classList.add('token-error');
-                unclosedIf.span.style.backgroundColor = ''; // 기본 에러 배경색으로
-                unclosedIf.span.title = `이 "${unclosedIf.openTag}" 블록은 닫히지 않았습니다.`;
-            });
-        }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            const renderButton = document.getElementById('renderButton');
-            if (renderButton) {
-                renderButton.addEventListener('click', render);
-            } else {
-                console.error("Render button not found!");
+                // 일반 문자
+                resultHTML += escapeHTML(char);
             }
             
-            // 페이지 로드 시 초기 렌더링
-            if (document.getElementById('inputCode').value) {
-                 render();
+            // 닫히지 않은 여는 중괄호 쌍 처리
+            for (let i = 0; i < openBraces.length; i++) {
+                unmatchedCount++;
+                resultHTML = resultHTML.replace(
+                    /<span class="braces-pair" style="background-color: rgba\([^)]+\);?">{/,
+                    '<span class="braces-pair unmatched">{'
+                );
             }
-        });
+            
+            resultDiv.innerHTML = resultHTML;
+            
+            // 상태 표시
+            if (openBraces.length === 0 && unmatchedCount === 0) {
+                statusDiv.innerHTML = '✅ 모든 중괄호가 정상적으로 짝을 이루고 있습니다.';
+                statusDiv.classList.add('valid');
+            } else {
+                statusDiv.innerHTML = '❌ 균형이 맞지 않는 중괄호가 있습니다.';
+                statusDiv.classList.add('invalid');
+            }
+            
+            // 통계 표시
+            statsDiv.innerHTML = `
+                완성된 중괄호 쌍: ${bracesPairCount}개<br>
+                균형이 맞지 않는 중괄호: ${unmatchedCount}개<br>
+                닫히지 않은 여는 중괄호: ${openBraces.length}개
+            `;
+        }
+        
+        // HTML 특수 문자 이스케이프
+        function escapeHTML(text) {
+            return text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+        
+        // HEX 색상을 RGB로 변환
+        function hexToRgb(hex) {
+            // HEX 색상에서 '#' 제거
+            hex = hex.replace('#', '');
+            
+            // RGB 값으로 변환
+            const r = parseInt(hex.substring(0, 2), 16);
+            const g = parseInt(hex.substring(2, 4), 16);
+            const b = parseInt(hex.substring(4, 6), 16);
+            
+            return r + ',' + g + ',' + b;
+        }
+        
+        // 예제 텍스트로 초기화
+        window.onload = function() {
+            document.getElementById('inputText').value = '{{#if {{equal::{{char}}::name}} }}{{/if}}\n{{#if {{equal::{{char}}::name}}{{/if}}';
+        }
     </script>
 </body>
 </html>
