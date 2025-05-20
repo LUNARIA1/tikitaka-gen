@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>중괄호 구문 검사기</title>
+    <title>괄호 검사기</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            max-width: 900px;
+            max-width: 800px;
             margin: 0 auto;
             padding: 20px;
             background-color: #f5f5f5;
@@ -17,253 +17,259 @@
             text-align: center;
         }
         .container {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
         textarea {
             width: 100%;
             height: 200px;
-            padding: 12px;
-            border: 1px solid #ccc;
+            padding: 10px;
+            border: 1px solid #ddd;
             border-radius: 4px;
             font-family: monospace;
-            font-size: 14px;
             resize: vertical;
+            margin-bottom: 10px;
         }
-        .result-container {
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #clearBtn {
+            background-color: #f44336;
+        }
+        #clearBtn:hover {
+            background-color: #d32f2f;
+        }
+        #result {
+            background-color: #f9f9f9;
             border: 1px solid #ddd;
             border-radius: 4px;
             padding: 15px;
-            background-color: white;
-            min-height: 200px;
-            overflow-x: auto;
-        }
-        .highlighted-content {
-            font-family: monospace;
-            font-size: 14px;
-            white-space: pre-wrap;
-            line-height: 1.5;
-        }
-        .unmatched {
-            color: red;
-            font-weight: bold;
-            text-decoration: underline;
-        }
-        .color-info {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
             margin-top: 20px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
         }
-        .color-item {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-        .color-box {
-            width: 15px;
-            height: 15px;
-            border: 1px solid #333;
-        }
-        .instructions {
-            background-color: #e9f7fe;
-            padding: 15px;
+        .status {
+            padding: 10px;
+            margin-bottom: 10px;
             border-radius: 4px;
-            margin-bottom: 20px;
-            border-left: 4px solid #0088cc;
-        }
-        .error-count {
-            color: red;
             font-weight: bold;
-            margin-top: 10px;
+        }
+        .success {
+            background-color: #dff0d8;
+            color: #3c763d;
+            border: 1px solid #d6e9c6;
+        }
+        .error {
+            background-color: #f2dede;
+            color: #a94442;
+            border: 1px solid #ebccd1;
+        }
+        .highlight {
+            background-color: yellow;
         }
     </style>
 </head>
 <body>
-    <h1>중괄호 구문 검사기</h1>
-    
-    <div class="instructions">
-        <h3>사용법</h3>
-        <p>중괄호 구문을 아래 텍스트 영역에 입력하면 자동으로 분석됩니다:</p>
-        <ul>
-            <li>각 중괄호 쌍마다 다른 색상으로 표시됩니다</li>
-            <li>닫히지 않은 중괄호는 <span style="color: red; font-weight: bold;">빨간색</span>으로 표시됩니다</li>
-            <li>중첩된 중괄호는 다른 색상으로 구분됩니다</li>
-        </ul>
-    </div>
-
     <div class="container">
-        <textarea id="input-text" placeholder="중괄호 구문을 여기에 입력하세요. 예: {{#if {{equal::{{char}}::name}} }}{{/if}}"></textarea>
-        
-        <div class="result-container">
-            <div class="highlighted-content" id="highlighted-output"></div>
-            <div class="error-count" id="error-count"></div>
+        <h1>괄호 검사기</h1>
+        <textarea id="codeInput" placeholder="여기에 코드를 입력하세요..."></textarea>
+        <div class="button-group">
+            <button id="checkBtn">검사하기</button>
+            <button id="clearBtn">전부 지우기</button>
         </div>
-
-        <div class="color-info" id="color-info">
-            <div class="color-item">
-                <div class="color-box" style="background-color: red;"></div>
-                <span>닫히지 않은 중괄호</span>
-            </div>
-        </div>
+        <div id="result"></div>
     </div>
 
     <script>
-        const inputText = document.getElementById('input-text');
-        const highlightedOutput = document.getElementById('highlighted-output');
-        const errorCount = document.getElementById('error-count');
-        const colorInfo = document.getElementById('color-info');
-        
-        // 예시 텍스트로 초기화
-        inputText.value = '{{#if {{equal::{{char}}::name}} }}{{/if}}\n{{#if {{equal::{{char}}::name}}{{/if}}';
-        
-        // 색상 배열 (닫힌 중괄호 쌍용)
-        const colors = [
-            '#3498db', '#2ecc71', '#9b59b6', '#e67e22', '#f1c40f', 
-            '#1abc9c', '#e74c3c', '#34495e', '#16a085', '#27ae60',
-            '#8e44ad', '#d35400', '#c0392b', '#7f8c8d', '#2c3e50'
-        ];
-        
-        function analyzeBraces(text) {
-            let result = '';
-            let stack = [];
-            let colorStack = [];
-            let unmatchedCount = 0;
-            let usedColorPairs = {};
-            let colorIndex = 0;
-            
-            // 닫힌 중괄호 쌍 추적용 객체
-            let openBraces = [];
-            
-            for (let i = 0; i < text.length; i++) {
-                if (text[i] === '{' && text[i + 1] === '{') {
-                    // 열린 중괄호 처리
-                    stack.push(i);
-                    const currentColor = colors[colorIndex % colors.length];
-                    colorStack.push(currentColor);
-                    
-                    result += `<span style="color: ${currentColor};">{{</span>`;
-                    i++; // 두 번째 { 건너뛰기
-                } else if (text[i] === '}' && text[i + 1] === '}') {
-                    if (stack.length > 0) {
-                        // 닫힌 중괄호 처리 (짝이 있는 경우)
-                        const openPos = stack.pop();
-                        const color = colorStack.pop();
-                        
-                        // 짝이 맞는 괄호 쌍 추적
-                        const pairKey = `${openPos}-${i}`;
-                        usedColorPairs[pairKey] = color;
-                        openBraces.push({ open: openPos, close: i, color });
-                        
-                        result += `<span style="color: ${color};">}}</span>`;
-                    } else {
-                        // 짝이 없는 닫힌 중괄호
-                        result += `<span class="unmatched">}}</span>`;
-                        unmatchedCount++;
-                    }
-                    i++; // 두 번째 } 건너뛰기
-                } else {
-                    // 다른 문자들
-                    if (text[i] === '\n') {
-                        result += '<br>';
-                    } else {
-                        result += text[i];
-                    }
-                }
-                
-                // 다음 중괄호 쌍은 다른 색상 사용
-                if (i > 0 && text[i-1] === '}' && text[i] === '}') {
-                    colorIndex++;
-                }
-            }
-            
-            // 닫히지 않은 열린 중괄호 처리
-            while (stack.length > 0) {
-                // 원래 텍스트에서 해당 위치의 '{{' 찾기
-                const pos = stack.pop();
-                unmatchedCount++;
-                
-                // 결과에서 해당 '{{' 찾아서 클래스 변경
-                // (실제 DOM 조작이 필요할 수 있음)
-            }
-            
-            // 사용된 색상 정보 업데이트
-            updateColorInfo(usedColorPairs);
-            
-            return { 
-                html: result, 
-                unmatchedCount, 
-                openBraces,
-                stack // 닫히지 않은 중괄호 위치
-            };
-        }
-        
-        function updateColorInfo(usedColors) {
-            // 색상 정보 초기화
-            colorInfo.innerHTML = '';
-            
-            // 닫히지 않은 중괄호 색상 항목 추가
-            const unmatchedColorItem = document.createElement('div');
-            unmatchedColorItem.className = 'color-item';
-            unmatchedColorItem.innerHTML = `
-                <div class="color-box" style="background-color: red;"></div>
-                <span>닫히지 않은 중괄호</span>
-            `;
-            colorInfo.appendChild(unmatchedColorItem);
-            
-            // 사용된 색상 정보 추가
-            const uniqueColors = [...new Set(Object.values(usedColors))];
-            uniqueColors.forEach((color, index) => {
-                const colorItem = document.createElement('div');
-                colorItem.className = 'color-item';
-                colorItem.innerHTML = `
-                    <div class="color-box" style="background-color: ${color};"></div>
-                    <span>중괄호 쌍 ${index + 1}</span>
-                `;
-                colorInfo.appendChild(colorItem);
+        document.addEventListener('DOMContentLoaded', function() {
+            const codeInput = document.getElementById('codeInput');
+            const checkBtn = document.getElementById('checkBtn');
+            const clearBtn = document.getElementById('clearBtn');
+            const resultDiv = document.getElementById('result');
+
+            // 검사하기 버튼 클릭 이벤트
+            checkBtn.addEventListener('click', function() {
+                const code = codeInput.value;
+                const result = checkBrackets(code);
+                displayResult(result);
             });
-        }
-        
-        function reanalyzeText() {
-            const text = inputText.value;
-            const result = analyzeBraces(text);
-            
-            highlightedOutput.innerHTML = result.html;
-            
-            if (result.unmatchedCount > 0) {
-                errorCount.textContent = `오류: 닫히지 않은 중괄호가 ${result.unmatchedCount}개 있습니다.`;
+
+            // 전부 지우기 버튼 클릭 이벤트
+            clearBtn.addEventListener('click', function() {
+                codeInput.value = '';
+                resultDiv.innerHTML = '';
+            });
+
+            // 괄호 검사 함수
+            function checkBrackets(code) {
+                const stack = [];
+                const errors = [];
+                let line = 1;
+                let column = 0;
                 
-                // 닫히지 않은 중괄호 위치 표시
-                let unmatchedPositions = [];
-                result.stack.forEach(pos => {
-                    // pos 위치부터 '{{' 찾아서 위치 저장
-                    let line = 1;
-                    let col = 1;
-                    for (let i = 0; i < pos; i++) {
-                        if (text[i] === '\n') {
-                            line++;
-                            col = 1;
+                const openBrackets = {'{': '}', '[': ']', '(': ')'};
+                const closeBrackets = {'}': '{', ']': '[', ')': '('};
+                
+                for (let i = 0; i < code.length; i++) {
+                    const char = code[i];
+                    column++;
+                    
+                    if (char === '\n') {
+                        line++;
+                        column = 0;
+                        continue;
+                    }
+                    
+                    if (openBrackets[char]) {
+                        stack.push({
+                            bracket: char,
+                            line: line,
+                            column: column,
+                            index: i
+                        });
+                    } else if (closeBrackets[char]) {
+                        if (stack.length === 0) {
+                            errors.push({
+                                type: 'unexpected',
+                                bracket: char,
+                                line: line,
+                                column: column,
+                                index: i
+                            });
                         } else {
-                            col++;
+                            const last = stack.pop();
+                            if (openBrackets[last.bracket] !== char) {
+                                errors.push({
+                                    type: 'mismatch',
+                                    expected: openBrackets[last.bracket],
+                                    found: char,
+                                    line: line,
+                                    column: column,
+                                    index: i,
+                                    openBracket: last
+                                });
+                            }
                         }
                     }
-                    unmatchedPositions.push(`(${line}행, ${col}열)`);
-                });
-                
-                if (unmatchedPositions.length > 0) {
-                    errorCount.textContent += ` 위치: ${unmatchedPositions.join(', ')}`;
                 }
-            } else {
-                errorCount.textContent = '모든 중괄호가 올바르게 짝을 이루고 있습니다.';
+                
+                // 닫히지 않은 괄호 확인
+                while (stack.length > 0) {
+                    const unclosed = stack.pop();
+                    errors.push({
+                        type: 'unclosed',
+                        bracket: unclosed.bracket,
+                        line: unclosed.line,
+                        column: unclosed.column,
+                        index: unclosed.index
+                    });
+                }
+                
+                return {
+                    isValid: errors.length === 0,
+                    errors: errors
+                };
             }
-        }
-        
-        // 초기 분석
-        reanalyzeText();
-        
-        // 입력 텍스트 변경 시 실시간 분석
-        inputText.addEventListener('input', reanalyzeText);
+
+            // 결과 표시 함수
+            function displayResult(result) {
+                resultDiv.innerHTML = '';
+                
+                // 상태 메시지 표시 (맨 위에 표시)
+                const statusDiv = document.createElement('div');
+                statusDiv.className = result.isValid ? 'status success' : 'status error';
+                statusDiv.textContent = result.isValid 
+                    ? '모든 중괄호가 올바르게 짝을 이루고 있습니다.' 
+                    : '괄호 짝 맞춤에 문제가 있습니다.';
+                resultDiv.appendChild(statusDiv);
+                
+                if (!result.isValid) {
+                    const code = codeInput.value;
+                    const lines = code.split('\n');
+                    
+                    // 오류 메시지 표시
+                    const errorList = document.createElement('div');
+                    
+                    result.errors.forEach(error => {
+                        const errorMsg = document.createElement('p');
+                        
+                        if (error.type === 'unexpected') {
+                            errorMsg.textContent = `예상치 못한 닫는 괄호 '${error.bracket}'가 ${error.line}번째 줄, ${error.column}번째 열에서 발견되었습니다.`;
+                        } else if (error.type === 'mismatch') {
+                            errorMsg.textContent = `${error.line}번째 줄, ${error.column}번째 열: '${error.expected}'가 필요하지만 '${error.found}'가 발견되었습니다. 여는 괄호는 ${error.openBracket.line}번째 줄, ${error.openBracket.column}번째 열에 있습니다.`;
+                        } else if (error.type === 'unclosed') {
+                            errorMsg.textContent = `닫히지 않은 괄호 '${error.bracket}'가 ${error.line}번째 줄, ${error.column}번째 열에서 발견되었습니다.`;
+                        }
+                        
+                        errorList.appendChild(errorMsg);
+                    });
+                    
+                    resultDiv.appendChild(errorList);
+                    
+                    // 문제가 있는 라인 하이라이트
+                    const codeDisplay = document.createElement('pre');
+                    codeDisplay.style.border = '1px solid #ddd';
+                    codeDisplay.style.padding = '10px';
+                    codeDisplay.style.marginTop = '10px';
+                    codeDisplay.style.backgroundColor = '#f8f8f8';
+                    
+                    const lineNumbers = document.createElement('div');
+                    lineNumbers.style.float = 'left';
+                    lineNumbers.style.textAlign = 'right';
+                    lineNumbers.style.marginRight = '10px';
+                    lineNumbers.style.color = '#666';
+                    
+                    const codeLines = document.createElement('div');
+                    codeLines.style.overflow = 'auto';
+                    
+                    lines.forEach((line, index) => {
+                        const lineNum = index + 1;
+                        const hasError = result.errors.some(err => err.line === lineNum);
+                        
+                        const lineNumberSpan = document.createElement('div');
+                        lineNumberSpan.textContent = lineNum;
+                        if (hasError) {
+                            lineNumberSpan.style.fontWeight = 'bold';
+                            lineNumberSpan.style.color = '#a94442';
+                        }
+                        lineNumbers.appendChild(lineNumberSpan);
+                        
+                        const lineSpan = document.createElement('div');
+                        lineSpan.textContent = line;
+                        if (hasError) {
+                            lineSpan.style.backgroundColor = 'rgba(255, 0, 0, 0.1)';
+                            lineSpan.style.fontWeight = 'bold';
+                        }
+                        codeLines.appendChild(lineSpan);
+                    });
+                    
+                    codeDisplay.appendChild(lineNumbers);
+                    codeDisplay.appendChild(codeLines);
+                    codeDisplay.style.display = 'flex';
+                    
+                    resultDiv.appendChild(codeDisplay);
+                }
+            }
+        });
     </script>
 </body>
 </html>
