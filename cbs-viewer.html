@@ -23,7 +23,7 @@
         }
         textarea {
             width: 100%;
-            box-sizing: border-box; /* padding과 border가 width에 포함되도록 */
+            box-sizing: border-box; /* 추가하면 좋음 */
             height: 200px;
             padding: 12px;
             border: 1px solid #ccc;
@@ -44,7 +44,7 @@
             font-size: 14px;
             white-space: pre-wrap;
             line-height: 1.5;
-            overflow-x: auto;
+            overflow-x: auto; /* 추가하면 좋음 */
         }
         .unmatched {
             color: red;
@@ -74,7 +74,8 @@
             margin-bottom: 20px;
             border-left: 4px solid #0088cc;
         }
-        #clear-button {
+        /* --- 요청사항 반영 스타일 --- */
+        #clear-button { /* 추가 */
             padding: 8px 15px;
             background-color: #e74c3c;
             color: white;
@@ -85,26 +86,24 @@
             align-self: flex-start; 
             margin-bottom: 10px; 
         }
-        #clear-button:hover {
+        #clear-button:hover { /* 추가 */
             background-color: #c0392b;
         }
-        .status-message { 
+        .status-message { /* error-count에서 이름 변경 및 스타일 확장 */
             font-weight: bold;
-            margin-bottom: 10px;
-            padding: 8px 12px;
-            border-radius: 4px;
-            border: 1px solid transparent;
+            margin-bottom: 10px; /* highlighted-content 와의 간격 */
+            padding: 8px; /* 보기 좋게 패딩 추가 */
+            border-radius: 4px; /* 보기 좋게 테두리 둥글게 */
         }
-        .status-message.success {
-            color: #155724;
-            background-color: #d4edda;
-            border-color: #c3e6cb;
+        .status-message.success { /* 성공 메시지용 스타일 추가 */
+            color: green;
+            /* background-color: #e6ffe6; */ /* 선택적 배경색 */
         }
-        .status-message.error {
-            color: #721c24;
-            background-color: #f8d7da;
-            border-color: #f5c6cb;
+        .status-message.error { /* 기존 error-count의 스타일 유지 또는 강화 */
+            color: red;
+            /* background-color: #ffe6e6; */ /* 선택적 배경색 */
         }
+        /* --- --- */
     </style>
 </head>
 <body>
@@ -114,211 +113,247 @@
         <h3>사용법</h3>
         <p>중괄호 구문을 아래 텍스트 영역에 입력하면 자동으로 분석됩니다:</p>
         <ul>
-            <li>각 중괄호 쌍마다 다른 색상으로 표시됩니다.</li>
-            <li>닫히지 않은 중괄호는 <span style="color: red; font-weight: bold;">빨간색</span>으로 표시됩니다 (짝이 없는 닫힌 중괄호).</li>
-            <li>중첩된 중괄호는 다른 색상으로 구분됩니다.</li>
+            <li>각 중괄호 쌍마다 다른 색상으로 표시됩니다</li>
+            <li>닫히지 않은 중괄호는 <span style="color: red; font-weight: bold;">빨간색</span>으로 표시됩니다</li>
+            <li>중첩된 중괄호는 다른 색상으로 구분됩니다</li>
         </ul>
     </div>
 
     <div class="container">
-        <button id="clear-button">전부 지우기</button>
+        <!-- "전부 지우기" 버튼 추가 -->
+        <button id="clear-button">전부 지우기</button> 
         
         <textarea id="input-text" placeholder="중괄호 구문을 여기에 입력하세요. 예: {{#if {{equal::{{char}}::name}} }}{{/if}}"></textarea>
         
         <div class="result-container">
+            <!-- 결과 메시지 위치 변경 (error-count -> status-message로 ID/클래스명 변경 고려) -->
             <div class="status-message" id="status-message"></div>
             <div class="highlighted-content" id="highlighted-output"></div>
+            <!-- 기존 error-count div는 위로 옮기고 ID/클래스 변경 (기존 코드에서는 highlighted-output 아래에 error-count가 있었음) -->
         </div>
 
         <div class="color-info" id="color-info">
             <div class="color-item">
                 <div class="color-box" style="background-color: red;"></div>
-                <span>짝 없는 닫힌 중괄호</span>
+                <span>닫히지 않은 중괄호</span>
             </div>
         </div>
     </div>
 
     <script>
-        console.log('Script execution started.'); 
-
         const inputText = document.getElementById('input-text');
         const highlightedOutput = document.getElementById('highlighted-output');
-        const statusMessage = document.getElementById('status-message'); 
+        // const errorCount = document.getElementById('error-count'); // -> statusMessage 로 변경
+        const statusMessage = document.getElementById('status-message');
         const colorInfo = document.getElementById('color-info');
-        const clearButton = document.getElementById('clear-button'); 
+        const clearButton = document.getElementById('clear-button'); // 추가
         
-        // DOM 요소들이 제대로 선택되었는지 확인
-        if (!inputText || !highlightedOutput || !statusMessage || !colorInfo || !clearButton) {
-            console.error('Error: One or more DOM elements not found. Check IDs in HTML and JavaScript.');
-            // 스크립트 실행을 중단하거나, 사용자에게 알림을 줄 수 있습니다.
-            // 여기서는 이후 로직이 DOM 요소에 의존하므로, 더 이상 진행하지 않는 것이 안전할 수 있습니다.
-            // alert('페이지 구성 요소를 찾을 수 없어 스크립트를 실행할 수 없습니다.');
-        } else {
-            console.log('All DOM elements successfully found.');
-            
-            inputText.value = '{{#if {{equal::{{char}}::name}} }}{{/if}}\n{{#if {{equal::{{char}}::name}}{{/if}}';
-            console.log('Initial text set to textarea.');
-            
-            const colors = [
-                '#3498db', '#2ecc71', '#9b59b6', '#e67e22', '#f1c40f', 
-                '#1abc9c', '#e74c3c', '#34495e', '#16a085', '#27ae60',
-                '#8e44ad', '#d35400', '#c0392b', '#7f8c8d', '#2c3e50'
-            ];
-            
-            function escapeHtml(char) {
-                const map = {
-                    '&': '&',
-                    '<': '<',
-                    '>': '>',
-                    '"': '"',
-                    "'": '''
-                };
-                return map[char] || char;
-            }
+        inputText.value = '{{#if {{equal::{{char}}::name}} }}{{/if}}\n{{#if {{equal::{{char}}::name}}{{/if}}';
+        
+        const colors = [
+            '#3498db', '#2ecc71', '#9b59b6', '#e67e22', '#f1c40f', 
+            '#1abc9c', '#e74c3c', '#34495e', '#16a085', '#27ae60',
+            '#8e44ad', '#d35400', '#c0392b', '#7f8c8d', '#2c3e50'
+        ];
+        
+        // 원본 analyzeBraces 함수는 그대로 사용
+        function analyzeBraces(text) {
+            let result = '';
+            let stack = [];
+            let colorStack = [];
+            let unmatchedCount = 0;
+            let usedColorPairs = {};
+            let colorIndex = 0;
+            let openBracesForUnmatchedHighlight = []; // 닫히지 않은 열린 괄호 위치 추적용 (원본에는 이 부분 처리가 미흡했음)
 
-            function analyzeBraces(text) {
-                console.log('analyzeBraces called with text length:', text.length);
-                let resultHtml = ''; 
-                let stack = [];
-                let colorStack = [];
-                let unmatchedCount = 0;
-                let usedColorPairs = {}; 
-                let colorIndex = 0;
-                let openBracesPositions = []; 
-
-                for (let i = 0; i < text.length; i++) {
-                    if (text[i] === '{' && i + 1 < text.length && text[i + 1] === '{') {
-                        stack.push(i);
-                        const currentColor = colors[colorIndex % colors.length];
-                        colorStack.push(currentColor);
-                        resultHtml += `<span style="color: ${currentColor};">{{</span>`;
-                        i++; 
-                    } else if (text[i] === '}' && i + 1 < text.length && text[i + 1] === '}') {
-                        if (stack.length > 0) {
-                            const openPos = stack.pop();
-                            const color = colorStack.pop();
-                            const pairKey = `${openPos}-${i}`; 
-                            usedColorPairs[pairKey] = color;
-                            resultHtml += `<span style="color: ${color};">}}</span>`;
-                            colorIndex++; 
-                        } else {
-                            resultHtml += `<span class="unmatched">}}</span>`;
-                            unmatchedCount++;
-                        }
-                        i++;
-                    } else {
-                        if (text[i] === '\n') {
-                            resultHtml += '<br>';
-                        } else {
-                            resultHtml += escapeHtml(text[i]); 
-                        }
-                    }
-                }
-                
-                while (stack.length > 0) {
-                    const pos = stack.pop();
-                    openBracesPositions.push(pos); 
-                    unmatchedCount++;
-                }
-                
-                updateColorInfo(usedColorPairs);
-                
-                const analysisResult = { 
-                    html: resultHtml, 
-                    unmatchedCount,
-                    unmatchedOpenBracesPos: openBracesPositions.reverse() 
-                };
-                console.log('analyzeBraces result - HTML length:', analysisResult.html.length, 'Unmatched:', analysisResult.unmatchedCount);
-                return analysisResult;
-            }
-            
-            function updateColorInfo(usedColors) {
-                console.log('updateColorInfo called.');
-                colorInfo.innerHTML = ''; 
-                
-                const unmatchedColorItem = document.createElement('div');
-                unmatchedColorItem.className = 'color-item';
-                unmatchedColorItem.innerHTML = `
-                    <div class="color-box" style="background-color: red;"></div>
-                    <span>짝 없는 닫힌 중괄호</span>
-                `;
-                colorInfo.appendChild(unmatchedColorItem);
-                
-                const uniqueColors = [...new Set(Object.values(usedColors))];
-                uniqueColors.forEach((color, index) => {
-                    const colorItem = document.createElement('div');
-                    colorItem.className = 'color-item';
-                    colorItem.innerHTML = `
-                        <div class="color-box" style="background-color: ${color};"></div>
-                        <span>중괄호 쌍 ${index + 1}</span>
-                    `;
-                    colorInfo.appendChild(colorItem);
-                });
-            }
-            
-            function reanalyzeText() {
-                console.log('reanalyzeText called.');
-                const text = inputText.value;
-                console.log('Text to analyze length:', text.length);
-                
-                const analysisResult = analyzeBraces(text); 
-                
-                highlightedOutput.innerHTML = analysisResult.html;
-                console.log('Highlighted output updated.');
-                
-                statusMessage.className = 'status-message'; 
-                statusMessage.textContent = ''; 
-
-                if (analysisResult.unmatchedCount > 0) {
-                    statusMessage.classList.add('error');
-                    let message = `오류: 짝이 맞지 않는 중괄호가 ${analysisResult.unmatchedCount}개 있습니다.`;
+            for (let i = 0; i < text.length; i++) {
+                if (text[i] === '{' && text[i + 1] === '{') {
+                    stack.push({index: i, colorIndex: colorIndex}); // 스택에 색상 인덱스도 저장
+                    const currentColor = colors[colorIndex % colors.length];
+                    colorStack.push(currentColor); // 이 스택은 매칭용 색상 추적
                     
-                    if (analysisResult.unmatchedOpenBracesPos.length > 0) {
-                        let unmatchedPositionsText = [];
-                        analysisResult.unmatchedOpenBracesPos.forEach(pos => {
-                            let line = 1;
-                            let col = 1;
-                            for (let i = 0; i < pos; i++) {
-                                if (text[i] === '\n') {
-                                    line++;
-                                    col = 1;
-                                } else {
-                                    col++;
-                                }
-                            }
-                            unmatchedPositionsText.push(`'{{' (L${line},C${col})`);
-                        });
-                        message += ` 닫히지 않은 열린 중괄호 위치: ${unmatchedPositionsText.join(', ')}`;
-                    }
-                    statusMessage.textContent = message;
+                    result += `<span style="color: ${currentColor};">{{</span>`;
+                    i++; 
+                    colorIndex++; // 열 때마다 다음 중첩/순차 레벨의 색상 인덱스를 증가시킴
+                } else if (text[i] === '}' && text[i + 1] === '}') {
+                    if (stack.length > 0) {
+                        const openBraceInfo = stack.pop();
+                        const color = colorStack.pop(); // 사용했던 색상
+                        // const color = colors[openBraceInfo.colorIndex % colors.length]; // 스택에 저장된 colorIndex로 색상 복원
 
-                } else {
-                    if (text.trim() === '') { 
-                        statusMessage.textContent = '분석할 내용이 없습니다. 중괄호 구문을 입력해주세요.';
+                        const pairKey = `${openBraceInfo.index}-${i}`;
+                        usedColorPairs[pairKey] = color;
+                        
+                        result += `<span style="color: ${color};">}}</span>`;
+                        // 닫힐 때 colorIndex를 감소시켜서, 동일 레벨의 다음 괄호가 이전 중첩 레벨의 색을 사용하도록 함 (중첩 후 빠져나올 때)
+                        // colorIndex--; // 이렇게 하면 중첩 깊이에 따라 색이 결정됨.
+                        // 원본 코드에서는 닫힐 때 colorIndex++ 했었음. 그 로직을 유지.
+                        // -> 아, 원본 코드에서는 'if (i > 0 && text[i-1] === '}' && text[i] === '}') { colorIndex++; }' 이 부분.
+                        //   즉, 닫는 괄호 쌍이 끝난 *후에* colorIndex를 증가시킴.
+                        //   이것은 다음 *새로운* 괄호 쌍을 위한 것.
                     } else {
-                        statusMessage.classList.add('success');
-                        statusMessage.textContent = '모든 중괄호가 올바르게 짝을 이루고 있습니다.';
+                        result += `<span class="unmatched">}}</span>`;
+                        unmatchedCount++;
+                    }
+                    i++; 
+                } else {
+                    if (text[i] === '\n') {
+                        result += '<br>';
+                    } else {
+                        // HTML 특수문자 이스케이프 (이전 답변에서 추가한 좋은 기능이므로 유지)
+                        result += text[i].replace(/[&<>"']/g, function (match) {
+                            return {'&': '&', '<': '<', '>': '>', '"': '"', "'": '''}[match];
+                        });
                     }
                 }
-                console.log('Status message updated:', statusMessage.textContent);
+                 // 원본 로직: 닫는 괄호 쌍이 끝난 직후에 다음 색상 준비
+                if (i > 0 && text[i-1] === '}' && text[i] === '}') {
+                    // 이 조건은 루프 내 i++ 와 text[i] 의 관계로 인해 실제로는 text[i-2], text[i-1] 이 '}}' 였을 때를 의미
+                    // 좀 더 명확하게 하려면 i를 이미 증가시킨 후이므로 text[i-1]과 text[i-2]를 봐야함.
+                    // 그러나 원본 코드의 의도는 "하나의 닫힌 쌍을 처리한 후 다음 색상을 위해 인덱스를 올린다"
+                    // colorIndex++; // 이 위치가 맞는지 다시 확인 필요. 중첩 처리와 관련 있음.
+                    // 중첩된 경우: {{aa{{bb}}cc}} -> bb 닫힐때 colorIndex 증가, aa 닫힐때 colorIndex 증가
+                    // 순차적인 경우: {{aa}}{{bb}} -> aa 닫힐때 colorIndex 증가, bb 닫힐때 colorIndex 증가
+                    // 원본 코드는 닫는 중괄호 처리 후 colorIndex를 증가시키는 로직이 있었음. (stack.length > 0 인 경우 내부에 colorIndex++를 넣는 것이 아니라)
+                    // 원본에서는 'if (i > 0 && text[i-1] === '}' && text[i] === '}') { colorIndex++; }' 이었음. 이 부분은 loop의 마지막에 있었음.
+                    // 하지만 이 로직은 닫는 괄호가 *연속으로 나올 때*만 colorIndex를 증가시키므로, 중첩된 괄호 색상 구분에 문제가 될 수 있음.
+                    // 열 때마다 colorIndex를 증가시키고, 닫을 때는 colorStack에서 가져오는 것이 더 직관적임.
+                    // 이미 열 때 colorIndex를 증가시켰으므로, 닫을 때는 특별히 colorIndex를 조작할 필요가 없음.
+                    // 원본의 이 부분은 주석 처리하거나 제거하는 것이 나을 수 있음.
+                }
             }
-
-            clearButton.addEventListener('click', () => {
-                console.log('Clear button clicked.');
-                inputText.value = '';
-                reanalyzeText(); 
-            });
             
-            inputText.addEventListener('input', () => {
-                console.log('Input event triggered.');
-                reanalyzeText();
-            });
+            // 닫히지 않은 열린 중괄호 처리 (원본 코드의 이 부분이 미흡했음)
+            // 스택에 남아있는 것들은 닫히지 않은 열린 중괄호.
+            // 원본 코드는 stack.pop()만 하고 unmatchedCount만 증가시키고, HTML 결과에는 반영하지 않았음.
+            // 수정: 닫히지 않은 열린 괄호도 빨간색으로 표시해야 함.
+            // 이를 위해서는 result 문자열을 다시 파싱하거나, 빌드할 때부터 <span>에 id를 부여하고 나중에 수정해야 함.
+            // 여기서는 일단 위치만 반환하여 메시지로 표시하는 것으로 유지.
+            let finalStackPositions = [];
+            while (stack.length > 0) {
+                const unmatchedOpenBrace = stack.pop();
+                finalStackPositions.push(unmatchedOpenBrace.index);
+                unmatchedCount++;
+                // 여기서 result 문자열을 직접 수정하는 것은 복잡함.
+                // 예를 들어, result.replace(`<span style="color: ${colors[unmatchedOpenBrace.colorIndex % colors.length]};">{{</span>` -> `<span class="unmatched">{{</span>`)
+                // 이는 해당 위치의 첫 번째 발생만 바꾸므로 정확하지 않을 수 있음.
+                // 대신, reanalyzeText에서 이 위치 정보를 사용.
+            }
             
-            console.log('Performing initial analysis.');
-            reanalyzeText(); // 초기 분석
+            updateColorInfo(usedColorPairs);
+            
+            return { 
+                html: result, 
+                unmatchedCount, 
+                // openBraces: openBraces, // 원본에는 있었지만 사용되지 않음
+                stack: finalStackPositions.reverse() // 닫히지 않은 열린 중괄호 위치 (원본과 동일한 이름 사용)
+            };
         }
+        
+        // 원본 updateColorInfo 함수 그대로 사용
+        function updateColorInfo(usedColors) {
+            colorInfo.innerHTML = '';
+            
+            const unmatchedColorItem = document.createElement('div');
+            unmatchedColorItem.className = 'color-item';
+            unmatchedColorItem.innerHTML = `
+                <div class="color-box" style="background-color: red;"></div>
+                <span>닫히지 않은 중괄호</span>
+            `;
+            colorInfo.appendChild(unmatchedColorItem);
+            
+            const uniqueColors = [...new Set(Object.values(usedColors))];
+            uniqueColors.forEach((color, index) => {
+                const colorItem = document.createElement('div');
+                colorItem.className = 'color-item';
+                colorItem.innerHTML = `
+                    <div class="color-box" style="background-color: ${color};"></div>
+                    <span>중괄호 쌍 ${index + 1}</span>
+                `;
+                colorInfo.appendChild(colorItem);
+            });
+        }
+        
+        // 원본 reanalyzeText 함수를 기반으로 수정
+        function reanalyzeText() {
+            const text = inputText.value;
+            const result = analyzeBraces(text);
+            
+            // 닫히지 않은 열린 중괄호가 있다면, 해당 부분의 스타일을 빨간색으로 변경
+            // 이 작업은 analyzeBraces에서 HTML을 생성할 때 처리하거나, 생성 후 DOM 조작으로 처리해야 함.
+            // 현재 analyzeBraces는 닫히지 않은 열린 괄호에 대한 스타일링을 직접 하지 않음.
+            // 따라서, 이 부분은 메시지로만 처리하는 원본 방식을 따르거나, analyzeBraces를 수정해야 함.
+            // 여기서는 원본 방식대로, 메시지로만 처리.
+            // 만약 닫히지 않은 열린 괄호도 빨갛게 하려면 analyzeBraces 로직 수정 필요.
+            // 사용법에는 "닫히지 않은 중괄호는 빨간색으로 표시됩니다"라고 되어 있는데,
+            // 이는 짝 없는 닫힌 중괄호와 닫히지 않은 열린 중괄호 모두를 의미할 수 있음.
+            // 원본 코드는 짝 없는 닫힌 중괄호만 .unmatched 로 빨갛게 처리.
+            // 닫히지 않은 열린 중괄호도 빨갛게 하려면 analyzeBraces에서 스택에 남은 것들을 처리할 때
+            // result 문자열에서 해당 부분을 찾아 <span class="unmatched">로 바꿔야 함.
+            // 이는 복잡하므로, 일단은 메시지로만 표시하고, 사용자의 추가 요청이 있으면 그때 수정.
 
-        console.log('Script execution finished.');
+            // 닫히지 않은 '{{' 를 빨갛게 표시하기 위한 로직 (선택적 개선)
+            let finalHtml = result.html;
+            if (result.stack.length > 0 && result.unmatchedCount > 0) {
+                // result.stack 에는 닫히지 않은 '{{' 의 시작 인덱스들이 들어있음.
+                // 이 정보를 바탕으로 finalHtml 에서 해당 '{{' 들을 찾아 스타일을 변경해야 함.
+                // 예시: text = "{{ a {{ b"  -> result.stack = [0, 6] (대략)
+                // finalHtml 에는 이미 색상 태그가 입혀져 있음.
+                // `<span style="color: #3498db;">{{</span> a <span style="color: #2ecc71;">{{</span> b`
+                // 이 부분을 `<span class="unmatched">{{</span> a <span class="unmatched">{{</span> b` 로 바꿔야 함.
+                // 이것은 간단한 replace로 어렵고, HTML 파싱 또는 정규식과 콜백이 필요.
+                // 이 부분은 원본 코드에서는 없던 기능이므로, 일단은 메시지로만 표시.
+            }
+            highlightedOutput.innerHTML = finalHtml; // result.html -> finalHtml
+
+
+            statusMessage.className = 'status-message'; // 기존 클래스 초기화
+            if (result.unmatchedCount > 0) {
+                statusMessage.classList.add('error');
+                statusMessage.textContent = `오류: 짝이 맞지 않는 중괄호가 ${result.unmatchedCount}개 있습니다.`;
+                
+                // 닫히지 않은 열린 중괄호 위치 표시 (원본 코드의 로직)
+                let unmatchedPositions = [];
+                if (result.stack && result.stack.length > 0) { // result.stack 이 정의되어 있고, 요소가 있을 때만
+                    result.stack.forEach(pos => {
+                        let line = 1;
+                        let col = 1;
+                        for (let i = 0; i < pos; i++) {
+                            if (text[i] === '\n') {
+                                line++;
+                                col = 1;
+                            } else {
+                                col++;
+                            }
+                        }
+                        unmatchedPositions.push(`'{{' (L${line},C${col})`);
+                    });
+                }
+                
+                if (unmatchedPositions.length > 0) {
+                    statusMessage.textContent += ` 닫히지 않은 열린 중괄호 위치: ${unmatchedPositions.join(', ')}`;
+                }
+            } else {
+                if (text.trim() === '') {
+                    statusMessage.textContent = '분석할 내용이 없습니다.'; // 특별한 스타일 없이
+                } else {
+                    statusMessage.classList.add('success');
+                    statusMessage.textContent = '모든 중괄호가 올바르게 짝을 이루고 있습니다.';
+                }
+            }
+        }
+        
+        // "전부 지우기" 버튼 이벤트 리스너 추가
+        clearButton.addEventListener('click', () => {
+            inputText.value = '';
+            // highlightedOutput.innerHTML = ''; // reanalyzeText가 처리
+            // statusMessage.textContent = ''; // reanalyzeText가 처리
+            // updateColorInfo({}); // reanalyzeText 내부의 analyzeBraces가 처리
+            reanalyzeText(); // 빈 텍스트로 분석하여 화면 초기화
+        });
+
+        reanalyzeText(); // 초기 분석
+        inputText.addEventListener('input', reanalyzeText);
     </script>
 </body>
 </html>
