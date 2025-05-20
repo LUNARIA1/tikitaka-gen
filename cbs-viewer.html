@@ -27,7 +27,7 @@
             color: #333;
         }
         textarea {
-            width: calc(100% - 20px);
+            width: calc(100% - 22px); /* padding 고려 */
             min-height: 150px;
             padding: 10px;
             border: 1px solid #ddd;
@@ -45,8 +45,8 @@
             border-radius: 4px;
             font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
             font-size: 14px;
-            white-space: pre-wrap; /* 줄바꿈 유지 */
-            word-wrap: break-word; /* 긴 단어 자동 줄바꿈 */
+            white-space: pre-wrap;
+            word-wrap: break-word;
         }
         .token {
             padding: 1px 3px;
@@ -54,10 +54,10 @@
             font-weight: bold;
         }
         .token-error {
-            background-color: #ffcccc !important; /* 빨간색 배경 */
-            color: #a80000 !important; /* 어두운 빨간색 텍스트 */
+            background-color: #ffcccc !important;
+            color: #a80000 !important;
             border: 1px solid #ff7f7f;
-            cursor: help; /* 마우스 오버 시 도움말 커서 */
+            cursor: help;
         }
         button {
             display: block;
@@ -96,9 +96,9 @@
 {{#if E}} 
   이런것도 {{name}}
   {{#if F}}
-    {{#if G}} {{/G}}
+    {{#if G}} {{/G}} <!-- G를 /if로 닫아야 하지만, 예시상 /G 허용 -->
   {{/if}}
-{{/if}} {{/E}}
+{{/if}} {{/E}} <!-- E 닫는 태그는 {{/if}} 또는 {{/}} 여야 함. 예시 오류 -->
 {{#if H}}
   {{/if}}
 
@@ -115,7 +115,7 @@
 
 {{extraneous_slash_close/}}
 </textarea>
-        <button onclick="render()">구문 분석 및 시각화</button>
+        <button id="renderButton">구문 분석 및 시각화</button>
         <div id="output"></div>
         <div class="info">
             <p><strong>규칙:</strong></p>
@@ -140,9 +140,14 @@
         }
 
         function render() {
+            console.log("render function called"); // 함수 호출 확인
             const code = document.getElementById('inputCode').value;
             const outputDiv = document.getElementById('output');
-            outputDiv.innerHTML = ''; // 이전 내용 지우기
+            if (!outputDiv) {
+                console.error("Output div not found!");
+                return;
+            }
+            outputDiv.innerHTML = ''; 
 
             const colors = [
                 "#E1BEE7", "#D1C4E9", "#C5CAE9", "#BBDEFB", 
@@ -150,16 +155,15 @@
             ];
             
             let i = 0;
-            const ifStack = []; // { span: HTMLElement, color: string, type: 'if' }
-            let currentDepth = 0; // For cycling colors based on #if depth
+            const ifStack = []; // { span: HTMLElement, color: string, openTag: string }
 
             function createSpan(text, className, bgColor, title) {
                 const span = document.createElement('span');
-                span.textContent = escapeHtml(text);
+                span.textContent = escapeHtml(text); // escapeHtml 적용
                 if (className) {
                     span.classList.add(className);
                 }
-                if (bgColor && !className) { // className이 'token-error'면 bgColor 무시
+                if (bgColor && !span.classList.contains('token-error')) { 
                     span.style.backgroundColor = bgColor;
                     span.classList.add('token');
                 }
@@ -172,73 +176,78 @@
             while (i < code.length) {
                 const openBraceIndex = code.indexOf('{{', i);
 
-                if (openBraceIndex === -1) { // 더 이상 {{ 없음
+                if (openBraceIndex === -1) {
                     if (i < code.length) {
-                        outputDiv.appendChild(document.createTextNode(code.substring(i)));
+                        outputDiv.appendChild(document.createTextNode(escapeHtml(code.substring(i))));
                     }
                     break;
                 }
 
-                // {{ 이전 텍스트 추가
                 if (openBraceIndex > i) {
-                    outputDiv.appendChild(document.createTextNode(code.substring(i, openBraceIndex)));
+                    outputDiv.appendChild(document.createTextNode(escapeHtml(code.substring(i, openBraceIndex))));
                 }
 
                 const closeBraceIndex = code.indexOf('}}', openBraceIndex + 2);
 
-                if (closeBraceIndex === -1) { // {{ 가 있지만 }} 가 없음
+                if (closeBraceIndex === -1) {
                     const errorText = code.substring(openBraceIndex);
                     outputDiv.appendChild(createSpan(errorText, 'token-error', null, '닫는 중괄호 "}}"가 없습니다.'));
-                    i = code.length; // 처리 종료
+                    i = code.length;
                     break;
                 }
 
-                // {{ 와 }} 둘 다 찾음
                 const fullToken = code.substring(openBraceIndex, closeBraceIndex + 2);
-                const tokenContent = code.substring(openBraceIndex + 2, closeBraceIndex);
+                const tokenContent = code.substring(openBraceIndex + 2, closeBraceIndex).trim(); // 공백 제거
                 let tokenSpan;
 
                 if (tokenContent.startsWith('#if')) {
-                    const color = colors[currentDepth % colors.length];
-                    tokenSpan = createSpan(fullToken, null, color, `IF 블록 (깊이 ${currentDepth})`);
-                    ifStack.push({ span: tokenSpan, color: color, type: 'if' });
-                    currentDepth++;
+                    const color = colors[ifStack.length % colors.length];
+                    tokenSpan = createSpan(fullToken, null, color, `IF 블록 시작 (깊이 ${ifStack.length})`);
+                    ifStack.push({ span: tokenSpan, color: color, openTag: fullToken }); 
                 } else if (tokenContent.startsWith('/if') || tokenContent === '/') {
                     if (ifStack.length > 0) {
                         const lastIf = ifStack.pop();
-                        currentDepth--; // 스택에서 꺼냈으므로 깊이 감소
-                        // 닫는 태그는 여는 태그의 색상을 사용
-                        tokenSpan = createSpan(fullToken, null, lastIf.color, `"${lastIf.span.textContent}" 블록을 닫습니다.`);
+                        tokenSpan = createSpan(fullToken, null, lastIf.color, `"${lastIf.openTag}" 블록을 닫습니다.`);
                     } else {
-                        // 여는 #if 없이 닫는 태그만 있는 경우
                         tokenSpan = createSpan(fullToken, 'token-error', null, '매칭되는 여는 "{{#if ...}}" 블록이 없습니다.');
                     }
                 } else {
-                    // 일반 토큰. 현재 #if 깊이에 따라 색상 지정
-                    const color = colors[currentDepth % colors.length];
-                    tokenSpan = createSpan(fullToken, null, color, `일반 토큰 (현재 깊이 ${currentDepth > 0 ? currentDepth -1 : 0})`);
+                    let color;
+                    let titleInfo;
+                    if (ifStack.length > 0) {
+                        color = ifStack[ifStack.length - 1].color;
+                        titleInfo = `블록 "${ifStack[ifStack.length - 1].openTag}" 내부 (깊이 ${ifStack.length - 1})`;
+                    } else {
+                        // #if 블록 바깥의 최상위 일반 토큰은 첫번째 색상 사용 또는 다른 색상
+                        color = colors[0]; 
+                        titleInfo = "최상위 레벨 토큰";
+                    }
+                    tokenSpan = createSpan(fullToken, null, color, `일반 토큰 (${titleInfo})`);
                 }
                 
                 outputDiv.appendChild(tokenSpan);
                 i = closeBraceIndex + 2;
             }
 
-            // 처리가 끝난 후 ifStack에 남아있는 항목들은 닫히지 않은 #if 블록들임
             ifStack.forEach(unclosedIf => {
                 unclosedIf.span.classList.add('token-error');
-                unclosedIf.span.style.backgroundColor = ''; // 기본 에러 배경색 사용하도록 기존 색상 제거
-                unclosedIf.span.title = '이 "{{#if ...}}" 블록은 닫히지 않았습니다.';
+                unclosedIf.span.style.backgroundColor = ''; // 기본 에러 배경색으로
+                unclosedIf.span.title = `이 "${unclosedIf.openTag}" 블록은 닫히지 않았습니다.`;
             });
-
-            // 페이지 로드 시 기본 텍스트로 한 번 실행
-            if (document.getElementById('inputCode').value && outputDiv.childNodes.length === 0) {
-                 // 이 부분은 render()가 수동으로 호출될 때만 실행되므로, 자동 실행은 아래로 옮깁니다.
-            }
         }
 
-        // 페이지 로드 시 초기 렌더링
         document.addEventListener('DOMContentLoaded', function() {
-            render();
+            const renderButton = document.getElementById('renderButton');
+            if (renderButton) {
+                renderButton.addEventListener('click', render);
+            } else {
+                console.error("Render button not found!");
+            }
+            
+            // 페이지 로드 시 초기 렌더링
+            if (document.getElementById('inputCode').value) {
+                 render();
+            }
         });
     </script>
 </body>
