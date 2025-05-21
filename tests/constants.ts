@@ -61,7 +61,7 @@ export const INITIAL_APP_STATE: AppState = {
   aiContent: { ...DEFAULT_CONTENT_TEXT_STYLE },
   dimensionPreset: DimensionPreset.CUSTOM,
   customDimensions: { ...DEFAULT_CUSTOM_DIMENSIONS },
-  backgroundColor: "#FFFFFF",
+  backgroundColor: "#000000",
   backgroundImage: null,
   backgroundImageDimness: 30, // 30%
   layout: { ...DEFAULT_LAYOUT_STYLE },
