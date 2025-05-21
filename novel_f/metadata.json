@@ -1,6 +1,0 @@
-{
-  "name": "소설 발췌짤 생성기 (Novel Excerpt Image Generator)",
-  "description": "소설의 제목, 작가, 발췌문을 입력하여 아름다운 공유용 이미지를 생성하는 웹 애플리케이션입니다. 배경색, 글꼴, 글자 크기 등을 맞춤 설정할 수 있습니다. (A web application to create beautiful, shareable images from novel excerpts, including title and author. Customize background color, font, text size, and more.)",
-  "requestFramePermissions": [],
-  "prompt": ""
-}
