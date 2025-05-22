@@ -50,6 +50,8 @@ const CanvasPreview: React.FC<CanvasPreviewProps> = ({ appState, canvasRef }) =>
     aiModelName,
     aiModelDisplayStyle,
     aiCharacterName,
+    spacingAfterCharacterName,
+    spacingAfterModelName,
     
     contentDisplayType,
     blockOriginalText,
@@ -151,7 +153,7 @@ const CanvasPreview: React.FC<CanvasPreviewProps> = ({ appState, canvasRef }) =>
                   isBold: aiCharacterName.isBold,
                   isItalic: aiCharacterName.isItalic,
                 }} 
-                className="mb-2 md:mb-4" 
+                marginBottom={spacingAfterCharacterName > 0 ? spacingAfterCharacterName : undefined}
               />
             )}
             
@@ -159,7 +161,8 @@ const CanvasPreview: React.FC<CanvasPreviewProps> = ({ appState, canvasRef }) =>
               <CanvasTextElement 
                 text={modelTextOnCanvasStyle.text}
                 style={aiModelDisplayStyle} 
-                className="mb-1 md:mb-2 opacity-80" 
+                className="opacity-80"
+                marginBottom={spacingAfterModelName > 0 ? spacingAfterModelName : undefined} 
               />
             )}
 
