@@ -73,6 +73,10 @@ export interface AppState {
   aiModelDisplayStyle: DisplayTextStyle;
   aiCharacterName: TextStyle;
 
+  // New spacing controls
+  spacingAfterCharacterName: number;
+  spacingAfterModelName: number;
+
   contentDisplayType: ContentDisplayType;
 
   // For Block display
