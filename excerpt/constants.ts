@@ -67,12 +67,12 @@ export const DEFAULT_LAYOUT_STYLE: LayoutStyle = {
 };
 
 export const INITIAL_APP_STATE: AppState = {
-  aiModelName: "Gemini",
+  aiModelName: "Anthropic/Claude-3.7-Sonnet",
   aiModelDisplayStyle: { ...DEFAULT_MODEL_DISPLAY_STYLE },
   aiCharacterName: { ...DEFAULT_CHARACTER_TEXT_STYLE },
   
-  spacingAfterCharacterName: 10, // Default spacing after character name
-  spacingAfterModelName: 10,     // Default spacing after model name
+  spacingAfterCharacterName: 2, // Default spacing after character name
+  spacingAfterModelName: 30,     // Default spacing after model name
 
   contentDisplayType: ContentDisplayType.BLOCK,
 
