@@ -67,10 +67,13 @@ export const DEFAULT_LAYOUT_STYLE: LayoutStyle = {
 };
 
 export const INITIAL_APP_STATE: AppState = {
-  aiModelName: "Anthropic/Claude-3.7-Sonnet",
+  aiModelName: "Gemini",
   aiModelDisplayStyle: { ...DEFAULT_MODEL_DISPLAY_STYLE },
   aiCharacterName: { ...DEFAULT_CHARACTER_TEXT_STYLE },
   
+  spacingAfterCharacterName: 2, // Default spacing after character name
+  spacingAfterModelName: 30,     // Default spacing after model name
+
   contentDisplayType: ContentDisplayType.BLOCK,
 
   blockOriginalText: "",
@@ -78,7 +81,7 @@ export const INITIAL_APP_STATE: AppState = {
   translationMarginTop: 8,
 
   linePairs: [],
-  originalLineToTranslationSpacing: 4,
+  originalLineToTranslationSpacing: 2,
   interPairSpacing: 10,
 
   originalTextStyle: { ...DEFAULT_ORIGINAL_TEXT_STYLE },
