@@ -1,4 +1,3 @@
-
 import { DimensionPreset, Dimensions, TextStyle, LayoutStyle, HorizontalAlignment, VerticalAlignment, AppState, DEFAULT_FONT_FAMILIES, DisplayTextStyle, ContentDisplayType } from './types';
 
 export const DIMENSION_PRESETS_MAP: Record<DimensionPreset, Dimensions | null> = {
