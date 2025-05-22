@@ -81,7 +81,7 @@ export const INITIAL_APP_STATE: AppState = {
   translationMarginTop: 8,
 
   linePairs: [],
-  originalLineToTranslationSpacing: 0,
+  originalLineToTranslationSpacing: 10,
   interPairSpacing: 50,
 
   originalTextStyle: { ...DEFAULT_ORIGINAL_TEXT_STYLE },
