@@ -28,10 +28,15 @@ const ControlsPanel: React.FC<ControlsPanelProps> = ({ appState, setAppState, av
   const [translationMarginTopInput, setTranslationMarginTopInput] = useState(String(appState.translationMarginTop));
   const [originalLineToTranslationSpacingInput, setOriginalLineToTranslationSpacingInput] = useState(String(appState.originalLineToTranslationSpacing));
   const [interPairSpacingInput, setInterPairSpacingInput] = useState(String(appState.interPairSpacing));
+  const [spacingAfterCharacterNameInput, setSpacingAfterCharacterNameInput] = useState(String(appState.spacingAfterCharacterName));
+  const [spacingAfterModelNameInput, setSpacingAfterModelNameInput] = useState(String(appState.spacingAfterModelName));
+
 
   useEffect(() => setTranslationMarginTopInput(String(appState.translationMarginTop)), [appState.translationMarginTop]);
   useEffect(() => setOriginalLineToTranslationSpacingInput(String(appState.originalLineToTranslationSpacing)), [appState.originalLineToTranslationSpacing]);
   useEffect(() => setInterPairSpacingInput(String(appState.interPairSpacing)), [appState.interPairSpacing]);
+  useEffect(() => setSpacingAfterCharacterNameInput(String(appState.spacingAfterCharacterName)), [appState.spacingAfterCharacterName]);
+  useEffect(() => setSpacingAfterModelNameInput(String(appState.spacingAfterModelName)), [appState.spacingAfterModelName]);
 
 
   const toggleLineCustomization = (pairId: string) => {
@@ -105,19 +110,21 @@ const ControlsPanel: React.FC<ControlsPanelProps> = ({ appState, setAppState, av
   };
   
   const handleNumericInputBlur = (
-    field: 'translationMarginTop' | 'originalLineToTranslationSpacing' | 'interPairSpacing',
+    field: 'translationMarginTop' | 'originalLineToTranslationSpacing' | 'interPairSpacing' | 'spacingAfterCharacterName' | 'spacingAfterModelName',
     inputValue: string,
     setLocalInputState: React.Dispatch<React.SetStateAction<string>>
   ) => {
     let numValue = parseInt(inputValue, 10);
-    let defaultValue = 0;
+    let defaultValue = 0; // Default to 0, can be overridden by specific field logic
     switch(field) {
         case 'translationMarginTop': defaultValue = INITIAL_APP_STATE.translationMarginTop; break;
         case 'originalLineToTranslationSpacing': defaultValue = INITIAL_APP_STATE.originalLineToTranslationSpacing; break;
         case 'interPairSpacing': defaultValue = INITIAL_APP_STATE.interPairSpacing; break;
+        case 'spacingAfterCharacterName': defaultValue = INITIAL_APP_STATE.spacingAfterCharacterName; break;
+        case 'spacingAfterModelName': defaultValue = INITIAL_APP_STATE.spacingAfterModelName; break;
     }
 
-    if (isNaN(numValue) || numValue < 0) {
+    if (isNaN(numValue) || numValue < 0) { // Ensure non-negative values
       numValue = defaultValue;
     }
     
@@ -223,6 +230,8 @@ const ControlsPanel: React.FC<ControlsPanelProps> = ({ appState, setAppState, av
     setTranslationMarginTopInput(String(INITIAL_APP_STATE.translationMarginTop));
     setOriginalLineToTranslationSpacingInput(String(INITIAL_APP_STATE.originalLineToTranslationSpacing));
     setInterPairSpacingInput(String(INITIAL_APP_STATE.interPairSpacing));
+    setSpacingAfterCharacterNameInput(String(INITIAL_APP_STATE.spacingAfterCharacterName));
+    setSpacingAfterModelNameInput(String(INITIAL_APP_STATE.spacingAfterModelName));
     setLineCustomizationVisible({});
     setAppState(INITIAL_APP_STATE);
   };
@@ -273,6 +282,32 @@ const ControlsPanel: React.FC<ControlsPanelProps> = ({ appState, setAppState, av
           onTextStyleChange={handleCharacterNameChange}
           availableFonts={availableFonts}
         />
+
+        <div className="mt-6 pt-4 border-t border-gray-200">
+            <h4 className="text-md font-semibold text-gray-700 mb-3">Inter-Element Spacing</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <StyledInput
+                    label="Spacing After Character Name (px)"
+                    id="spacingAfterCharacterName"
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={spacingAfterCharacterNameInput}
+                    onChange={(e) => setSpacingAfterCharacterNameInput(e.target.value)}
+                    onBlur={() => handleNumericInputBlur('spacingAfterCharacterName', spacingAfterCharacterNameInput, setSpacingAfterCharacterNameInput)}
+                />
+                <StyledInput
+                    label="Spacing After Model Name (px)"
+                    id="spacingAfterModelName"
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={spacingAfterModelNameInput}
+                    onChange={(e) => setSpacingAfterModelNameInput(e.target.value)}
+                    onBlur={() => handleNumericInputBlur('spacingAfterModelName', spacingAfterModelNameInput, setSpacingAfterModelNameInput)}
+                />
+            </div>
+        </div>
         
         <div className="mt-6 pt-6 border-t border-gray-200">
           <h4 className="text-md font-semibold text-gray-700 mb-3">Novel Content Mode</h4>
