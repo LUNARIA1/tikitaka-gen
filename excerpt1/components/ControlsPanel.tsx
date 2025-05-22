@@ -238,7 +238,7 @@ const ControlsPanel: React.FC<ControlsPanelProps> = ({ appState, setAppState, av
 
   return (
     <div className="w-full p-4 md:p-6 space-y-6 overflow-y-auto bg-stone-50 rounded-xl shadow-2xl print:hidden">
-      <h1 className="text-3xl font-bold text-center text-gray-900 mb-6">Excerpt Image Creator</h1>
+      <h1 className="text-3xl font-bold text-center text-gray-900 mb-6">Excerpt Image Creator !</h1>
       
       <DimensionControls
         preset={appState.dimensionPreset}
