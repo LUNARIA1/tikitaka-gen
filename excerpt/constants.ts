@@ -49,7 +49,7 @@ export const DEFAULT_ORIGINAL_TEXT_STYLE: Omit<TextStyle, 'text'> = {
 
 export const DEFAULT_TRANSLATED_TEXT_STYLE: Omit<TextStyle, 'text'> = {
   ...DEFAULT_TEXT_STYLE_BASE_NO_TEXT,
-  fontFamily: DEFAULT_FONT_FAMILIES[1].value, // Same as original by default
+  fontFamily: DEFAULT_FONT_FAMILIES[0].value, // Same as original by default
   fontSize: 12,
   color: "#DDDDDD", // Slightly lighter than original content's default for differentiation
   isBold: false,
@@ -81,8 +81,8 @@ export const INITIAL_APP_STATE: AppState = {
   translationMarginTop: 8,
 
   linePairs: [],
-  originalLineToTranslationSpacing: 4,
-  interPairSpacing: 10,
+  originalLineToTranslationSpacing: 0,
+  interPairSpacing: 50,
 
   originalTextStyle: { ...DEFAULT_ORIGINAL_TEXT_STYLE },
   translatedTextStyle: { ...DEFAULT_TRANSLATED_TEXT_STYLE },
