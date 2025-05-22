@@ -51,7 +51,7 @@ const App: React.FC = () => {
         useCORS: true, 
         logging: false, 
         backgroundColor: null, 
-        scale: 1, // Corrected: Changed from 2 to 1
+        scale: window.devicePixelRatio || 1, // Use devicePixelRatio for sharper images
       }).then((canvas: HTMLCanvasElement) => {
         const image = canvas.toDataURL('image/png', 1.0); 
         const link = document.createElement('a');
