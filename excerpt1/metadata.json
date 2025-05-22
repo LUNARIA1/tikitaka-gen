@@ -1,0 +1,6 @@
+{
+  "name": "AI Novel Excerpt Image Generator",
+  "description": "A web application to create visually appealing excerpt images from AI-generated novel snippets for social media. Customize dimensions, backgrounds, text styles, and layouts with a minimalist design.",
+  "requestFramePermissions": [],
+  "prompt": ""
+}
