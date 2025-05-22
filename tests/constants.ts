@@ -58,7 +58,7 @@ export const DEFAULT_LAYOUT_STYLE: LayoutStyle = {
 };
 
 export const INITIAL_APP_STATE: AppState = {
-  aiModelName: "Gemini",
+  aiModelName: "Anthropic/Claude-3.7-Sonnet",
   aiModelDisplayStyle: { ...DEFAULT_MODEL_DISPLAY_STYLE }, // Uses updated style
   aiCharacterName: { ...DEFAULT_CHARACTER_TEXT_STYLE }, // Uses updated style
   aiContent: { ...DEFAULT_CONTENT_TEXT_STYLE }, // Uses updated style
