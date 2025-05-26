@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>텍스트 치환 도구</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            font-weight: 700;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .section {
+            margin-bottom: 25px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .section h3 {
+            margin-bottom: 15px;
+            color: #555;
+            font-size: 1.3em;
+            font-weight: 600;
+        }
+
+        textarea, input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        textarea:focus, input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            background: white;
+        }
+
+        textarea {
+            height: 120px;
+            resize: vertical;
+            font-family: inherit;
+        }
+
+        .replace-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .input-group label {
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .replace-target {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .replace-target input {
+            height: 40px;
+        }
+
+        .replace-with input {
+            height: 40px;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin: 20px 0;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(45deg, #42a5f5, #478ed1);
+            color: white;
+            box-shadow: 0 4px 15px rgba(66, 165, 245, 0.3);
+        }
+
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(66, 165, 245, 0.4);
+        }
+
+        .btn-warning {
+            background: linear-gradient(45deg, #ff9800, #f57c00);
+            color: white;
+            box-shadow: 0 4px 15px rgba(255, 152, 0, 0.3);
+        }
+
+        .btn-warning:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 152, 0, 0.4);
+        }
+
+        .btn-danger {
+            background: linear-gradient(45deg, #f44336, #d32f2f);
+            color: white;
+            box-shadow: 0 4px 15px rgba(244, 67, 54, 0.3);
+        }
+
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(244, 67, 54, 0.4);
+        }
+
+        .result-section {
+            margin-top: 30px;
+        }
+
+        .copy-notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #4caf50;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: all 0.3s ease;
+        }
+
+        .copy-notification.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+                margin: 10px;
+            }
+
+            h1 {
+                font-size: 2em;
+            }
+
+            .replace-inputs {
+                grid-template-columns: 1fr;
+            }
+
+            .buttons {
+                flex-direction: column;
+            }
+
+            button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>텍스트 치환 도구</h1>
+        
+        <div class="section">
+            <h3>원본 텍스트</h3>
+            <textarea id="originalText" placeholder="치환할 원본 텍스트를 입력하세요..."></textarea>
+        </div>
+
+        <div class="section">
+            <h3>치환 설정</h3>
+            <div class="replace-inputs">
+                <div class="input-group">
+                    <label>치환할 텍스트 (5개)</label>
+                    <div class="replace-target">
+                        <input type="text" id="target1" placeholder="치환할 텍스트 1">
+                        <input type="text" id="target2" placeholder="치환할 텍스트 2">
+                        <input type="text" id="target3" placeholder="치환할 텍스트 3">
+                        <input type="text" id="target4" placeholder="치환할 텍스트 4">
+                        <input type="text" id="target5" placeholder="치환할 텍스트 5">
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label>치환될 텍스트</label>
+                    <div class="replace-with">
+                        <input type="text" id="replacement" placeholder="모든 대상을 이 텍스트로 치환합니다">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="buttons">
+            <button class="btn-primary" onclick="replaceText()">치환하기</button>
+            <button class="btn-secondary" onclick="copyResult()">결과 복사</button>
+            <button class="btn-warning" onclick="clearOriginal()">원본 지우기</button>
+            <button class="btn-warning" onclick="clearReplace()">치환설정 지우기</button>
+            <button class="btn-danger" onclick="clearAll()">모두 지우기</button>
+        </div>
+
+        <div class="section result-section">
+            <h3>치환 결과</h3>
+            <textarea id="resultText" readonly placeholder="치환 결과가 여기에 표시됩니다..."></textarea>
+        </div>
+    </div>
+
+    <div class="copy-notification" id="copyNotification">
+        텍스트가 클립보드에 복사되었습니다!
+    </div>
+
+    <script>
+        function replaceText() {
+            const originalText = document.getElementById('originalText').value;
+            const targets = [
+                document.getElementById('target1').value,
+                document.getElementById('target2').value,
+                document.getElementById('target3').value,
+                document.getElementById('target4').value,
+                document.getElementById('target5').value
+            ];
+            const replacement = document.getElementById('replacement').value;
+
+            if (!originalText.trim()) {
+                alert('원본 텍스트를 입력해주세요.');
+                return;
+            }
+
+            if (!replacement.trim()) {
+                alert('치환될 텍스트를 입력해주세요.');
+                return;
+            }
+
+            let result = originalText;
+            
+            // 빈 문자열이 아닌 대상들만 치환
+            targets.forEach(target => {
+                if (target.trim()) {
+                    // 전역 치환을 위해 정규식 사용
+                    const regex = new RegExp(escapeRegExp(target), 'g');
+                    result = result.replace(regex, replacement);
+                }
+            });
+
+            document.getElementById('resultText').value = result;
+        }
+
+        function escapeRegExp(string) {
+            // 정규식 특수문자 이스케이프
+            return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+
+        async function copyResult() {
+            const resultText = document.getElementById('resultText').value;
+            
+            if (!resultText.trim()) {
+                alert('복사할 결과가 없습니다. 먼저 치환을 실행해주세요.');
+                return;
+            }
+
+            try {
+                await navigator.clipboard.writeText(resultText);
+                showCopyNotification();
+            } catch (err) {
+                // Clipboard API가 지원되지 않는 경우의 대안
+                const textArea = document.createElement('textarea');
+                textArea.value = resultText;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                showCopyNotification();
+            }
+        }
+
+        function showCopyNotification() {
+            const notification = document.getElementById('copyNotification');
+            notification.classList.add('show');
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 2000);
+        }
+
+        function clearOriginal() {
+            document.getElementById('originalText').value = '';
+            document.getElementById('resultText').value = '';
+        }
+
+        function clearReplace() {
+            document.getElementById('target1').value = '';
+            document.getElementById('target2').value = '';
+            document.getElementById('target3').value = '';
+            document.getElementById('target4').value = '';
+            document.getElementById('target5').value = '';
+            document.getElementById('replacement').value = '';
+        }
+
+        function clearAll() {
+            clearOriginal();
+            clearReplace();
+        }
+
+        // 엔터키로 치환 실행
+        document.addEventListener('keydown', function(event) {
+            if (event.ctrlKey && event.key === 'Enter') {
+                replaceText();
+            }
+        });
+
+        // 입력 필드에서 엔터키 처리
+        document.querySelectorAll('input[type="text"]').forEach(input => {
+            input.addEventListener('keydown', function(event) {
+                if (event.key === 'Enter') {
+                    replaceText();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
