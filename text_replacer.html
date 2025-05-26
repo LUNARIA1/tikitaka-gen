@@ -173,6 +173,23 @@
             box-shadow: 0 6px 20px rgba(244, 67, 54, 0.4);
         }
 
+        .btn-emoji {
+            background: linear-gradient(45deg, #ffd54f, #ffb300);
+            color: white;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 20px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(255, 213, 79, 0.3);
+        }
+
+        .btn-emoji:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(255, 213, 79, 0.4);
+        }
+
         .result-section {
             margin-top: 30px;
         }
@@ -246,6 +263,10 @@
                     <label>치환될 텍스트</label>
                     <div class="replace-with">
                         <input type="text" id="replacement" placeholder="모든 대상을 이 텍스트로 치환합니다">
+                        <div style="margin-top: 8px; display: flex; gap: 8px;">
+                            <button type="button" class="btn-emoji" onclick="setReplacement('🌙')" title="달 이모지로 설정">🌙</button>
+                            <button type="button" class="btn-emoji" onclick="setReplacement('🌠')" title="별똥별 이모지로 설정">🌠</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -254,6 +275,7 @@
         <div class="buttons">
             <button class="btn-primary" onclick="replaceText()">치환하기</button>
             <button class="btn-secondary" onclick="copyResult()">결과 복사</button>
+            <button class="btn-secondary" onclick="moveResultToOriginal()">결과를 원본으로</button>
             <button class="btn-warning" onclick="clearOriginal()">원본 지우기</button>
             <button class="btn-warning" onclick="clearReplace()">치환설정 지우기</button>
             <button class="btn-danger" onclick="clearAll()">모두 지우기</button>
@@ -358,6 +380,35 @@
         function clearAll() {
             clearOriginal();
             clearReplace();
+        }
+
+        function setReplacement(emoji) {
+            document.getElementById('replacement').value = emoji;
+        }
+
+        function moveResultToOriginal() {
+            const resultText = document.getElementById('resultText').value;
+            
+            if (!resultText.trim()) {
+                alert('이동할 결과가 없습니다. 먼저 치환을 실행해주세요.');
+                return;
+            }
+
+            document.getElementById('originalText').value = resultText;
+            showMoveNotification();
+        }
+
+        function showMoveNotification() {
+            const notification = document.getElementById('copyNotification');
+            notification.textContent = '결과가 원본 텍스트로 이동되었습니다!';
+            notification.classList.add('show');
+            setTimeout(() => {
+                notification.classList.remove('show');
+                // 원래 텍스트로 되돌리기
+                setTimeout(() => {
+                    notification.textContent = '텍스트가 클립보드에 복사되었습니다!';
+                }, 300);
+            }, 2000);
         }
 
         // 엔터키로 치환 실행
