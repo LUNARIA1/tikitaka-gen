@@ -166,6 +166,44 @@
             align-items: flex-end;
         }
 
+        /* 답변 변형 네비게이션 - 액션 버튼 아래로 이동 */
+        .variant-navigation {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 8px;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .message-wrapper.user .variant-navigation {
+            justify-content: flex-end;
+        }
+
+        .variant-nav-btn {
+            background: #e1e8ed;
+            border: none;
+            color: #333;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+
+        .variant-nav-btn:hover:not(:disabled) {
+            background: #d0d7de;
+        }
+
+        .variant-nav-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
         /* 액션 버튼들을 가장 아래 말풍선 밑에 배치 */
         .message-actions-container {
             display: flex;
@@ -181,6 +219,18 @@
 
         .message-wrapper.user .message-actions-container {
             justify-content: flex-end;
+        }
+
+        /* 액션 버튼과 변형 네비게이션을 묶는 컨테이너 */
+        .message-controls {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            margin-top: 4px;
+        }
+
+        .message-wrapper.user .message-controls {
+            align-items: flex-end;
         }
 
         .message {
@@ -391,6 +441,66 @@
 
         .checkbox-group input[type="checkbox"] {
             width: auto;
+        }
+
+        /* 슬라이더 스타일 */
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .slider {
+            flex: 1;
+            -webkit-appearance: none;
+            appearance: none;
+            height: 6px;
+            background: #e1e8ed;
+            outline: none;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+            border-radius: 3px;
+        }
+
+        .slider:hover {
+            opacity: 1;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #4a90e2;
+            cursor: pointer;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .slider::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            background: #4a90e2;
+            cursor: pointer;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .slider-value {
+            min-width: 40px;
+            text-align: center;
+            font-weight: 600;
+            color: #4a90e2;
+        }
+
+        .temperature-help {
+            font-size: 12px;
+            color: #ff6b6b;
+            margin-top: 8px;
+            padding: 8px;
+            background: #fff5f5;
+            border-radius: 4px;
+            border: 1px solid #ffe0e0;
         }
 
         /* 오타쿠 모드 스타일 */
@@ -864,9 +974,24 @@
                     </div>
                 </div>
                 <div class="form-group">
+                    <label for="temperature">온도 (Temperature): <span id="temperatureValue" class="slider-value">1.0</span></label>
+                    <div class="slider-container">
+                        <input type="range" id="temperature" class="slider" min="0" max="2" step="0.1" value="1.0" oninput="updateSliderValue('temperature', this.value)">
+                    </div>
+                    <div class="temperature-help">
+                        💡 AI가 횡설수설 헛소리를 하면 온도를 내리세요!
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="topP">Top P: <span id="topPValue" class="slider-value">0.9</span></label>
+                    <div class="slider-container">
+                        <input type="range" id="topP" class="slider" min="0" max="1" step="0.05" value="0.9" oninput="updateSliderValue('topP', this.value)">
+                    </div>
+                </div>
+                <div class="form-group">
                     <label for="systemPrompt">기본 프롬프트:</label>
                     <textarea id="systemPrompt" placeholder="시스템 역할을 정의하는 기본 프롬프트를 입력하세요"></textarea>
-                    <small id="otakuModeHint" style="display: none; color: #ff6b6b; font-size: 12px;">💡 {{description}}과 {{persona}}를 사용할 수 있습니다!</small>
+                    <small id="otakuModeHint" style="display: none; color: #ff6b6b; font-size: 12px;">💡 {{캐릭터프로필}}과 {{페르소나프로필}}를 사용할 수 있습니다!</small>
                 </div>
                 <div class="form-group">
                     <label for="assistantPrefill">Assistant 프리필:</label>
@@ -1010,6 +1135,8 @@
         let regexRules = [];
         let currentEditRuleIndex = -1;
         let historyTurns = 20;
+        let temperature = 1.0;
+        let topP = 0.9;
         
         // 오타쿠 모드 관련 변수
         let otakuMode = false;
@@ -1041,6 +1168,16 @@
             });
         }
 
+        // 슬라이더 값 업데이트
+        function updateSliderValue(sliderId, value) {
+            document.getElementById(sliderId + 'Value').textContent = value;
+            if (sliderId === 'temperature') {
+                temperature = parseFloat(value);
+            } else if (sliderId === 'topP') {
+                topP = parseFloat(value);
+            }
+        }
+
         // 로컬 스토리지에서 설정 불러오기
         function loadSettings() {
             const savedApiKey = localStorage.getItem('gemini_api_key');
@@ -1054,6 +1191,8 @@
             const savedCurrentConvId = localStorage.getItem('current_conversation_id');
             const savedRegexRules = localStorage.getItem('regex_rules');
             const savedHistoryTurns = localStorage.getItem('history_turns');
+            const savedTemperature = localStorage.getItem('temperature');
+            const savedTopP = localStorage.getItem('top_p');
             
             // 오타쿠 모드 설정 불러오기
             const savedOtakuMode = localStorage.getItem('otaku_mode');
@@ -1100,6 +1239,16 @@
             if (savedHistoryTurns) {
                 historyTurns = parseInt(savedHistoryTurns);
                 document.getElementById('historyTurns').value = historyTurns;
+            }
+            if (savedTemperature) {
+                temperature = parseFloat(savedTemperature);
+                document.getElementById('temperature').value = temperature;
+                document.getElementById('temperatureValue').textContent = temperature;
+            }
+            if (savedTopP) {
+                topP = parseFloat(savedTopP);
+                document.getElementById('topP').value = topP;
+                document.getElementById('topPValue').textContent = topP;
             }
             
             // 오타쿠 모드 설정 복원
@@ -1242,6 +1391,8 @@
             currentConversationId = null;
             regexRules = [];
             historyTurns = 20;
+            temperature = 1.0;
+            topP = 0.9;
             otakuMode = false;
             characterProfile = '';
             personaProfile = '';
@@ -1498,7 +1649,6 @@
                 displayRegexRules();
             }
         }
-
         function saveRegexRule() {
             const name = document.getElementById('regexRuleName').value.trim();
             const pattern = document.getElementById('regexPattern').value.trim();
@@ -1571,6 +1721,12 @@
                 if (originalContent !== newContent) {
                     appliedCount++;
                 }
+                
+                // variants가 있는 경우 모든 변형에도 적용
+                if (msg.variants && msg.variants.length > 0) {
+                    msg.variants = msg.variants.map(variant => applyRegexToMessage(variant));
+                }
+                
                 return {
                     ...msg,
                     content: newContent
@@ -1600,6 +1756,8 @@
             chatName = document.getElementById('chatName').value;
             enterToSend = document.getElementById('enterToSend').checked;
             historyTurns = parseInt(document.getElementById('historyTurns').value) || 20;
+            temperature = parseFloat(document.getElementById('temperature').value);
+            topP = parseFloat(document.getElementById('topP').value);
             
             // 오타쿠 모드 설정 저장
             characterProfile = document.getElementById('characterProfile').value;
@@ -1612,6 +1770,8 @@
             localStorage.setItem('chat_name', chatName);
             localStorage.setItem('enter_to_send', enterToSend);
             localStorage.setItem('history_turns', historyTurns);
+            localStorage.setItem('temperature', temperature);
+            localStorage.setItem('top_p', topP);
             localStorage.setItem('otaku_mode', otakuMode);
             localStorage.setItem('character_profile', characterProfile);
             localStorage.setItem('persona_profile', personaProfile);
@@ -1683,11 +1843,42 @@
             return html;
         }
 
+        // 사용하지 않은 변형 답변들을 정리
+        function cleanupUnusedVariants() {
+            chatHistory = chatHistory.map(msg => {
+                if (msg.role === 'ai' && msg.variants && msg.variants.length > 0) {
+                    // 현재 선택된 답변만 content로 설정하고 variants 제거
+                    const selectedContent = msg.currentVariantIndex >= 0 && msg.currentVariantIndex < msg.variants.length
+                        ? msg.variants[msg.currentVariantIndex]
+                        : msg.content;
+                    
+                    return {
+                        role: msg.role,
+                        content: selectedContent
+                    };
+                }
+                return msg;
+            });
+            
+            updateCurrentConversation();
+        }
+
         function addMessage(role, content) {
             if (role !== '시스템') {
+                // 새로운 메시지를 추가하기 전에 이전 변형 답변들 정리
+                cleanupUnusedVariants();
+                
                 // 정규식 규칙 자동 적용
                 const processedContent = applyRegexToMessage(content);
-                chatHistory.push({ role, content: processedContent });
+                const newMessage = { role, content: processedContent };
+                
+                // AI 메시지인 경우 variants 배열 초기화
+                if (role === 'ai') {
+                    newMessage.variants = [processedContent];
+                    newMessage.currentVariantIndex = 0;
+                }
+                
+                chatHistory.push(newMessage);
                 updateCurrentConversation();
                 updateMessagesDisplay();
             } else {
@@ -1741,8 +1932,8 @@
             let processedSystemPrompt = systemPrompt;
             if (otakuMode && systemPrompt) {
                 processedSystemPrompt = systemPrompt
-                    .replace(/{{description}}/g, characterProfile)
-                    .replace(/{{persona}}/g, personaProfile);
+                    .replace(/{{캐릭터프로필}}/g, characterProfile)
+                    .replace(/{{페르소나프로필}}/g, personaProfile);
             }
             
             if (processedSystemPrompt && messagesPayload.length > 0) {
@@ -1765,7 +1956,10 @@
                 body: JSON.stringify({
                     contents: messagesPayload,
                     generationConfig: {
-                        temperature: 0.7, topK: 40, topP: 0.95, maxOutputTokens: 8192,
+                        temperature: temperature,
+                        topK: 40,
+                        topP: topP,
+                        maxOutputTokens: 8192,
                     }
                 })
             });
@@ -1811,22 +2005,52 @@
                 return;
             }
             
-            chatHistory.splice(lastAiMessageIndex, 1);
-            updateCurrentConversation();
-            updateMessagesDisplay();
-            
             const sendBtn = document.getElementById('sendBtn');
             sendBtn.disabled = true;
             document.getElementById('typingIndicator').style.display = 'block';
             
             try {
                 const response = await callGeminiAPI(lastUserMessageContent);
-                addMessage('ai', response);
+                const processedResponse = applyRegexToMessage(response);
+                
+                // 기존 AI 메시지에 새로운 답변 추가
+                const lastAiMessage = chatHistory[lastAiMessageIndex];
+                if (!lastAiMessage.variants) {
+                    lastAiMessage.variants = [lastAiMessage.content];
+                    lastAiMessage.currentVariantIndex = 0;
+                }
+                
+                lastAiMessage.variants.push(processedResponse);
+                lastAiMessage.currentVariantIndex = lastAiMessage.variants.length - 1;
+                lastAiMessage.content = processedResponse;
+                
+                updateCurrentConversation();
+                updateMessagesDisplay();
             } catch (error) {
                 addMessage('시스템', `리롤 오류: ${error.message}`);
             } finally {
                 sendBtn.disabled = false;
                 document.getElementById('typingIndicator').style.display = 'none';
+            }
+        }
+
+        function showPreviousVariant(messageIndex) {
+            const message = chatHistory[messageIndex];
+            if (message.currentVariantIndex > 0) {
+                message.currentVariantIndex--;
+                message.content = message.variants[message.currentVariantIndex];
+                updateCurrentConversation();
+                updateMessagesDisplay();
+            }
+        }
+
+        function showNextVariant(messageIndex) {
+            const message = chatHistory[messageIndex];
+            if (message.currentVariantIndex < message.variants.length - 1) {
+                message.currentVariantIndex++;
+                message.content = message.variants[message.currentVariantIndex];
+                updateCurrentConversation();
+                updateMessagesDisplay();
             }
         }
 
@@ -1860,6 +2084,12 @@
                 // 정규식 규칙 적용
                 const processedContent = applyRegexToMessage(newContent);
                 chatHistory[currentEditIndex].content = processedContent;
+                
+                // AI 메시지의 경우 variants도 업데이트
+                if (chatHistory[currentEditIndex].role === 'ai' && chatHistory[currentEditIndex].variants) {
+                    chatHistory[currentEditIndex].variants[chatHistory[currentEditIndex].currentVariantIndex] = processedContent;
+                }
+                
                 updateCurrentConversation();
                 updateMessagesDisplay();
             }
@@ -1939,7 +2169,11 @@ function updateMessagesDisplay() {
                 messageGroup.appendChild(messageDiv);
             });
             
-            // 액션 버튼들 (마지막 말풍선 아래에만)
+            // 컨트롤 컨테이너 (액션 버튼 + 변형 네비게이션)
+            const controlsContainer = document.createElement('div');
+            controlsContainer.className = 'message-controls';
+            
+            // 액션 버튼들
             const actionsContainer = document.createElement('div');
             actionsContainer.className = 'message-actions-container';
             
@@ -1976,7 +2210,36 @@ function updateMessagesDisplay() {
                 actionsContainer.appendChild(rewindBtn);
             }
             
-            messageGroup.appendChild(actionsContainer);
+            controlsContainer.appendChild(actionsContainer);
+            
+            // AI 메시지이고 변형 답변이 있는 경우 네비게이션 표시
+            if (msg.role === 'ai' && msg.variants && msg.variants.length > 1) {
+                const variantNav = document.createElement('div');
+                variantNav.className = 'variant-navigation';
+                
+                const prevBtn = document.createElement('button');
+                prevBtn.className = 'variant-nav-btn';
+                prevBtn.innerHTML = '◀';
+                prevBtn.disabled = msg.currentVariantIndex === 0;
+                prevBtn.onclick = () => showPreviousVariant(index);
+                
+                const navText = document.createElement('span');
+                navText.textContent = `< ${msg.currentVariantIndex + 1} / ${msg.variants.length} >`;
+                
+                const nextBtn = document.createElement('button');
+                nextBtn.className = 'variant-nav-btn';
+                nextBtn.innerHTML = '▶';
+                nextBtn.disabled = msg.currentVariantIndex === msg.variants.length - 1;
+                nextBtn.onclick = () => showNextVariant(index);
+                
+                variantNav.appendChild(prevBtn);
+                variantNav.appendChild(navText);
+                variantNav.appendChild(nextBtn);
+                
+                controlsContainer.appendChild(variantNav);
+            }
+            
+            messageGroup.appendChild(controlsContainer);
             wrapperDiv.appendChild(messageGroup);
         } else {
             // 일반 모드 또는 프로필 사진이 없을 때
@@ -1992,6 +2255,10 @@ function updateMessagesDisplay() {
                 messageDiv.appendChild(bubbleDiv);
                 wrapperDiv.appendChild(messageDiv);
             });
+            
+            // 컨트롤 컨테이너 (액션 버튼 + 변형 네비게이션)
+            const controlsContainer = document.createElement('div');
+            controlsContainer.className = 'message-controls';
             
             // 액션 버튼들을 가장 아래 말풍선 밑에 배치
             const actionsContainer = document.createElement('div');
@@ -2030,7 +2297,36 @@ function updateMessagesDisplay() {
                 actionsContainer.appendChild(rewindBtn);
             }
             
-            wrapperDiv.appendChild(actionsContainer);
+            controlsContainer.appendChild(actionsContainer);
+            
+            // AI 메시지이고 변형 답변이 있는 경우 네비게이션 표시
+            if (msg.role === 'ai' && msg.variants && msg.variants.length > 1) {
+                const variantNav = document.createElement('div');
+                variantNav.className = 'variant-navigation';
+                
+                const prevBtn = document.createElement('button');
+                prevBtn.className = 'variant-nav-btn';
+                prevBtn.innerHTML = '◀';
+                prevBtn.disabled = msg.currentVariantIndex === 0;
+                prevBtn.onclick = () => showPreviousVariant(index);
+                
+                const navText = document.createElement('span');
+                navText.textContent = `< ${msg.currentVariantIndex + 1} / ${msg.variants.length} >`;
+                
+                const nextBtn = document.createElement('button');
+                nextBtn.className = 'variant-nav-btn';
+                nextBtn.innerHTML = '▶';
+                nextBtn.disabled = msg.currentVariantIndex === msg.variants.length - 1;
+                nextBtn.onclick = () => showNextVariant(index);
+                
+                variantNav.appendChild(prevBtn);
+                variantNav.appendChild(navText);
+                variantNav.appendChild(nextBtn);
+                
+                controlsContainer.appendChild(variantNav);
+            }
+            
+            wrapperDiv.appendChild(controlsContainer);
         }
         
         messagesContainer.appendChild(wrapperDiv);
@@ -2103,6 +2399,8 @@ function updateMessagesDisplay() {
                     modelName: modelName,
                     enterToSend: enterToSend,
                     historyTurns: historyTurns,
+                    temperature: temperature,
+                    topP: topP,
                     otakuMode: otakuMode,
                     characterProfile: characterProfile,
                     personaProfile: personaProfile,
@@ -2171,6 +2469,18 @@ function updateMessagesDisplay() {
                             historyTurns = settings.historyTurns;
                             document.getElementById('historyTurns').value = historyTurns;
                             localStorage.setItem('history_turns', historyTurns);
+                        }
+                        if (settings.temperature !== undefined) {
+                            temperature = settings.temperature;
+                            document.getElementById('temperature').value = temperature;
+                            document.getElementById('temperatureValue').textContent = temperature;
+                            localStorage.setItem('temperature', temperature);
+                        }
+                        if (settings.topP !== undefined) {
+                            topP = settings.topP;
+                            document.getElementById('topP').value = topP;
+                            document.getElementById('topPValue').textContent = topP;
+                            localStorage.setItem('top_p', topP);
                         }
                         
                         // 오타쿠 모드 설정 가져오기
