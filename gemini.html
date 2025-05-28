@@ -1649,6 +1649,7 @@
                 displayRegexRules();
             }
         }
+
         function saveRegexRule() {
             const name = document.getElementById('regexRuleName').value.trim();
             const pattern = document.getElementById('regexPattern').value.trim();
@@ -1915,16 +1916,36 @@
             }
         }
 
-        async function callGeminiAPI(userMessageText) {
+        async function callGeminiAPI(userMessageText, excludeLastAI = false) {
             const messagesPayload = [];
             
-            const historyToConsider = [...chatHistory];
+            let historyToConsider = [...chatHistory];
+            
+            // 리롤 시 마지막 AI 메시지 제외
+            if (excludeLastAI) {
+                // 마지막 AI 메시지의 인덱스를 찾아서 제외
+                for (let i = historyToConsider.length - 1; i >= 0; i--) {
+                    if (historyToConsider[i].role === 'ai') {
+                        historyToConsider = historyToConsider.slice(0, i);
+                        break;
+                    }
+                }
+            }
+            
             const recentHistory = historyToConsider.slice(-historyTurns);
 
             for (const msg of recentHistory) {
                 messagesPayload.push({
                     role: msg.role === 'user' ? 'user' : 'model',
                     parts: [{ text: msg.content }]
+                });
+            }
+            
+            // 새로운 사용자 메시지 추가 (일반 전송 시에만)
+            if (userMessageText && !excludeLastAI) {
+                messagesPayload.push({
+                    role: 'user',
+                    parts: [{ text: userMessageText }]
                 });
             }
             
@@ -1937,9 +1958,9 @@
             }
             
             if (processedSystemPrompt && messagesPayload.length > 0) {
-                const lastMessageInPayload = messagesPayload[messagesPayload.length - 1];
-                if (lastMessageInPayload.role === 'user') {
-                    lastMessageInPayload.parts[0].text = `${lastMessageInPayload.parts[0].text}\n\n[기본 프롬프트]\n${processedSystemPrompt}`;
+                const lastUserMessageIndex = messagesPayload.map((msg, idx) => msg.role === 'user' ? idx : -1).filter(idx => idx !== -1).pop();
+                if (lastUserMessageIndex !== undefined && lastUserMessageIndex >= 0) {
+                    messagesPayload[lastUserMessageIndex].parts[0].text = `${messagesPayload[lastUserMessageIndex].parts[0].text}\n\n[기본 프롬프트]\n${processedSystemPrompt}`;
                 }
             }
             
@@ -1990,7 +2011,7 @@
             for (let i = chatHistory.length - 1; i >= 0; i--) {
                 if (chatHistory[i].role === 'ai') {
                     lastAiMessageIndex = i;
-                    for (let j = lastAiMessageIndex -1; j >=0; j--) {
+                    for (let j = lastAiMessageIndex - 1; j >= 0; j--) {
                         if (chatHistory[j].role === 'user') {
                             lastUserMessageContent = chatHistory[j].content;
                             break;
@@ -2010,7 +2031,8 @@
             document.getElementById('typingIndicator').style.display = 'block';
             
             try {
-                const response = await callGeminiAPI(lastUserMessageContent);
+                // excludeLastAI를 true로 설정하여 마지막 AI 응답을 제외하고 API 호출
+                const response = await callGeminiAPI(lastUserMessageContent, true);
                 const processedResponse = applyRegexToMessage(response);
                 
                 // 기존 AI 메시지에 새로운 답변 추가
@@ -2020,6 +2042,7 @@
                     lastAiMessage.currentVariantIndex = 0;
                 }
                 
+                // 새로운 변형을 추가하고 현재 인덱스를 업데이트
                 lastAiMessage.variants.push(processedResponse);
                 lastAiMessage.currentVariantIndex = lastAiMessage.variants.length - 1;
                 lastAiMessage.content = processedResponse;
@@ -2113,268 +2136,268 @@
             }
         }
 
-function updateMessagesDisplay() {
-    const messagesContainer = document.getElementById('chatMessages');
-    messagesContainer.innerHTML = '';
-    
-    const welcomeDiv = document.createElement('div');
-    welcomeDiv.className = 'message ai';
-    const welcomeBubble = document.createElement('div');
-    welcomeBubble.className = 'message-bubble';
-    welcomeBubble.innerHTML = parseMarkdown('안녕하세요! Gemini와 대화해보세요. 먼저 설정에서 API 키를 입력해주세요.');
-    welcomeDiv.appendChild(welcomeBubble);
-    
-    if (chatHistory.length === 0 && !apiKey) {
-        messagesContainer.appendChild(welcomeDiv);
-    }
+        function updateMessagesDisplay() {
+            const messagesContainer = document.getElementById('chatMessages');
+            messagesContainer.innerHTML = '';
+            
+            const welcomeDiv = document.createElement('div');
+            welcomeDiv.className = 'message ai';
+            const welcomeBubble = document.createElement('div');
+            welcomeBubble.className = 'message-bubble';
+            welcomeBubble.innerHTML = parseMarkdown('안녕하세요! Gemini와 대화해보세요. 먼저 설정에서 API 키를 입력해주세요.');
+            welcomeDiv.appendChild(welcomeBubble);
+            
+            if (chatHistory.length === 0 && !apiKey) {
+                messagesContainer.appendChild(welcomeDiv);
+            }
 
-    // 채팅 메시지 표시
-    chatHistory.forEach((msg, index) => {
-        const wrapperDiv = document.createElement('div');
-        wrapperDiv.className = `message-wrapper ${msg.role}`;
-        
-        // 메시지를 개행 문자로 분리
-        const messageParts = msg.content.split('\n').filter(part => part.trim() !== '');
-        
-        // 오타쿠 모드에서 프로필 사진 표시
-        if (otakuMode && ((msg.role === 'ai' && characterPhoto) || (msg.role === 'user' && personaPhoto))) {
-            wrapperDiv.classList.add('with-profile');
-            
-            // 프로필 사진 컨테이너
-            const photoContainer = document.createElement('div');
-            photoContainer.className = 'profile-photo-container';
-            
-            const photo = document.createElement('img');
-            photo.className = 'profile-photo';
-            photo.src = msg.role === 'ai' ? characterPhoto : personaPhoto;
-            photo.alt = msg.role === 'ai' ? 'Character' : 'Persona';
-            
-            photoContainer.appendChild(photo);
-            wrapperDiv.appendChild(photoContainer);
-            
-            // 메시지 그룹 컨테이너
-            const messageGroup = document.createElement('div');
-            messageGroup.className = 'message-group';
-            
-            // 각 메시지 부분을 별도의 말풍선으로 생성
-            messageParts.forEach((part, partIndex) => {
-                const messageDiv = document.createElement('div');
-                messageDiv.className = `message ${msg.role}`;
+            // 채팅 메시지 표시
+            chatHistory.forEach((msg, index) => {
+                const wrapperDiv = document.createElement('div');
+                wrapperDiv.className = `message-wrapper ${msg.role}`;
                 
-                const bubbleDiv = document.createElement('div');
-                bubbleDiv.className = 'message-bubble';
-                bubbleDiv.innerHTML = parseMarkdown(part);
+                // 메시지를 개행 문자로 분리
+                const messageParts = msg.content.split('\n').filter(part => part.trim() !== '');
                 
-                messageDiv.appendChild(bubbleDiv);
-                messageGroup.appendChild(messageDiv);
+                // 오타쿠 모드에서 프로필 사진 표시
+                if (otakuMode && ((msg.role === 'ai' && characterPhoto) || (msg.role === 'user' && personaPhoto))) {
+                    wrapperDiv.classList.add('with-profile');
+                    
+                    // 프로필 사진 컨테이너
+                    const photoContainer = document.createElement('div');
+                    photoContainer.className = 'profile-photo-container';
+                    
+                    const photo = document.createElement('img');
+                    photo.className = 'profile-photo';
+                    photo.src = msg.role === 'ai' ? characterPhoto : personaPhoto;
+                    photo.alt = msg.role === 'ai' ? 'Character' : 'Persona';
+                    
+                    photoContainer.appendChild(photo);
+                    wrapperDiv.appendChild(photoContainer);
+                    
+                    // 메시지 그룹 컨테이너
+                    const messageGroup = document.createElement('div');
+                    messageGroup.className = 'message-group';
+                    
+                    // 각 메시지 부분을 별도의 말풍선으로 생성
+                    messageParts.forEach((part, partIndex) => {
+                        const messageDiv = document.createElement('div');
+                        messageDiv.className = `message ${msg.role}`;
+                        
+                        const bubbleDiv = document.createElement('div');
+                        bubbleDiv.className = 'message-bubble';
+                        bubbleDiv.innerHTML = parseMarkdown(part);
+                        
+                        messageDiv.appendChild(bubbleDiv);
+                        messageGroup.appendChild(messageDiv);
+                    });
+                    
+                    // 컨트롤 컨테이너 (액션 버튼 + 변형 네비게이션)
+                    const controlsContainer = document.createElement('div');
+                    controlsContainer.className = 'message-controls';
+                    
+                    // 액션 버튼들
+                    const actionsContainer = document.createElement('div');
+                    actionsContainer.className = 'message-actions-container';
+                    
+                    const editBtn = document.createElement('button');
+                    editBtn.className = 'action-btn icon-btn edit-icon';
+                    editBtn.innerHTML = '✏️';
+                    editBtn.title = '수정';
+                    editBtn.onclick = () => editMessage(index, 'chat');
+                    actionsContainer.appendChild(editBtn);
+                    
+                    // 마지막 AI 메시지에 리롤 버튼 추가
+                    if (msg.role === 'ai' && index === chatHistory.length - 1) {
+                        const rerollBtn = document.createElement('button');
+                        rerollBtn.className = 'action-btn icon-btn reroll-icon';
+                        rerollBtn.innerHTML = '🔄';
+                        rerollBtn.title = '리롤';
+                        rerollBtn.onclick = () => rerollLastResponse();
+                        actionsContainer.appendChild(rerollBtn);
+                    }
+                    
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'action-btn icon-btn delete-icon';
+                    deleteBtn.innerHTML = '🗑️';
+                    deleteBtn.title = '삭제';
+                    deleteBtn.onclick = () => deleteMessage(index);
+                    actionsContainer.appendChild(deleteBtn);
+                    
+                    if (index < chatHistory.length - 1) {
+                        const rewindBtn = document.createElement('button');
+                        rewindBtn.className = 'action-btn icon-btn rewind-icon';
+                        rewindBtn.innerHTML = '⏪';
+                        rewindBtn.title = '여기까지만 유지';
+                        rewindBtn.onclick = () => rewindToMessage(index);
+                        actionsContainer.appendChild(rewindBtn);
+                    }
+                    
+                    controlsContainer.appendChild(actionsContainer);
+                    
+                    // AI 메시지이고 변형 답변이 있는 경우 네비게이션 표시
+                    if (msg.role === 'ai' && msg.variants && msg.variants.length > 1) {
+                        const variantNav = document.createElement('div');
+                        variantNav.className = 'variant-navigation';
+                        
+                        const prevBtn = document.createElement('button');
+                        prevBtn.className = 'variant-nav-btn';
+                        prevBtn.innerHTML = '◀';
+                        prevBtn.disabled = msg.currentVariantIndex === 0;
+                        prevBtn.onclick = () => showPreviousVariant(index);
+                        
+                        const navText = document.createElement('span');
+                        navText.textContent = `< ${msg.currentVariantIndex + 1} / ${msg.variants.length} >`;
+                        
+                        const nextBtn = document.createElement('button');
+                        nextBtn.className = 'variant-nav-btn';
+                        nextBtn.innerHTML = '▶';
+                        nextBtn.disabled = msg.currentVariantIndex === msg.variants.length - 1;
+                        nextBtn.onclick = () => showNextVariant(index);
+                        
+                        variantNav.appendChild(prevBtn);
+                        variantNav.appendChild(navText);
+                        variantNav.appendChild(nextBtn);
+                        
+                        controlsContainer.appendChild(variantNav);
+                    }
+                    
+                    messageGroup.appendChild(controlsContainer);
+                    wrapperDiv.appendChild(messageGroup);
+                } else {
+                    // 일반 모드 또는 프로필 사진이 없을 때
+                    // 각 메시지 부분을 별도의 말풍선으로 생성
+                    messageParts.forEach((part, partIndex) => {
+                        const messageDiv = document.createElement('div');
+                        messageDiv.className = `message ${msg.role}`;
+                        
+                        const bubbleDiv = document.createElement('div');
+                        bubbleDiv.className = 'message-bubble';
+                        bubbleDiv.innerHTML = parseMarkdown(part);
+                        
+                        messageDiv.appendChild(bubbleDiv);
+                        wrapperDiv.appendChild(messageDiv);
+                    });
+                    
+                    // 컨트롤 컨테이너 (액션 버튼 + 변형 네비게이션)
+                    const controlsContainer = document.createElement('div');
+                    controlsContainer.className = 'message-controls';
+                    
+                    // 액션 버튼들을 가장 아래 말풍선 밑에 배치
+                    const actionsContainer = document.createElement('div');
+                    actionsContainer.className = 'message-actions-container';
+                    
+                    const editBtn = document.createElement('button');
+                    editBtn.className = 'action-btn icon-btn edit-icon';
+                    editBtn.innerHTML = '✏️';
+                    editBtn.title = '수정';
+                    editBtn.onclick = () => editMessage(index, 'chat');
+                    actionsContainer.appendChild(editBtn);
+                    
+                    // 마지막 AI 메시지에 리롤 버튼 추가
+                    if (msg.role === 'ai' && index === chatHistory.length - 1) {
+                        const rerollBtn = document.createElement('button');
+                        rerollBtn.className = 'action-btn icon-btn reroll-icon';
+                        rerollBtn.innerHTML = '🔄';
+                        rerollBtn.title = '리롤';
+                        rerollBtn.onclick = () => rerollLastResponse();
+                        actionsContainer.appendChild(rerollBtn);
+                    }
+                    
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'action-btn icon-btn delete-icon';
+                    deleteBtn.innerHTML = '🗑️';
+                    deleteBtn.title = '삭제';
+                    deleteBtn.onclick = () => deleteMessage(index);
+                    actionsContainer.appendChild(deleteBtn);
+                    
+                    if (index < chatHistory.length - 1) {
+                        const rewindBtn = document.createElement('button');
+                        rewindBtn.className = 'action-btn icon-btn rewind-icon';
+                        rewindBtn.innerHTML = '⏪';
+                        rewindBtn.title = '여기까지만 유지';
+                        rewindBtn.onclick = () => rewindToMessage(index);
+                        actionsContainer.appendChild(rewindBtn);
+                    }
+                    
+                    controlsContainer.appendChild(actionsContainer);
+                    
+                    // AI 메시지이고 변형 답변이 있는 경우 네비게이션 표시
+                    if (msg.role === 'ai' && msg.variants && msg.variants.length > 1) {
+                        const variantNav = document.createElement('div');
+                        variantNav.className = 'variant-navigation';
+                        
+                        const prevBtn = document.createElement('button');
+                        prevBtn.className = 'variant-nav-btn';
+                        prevBtn.innerHTML = '◀';
+                        prevBtn.disabled = msg.currentVariantIndex === 0;
+                        prevBtn.onclick = () => showPreviousVariant(index);
+                        
+                        const navText = document.createElement('span');
+                        navText.textContent = `< ${msg.currentVariantIndex + 1} / ${msg.variants.length} >`;
+                        
+                        const nextBtn = document.createElement('button');
+                        nextBtn.className = 'variant-nav-btn';
+                        nextBtn.innerHTML = '▶';
+                        nextBtn.disabled = msg.currentVariantIndex === msg.variants.length - 1;
+                        nextBtn.onclick = () => showNextVariant(index);
+                        
+                        variantNav.appendChild(prevBtn);
+                        variantNav.appendChild(navText);
+                        variantNav.appendChild(nextBtn);
+                        
+                        controlsContainer.appendChild(variantNav);
+                    }
+                    
+                    wrapperDiv.appendChild(controlsContainer);
+                }
+                
+                messagesContainer.appendChild(wrapperDiv);
             });
             
-            // 컨트롤 컨테이너 (액션 버튼 + 변형 네비게이션)
-            const controlsContainer = document.createElement('div');
-            controlsContainer.className = 'message-controls';
-            
-            // 액션 버튼들
-            const actionsContainer = document.createElement('div');
-            actionsContainer.className = 'message-actions-container';
-            
-            const editBtn = document.createElement('button');
-            editBtn.className = 'action-btn icon-btn edit-icon';
-            editBtn.innerHTML = '✏️';
-            editBtn.title = '수정';
-            editBtn.onclick = () => editMessage(index, 'chat');
-            actionsContainer.appendChild(editBtn);
-            
-            // 마지막 AI 메시지에 리롤 버튼 추가
-            if (msg.role === 'ai' && index === chatHistory.length - 1) {
-                const rerollBtn = document.createElement('button');
-                rerollBtn.className = 'action-btn icon-btn reroll-icon';
-                rerollBtn.innerHTML = '🔄';
-                rerollBtn.title = '리롤';
-                rerollBtn.onclick = () => rerollLastResponse();
-                actionsContainer.appendChild(rerollBtn);
-            }
-            
-            const deleteBtn = document.createElement('button');
-            deleteBtn.className = 'action-btn icon-btn delete-icon';
-            deleteBtn.innerHTML = '🗑️';
-            deleteBtn.title = '삭제';
-            deleteBtn.onclick = () => deleteMessage(index);
-            actionsContainer.appendChild(deleteBtn);
-            
-            if (index < chatHistory.length - 1) {
-                const rewindBtn = document.createElement('button');
-                rewindBtn.className = 'action-btn icon-btn rewind-icon';
-                rewindBtn.innerHTML = '⏪';
-                rewindBtn.title = '여기까지만 유지';
-                rewindBtn.onclick = () => rewindToMessage(index);
-                actionsContainer.appendChild(rewindBtn);
-            }
-            
-            controlsContainer.appendChild(actionsContainer);
-            
-            // AI 메시지이고 변형 답변이 있는 경우 네비게이션 표시
-            if (msg.role === 'ai' && msg.variants && msg.variants.length > 1) {
-                const variantNav = document.createElement('div');
-                variantNav.className = 'variant-navigation';
+            // 시스템 알림 표시
+            systemNotifications.forEach((notification) => {
+                const wrapperDiv = document.createElement('div');
+                wrapperDiv.className = 'message-wrapper ai system-notification';
                 
-                const prevBtn = document.createElement('button');
-                prevBtn.className = 'variant-nav-btn';
-                prevBtn.innerHTML = '◀';
-                prevBtn.disabled = msg.currentVariantIndex === 0;
-                prevBtn.onclick = () => showPreviousVariant(index);
-                
-                const navText = document.createElement('span');
-                navText.textContent = `< ${msg.currentVariantIndex + 1} / ${msg.variants.length} >`;
-                
-                const nextBtn = document.createElement('button');
-                nextBtn.className = 'variant-nav-btn';
-                nextBtn.innerHTML = '▶';
-                nextBtn.disabled = msg.currentVariantIndex === msg.variants.length - 1;
-                nextBtn.onclick = () => showNextVariant(index);
-                
-                variantNav.appendChild(prevBtn);
-                variantNav.appendChild(navText);
-                variantNav.appendChild(nextBtn);
-                
-                controlsContainer.appendChild(variantNav);
-            }
-            
-            messageGroup.appendChild(controlsContainer);
-            wrapperDiv.appendChild(messageGroup);
-        } else {
-            // 일반 모드 또는 프로필 사진이 없을 때
-            // 각 메시지 부분을 별도의 말풍선으로 생성
-            messageParts.forEach((part, partIndex) => {
                 const messageDiv = document.createElement('div');
-                messageDiv.className = `message ${msg.role}`;
+                messageDiv.className = 'message ai';
                 
                 const bubbleDiv = document.createElement('div');
                 bubbleDiv.className = 'message-bubble';
-                bubbleDiv.innerHTML = parseMarkdown(part);
+                bubbleDiv.innerHTML = parseMarkdown(notification.content);
+                
+                if (notification.content.startsWith('설정이 저장되었습니다!')) {
+                    bubbleDiv.style.background = '#e8f5e8';
+                    bubbleDiv.style.color = '#2e7d32';
+                } else if (notification.content.startsWith('오류:')) {
+                    bubbleDiv.style.background = '#ffebee';
+                    bubbleDiv.style.color = '#c62828';
+                } else if (notification.content.includes('성공적으로') || notification.content.includes('정규식') || notification.content.includes('새로운 대화가')) {
+                    bubbleDiv.style.background = '#e8f5e8';
+                    bubbleDiv.style.color = '#2e7d32';
+                }
                 
                 messageDiv.appendChild(bubbleDiv);
                 wrapperDiv.appendChild(messageDiv);
+                
+                // 시스템 알림도 삭제 가능
+                const actionsContainer = document.createElement('div');
+                actionsContainer.className = 'message-actions-container';
+                
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'action-btn icon-btn delete-icon';
+                deleteBtn.innerHTML = '🗑️';
+                deleteBtn.title = '삭제';
+                deleteBtn.onclick = () => deleteSystemNotification(notification.id);
+                actionsContainer.appendChild(deleteBtn);
+                
+                wrapperDiv.appendChild(actionsContainer);
+                messagesContainer.appendChild(wrapperDiv);
             });
             
-            // 컨트롤 컨테이너 (액션 버튼 + 변형 네비게이션)
-            const controlsContainer = document.createElement('div');
-            controlsContainer.className = 'message-controls';
-            
-            // 액션 버튼들을 가장 아래 말풍선 밑에 배치
-            const actionsContainer = document.createElement('div');
-            actionsContainer.className = 'message-actions-container';
-            
-            const editBtn = document.createElement('button');
-            editBtn.className = 'action-btn icon-btn edit-icon';
-            editBtn.innerHTML = '✏️';
-            editBtn.title = '수정';
-            editBtn.onclick = () => editMessage(index, 'chat');
-            actionsContainer.appendChild(editBtn);
-            
-            // 마지막 AI 메시지에 리롤 버튼 추가
-            if (msg.role === 'ai' && index === chatHistory.length - 1) {
-                const rerollBtn = document.createElement('button');
-                rerollBtn.className = 'action-btn icon-btn reroll-icon';
-                rerollBtn.innerHTML = '🔄';
-                rerollBtn.title = '리롤';
-                rerollBtn.onclick = () => rerollLastResponse();
-                actionsContainer.appendChild(rerollBtn);
-            }
-            
-            const deleteBtn = document.createElement('button');
-            deleteBtn.className = 'action-btn icon-btn delete-icon';
-            deleteBtn.innerHTML = '🗑️';
-            deleteBtn.title = '삭제';
-            deleteBtn.onclick = () => deleteMessage(index);
-            actionsContainer.appendChild(deleteBtn);
-            
-            if (index < chatHistory.length - 1) {
-                const rewindBtn = document.createElement('button');
-                rewindBtn.className = 'action-btn icon-btn rewind-icon';
-                rewindBtn.innerHTML = '⏪';
-                rewindBtn.title = '여기까지만 유지';
-                rewindBtn.onclick = () => rewindToMessage(index);
-                actionsContainer.appendChild(rewindBtn);
-            }
-            
-            controlsContainer.appendChild(actionsContainer);
-            
-            // AI 메시지이고 변형 답변이 있는 경우 네비게이션 표시
-            if (msg.role === 'ai' && msg.variants && msg.variants.length > 1) {
-                const variantNav = document.createElement('div');
-                variantNav.className = 'variant-navigation';
-                
-                const prevBtn = document.createElement('button');
-                prevBtn.className = 'variant-nav-btn';
-                prevBtn.innerHTML = '◀';
-                prevBtn.disabled = msg.currentVariantIndex === 0;
-                prevBtn.onclick = () => showPreviousVariant(index);
-                
-                const navText = document.createElement('span');
-                navText.textContent = `< ${msg.currentVariantIndex + 1} / ${msg.variants.length} >`;
-                
-                const nextBtn = document.createElement('button');
-                nextBtn.className = 'variant-nav-btn';
-                nextBtn.innerHTML = '▶';
-                nextBtn.disabled = msg.currentVariantIndex === msg.variants.length - 1;
-                nextBtn.onclick = () => showNextVariant(index);
-                
-                variantNav.appendChild(prevBtn);
-                variantNav.appendChild(navText);
-                variantNav.appendChild(nextBtn);
-                
-                controlsContainer.appendChild(variantNav);
-            }
-            
-            wrapperDiv.appendChild(controlsContainer);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
-        
-        messagesContainer.appendChild(wrapperDiv);
-    });
-    
-    // 시스템 알림 표시
-    systemNotifications.forEach((notification) => {
-        const wrapperDiv = document.createElement('div');
-        wrapperDiv.className = 'message-wrapper ai system-notification';
-        
-        const messageDiv = document.createElement('div');
-        messageDiv.className = 'message ai';
-        
-        const bubbleDiv = document.createElement('div');
-        bubbleDiv.className = 'message-bubble';
-        bubbleDiv.innerHTML = parseMarkdown(notification.content);
-        
-        if (notification.content.startsWith('설정이 저장되었습니다!')) {
-            bubbleDiv.style.background = '#e8f5e8';
-            bubbleDiv.style.color = '#2e7d32';
-        } else if (notification.content.startsWith('오류:')) {
-            bubbleDiv.style.background = '#ffebee';
-            bubbleDiv.style.color = '#c62828';
-        } else if (notification.content.includes('성공적으로') || notification.content.includes('정규식') || notification.content.includes('새로운 대화가')) {
-            bubbleDiv.style.background = '#e8f5e8';
-            bubbleDiv.style.color = '#2e7d32';
-        }
-        
-        messageDiv.appendChild(bubbleDiv);
-        wrapperDiv.appendChild(messageDiv);
-        
-        // 시스템 알림도 삭제 가능
-        const actionsContainer = document.createElement('div');
-        actionsContainer.className = 'message-actions-container';
-        
-        const deleteBtn = document.createElement('button');
-        deleteBtn.className = 'action-btn icon-btn delete-icon';
-        deleteBtn.innerHTML = '🗑️';
-        deleteBtn.title = '삭제';
-        deleteBtn.onclick = () => deleteSystemNotification(notification.id);
-        actionsContainer.appendChild(deleteBtn);
-        
-        wrapperDiv.appendChild(actionsContainer);
-        messagesContainer.appendChild(wrapperDiv);
-    });
-    
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;
-}
 
         function handleKeyDown(event) {
             const textarea = event.target;
