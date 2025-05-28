@@ -1,0 +1,1793 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini Chat</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .chat-container {
+            max-width: 400px;
+            height: 100vh;
+            margin: 0 auto;
+            background: white;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+
+        .chat-header {
+            background: #4a90e2;
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .chat-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid rgba(255,255,255,0.3);
+        }
+
+        .chat-header h1 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .header-buttons {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+        }
+
+        .icon-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+
+        .icon-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .settings-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .settings-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+
+        /* 메시지 그룹 (하나의 메시지를 여러 버블로 표시) */
+        .message-wrapper {
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            position: relative;
+        }
+
+        .message-wrapper.user {
+            align-items: flex-end;
+        }
+
+        /* 액션 버튼들을 가장 아래 말풍선 밑에 배치 */
+        .message-actions-container {
+            display: flex;
+            gap: 4px;
+            margin-top: 4px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .message-wrapper:hover .message-actions-container {
+            opacity: 1;
+        }
+
+        .message-wrapper.user .message-actions-container {
+            justify-content: flex-end;
+        }
+
+        .message {
+            display: flex;
+            align-items: center;
+            position: relative;
+            margin-bottom: 2px;
+        }
+
+        .message:last-child {
+            margin-bottom: 0;
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+        .message.ai {
+            justify-content: flex-start;
+        }
+
+        .message-bubble {
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+            position: relative;
+        }
+
+        /* 마크다운 스타일 */
+        .message-bubble em {
+            font-style: italic;
+        }
+
+        .message-bubble strong {
+            font-weight: bold;
+        }
+
+        .message.user .message-bubble {
+            background: #4a90e2;
+            color: white;
+            border-radius: 18px;
+        }
+
+        /* 사용자 메시지의 첫번째와 마지막 버블 라운딩 */
+        .message-wrapper.user .message:first-child .message-bubble {
+            border-top-right-radius: 18px;
+        }
+        .message-wrapper.user .message:last-child .message-bubble {
+            border-bottom-right-radius: 4px;
+        }
+        .message-wrapper.user .message:only-child .message-bubble {
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.ai .message-bubble {
+            background: white;
+            color: #333;
+            border: 1px solid #e1e8ed;
+            border-radius: 18px;
+        }
+
+        /* AI 메시지의 첫번째와 마지막 버블 라운딩 */
+        .message-wrapper.ai .message:first-child .message-bubble {
+            border-top-left-radius: 18px;
+        }
+        .message-wrapper.ai .message:last-child .message-bubble {
+            border-bottom-left-radius: 4px;
+        }
+        .message-wrapper.ai .message:only-child .message-bubble {
+            border-bottom-left-radius: 4px;
+        }
+
+        /* 시스템 메시지 스타일 */
+        .message-wrapper.system-notification {
+            position: relative;
+        }
+
+        .action-btn.icon-btn {
+            background: rgba(0, 0, 0, 0.6);
+            border: none;
+            color: white;
+            padding: 4px;
+            font-size: 15px;
+            cursor: pointer;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+            transition: background-color 0.2s;
+        }
+
+        .action-btn.icon-btn:hover {
+            background-color: rgba(0, 0, 0, 0.8);
+        }
+
+        .chat-input {
+            display: flex;
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e1e8ed;
+        }
+
+        .input-field {
+            flex: 1;
+            padding: 12px 16px;
+            border: 1px solid #e1e8ed;
+            border-radius: 20px;
+            outline: none;
+            font-size: 14px;
+            resize: none;
+            min-height: 44px;
+            max-height: 120px;
+            overflow-y: auto;
+            line-height: 1.4;
+            font-family: inherit;
+        }
+
+        .send-btn {
+            background: #4a90e2;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 20px;
+            margin-left: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            align-self: flex-end;
+        }
+
+        .send-btn:hover {
+            background: #357abd;
+        }
+
+        .send-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .settings-modal, .regex-modal, .conversations-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #555;
+        }
+
+        .form-group input, .form-group textarea, .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .form-group textarea {
+            height: 100px;
+            resize: vertical;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: auto;
+        }
+
+        .regex-textarea {
+            min-height: 80px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+
+        .regex-pattern-input {
+            font-family: 'Courier New', monospace;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .btn-primary {
+            background: #4a90e2;
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .typing-indicator {
+            display: none;
+            padding: 10px 16px;
+            color: #888;
+            font-style: italic;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .edit-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1001;
+        }
+
+        .edit-modal .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+        }
+
+        .edit-textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            resize: vertical;
+            font-family: inherit;
+        }
+
+        .regex-help {
+            font-size: 12px;
+            color: #666;
+            margin-top: 8px;
+        }
+
+        .regex-error {
+            color: #d32f2f;
+            font-size: 12px;
+            margin-top: 4px;
+        }
+
+        /* 대화 리스트 스타일 */
+        .conversations-list {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #e1e8ed;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 20px;
+        }
+
+        .conversation-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            background: #f8f9fa;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .conversation-item:hover {
+            background: #e9ecef;
+        }
+
+        .conversation-item.active {
+            background: #4a90e2;
+            color: white;
+        }
+
+        .conversation-info {
+            flex: 1;
+        }
+
+        .conversation-title {
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .conversation-date {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .conversation-item.active .conversation-date {
+            color: rgba(255,255,255,0.8);
+        }
+
+        .conversation-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .conversation-actions button {
+            padding: 6px 10px;
+            font-size: 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .new-conversation-btn {
+            width: 100%;
+            padding: 12px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+
+        .new-conversation-btn:hover {
+            background: #218838;
+        }
+
+        /* 정규식 규칙 리스트 */
+        .regex-rules-list {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #e1e8ed;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 20px;
+        }
+
+        .regex-rule-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            background: #f8f9fa;
+        }
+
+        .regex-rule-item:hover {
+            background: #e9ecef;
+        }
+
+        .regex-rule-info {
+            flex: 1;
+        }
+
+        .regex-rule-name {
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .regex-rule-pattern {
+            font-size: 12px;
+            color: #666;
+            font-family: 'Courier New', monospace;
+        }
+
+        .regex-rule-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .add-regex-rule-btn {
+            width: 100%;
+            padding: 10px;
+            background: #4a90e2;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+
+        .add-regex-rule-btn:hover {
+            background: #357abd;
+        }
+
+        .reset-all-btn {
+            width: 100%;
+            padding: 12px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 30px;
+        }
+
+        .reset-all-btn:hover {
+            background: #c82333;
+        }
+
+        .warning-text {
+            color: #856404;
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-top: 8px;
+        }
+
+        .model-badge {
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            margin-left: 5px;
+        }
+
+        .model-badge.free {
+            background: #28a745;
+            color: white;
+        }
+
+        .model-badge.paid {
+            background: #ffc107;
+            color: #212529;
+        }
+
+        @media (max-width: 480px) {
+            .chat-container {
+                max-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <div class="chat-header-left">
+                <img id="chatAvatar" class="chat-avatar" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%23667eea'/%3E%3Ctext x='50' y='55' text-anchor='middle' fill='white' font-size='30' font-family='Arial'%3EG%3C/text%3E%3C/svg%3E" alt="Avatar">
+                <h1 id="chatTitle">Gemini Chat</h1>
+            </div>
+            <div class="header-buttons">
+                <button class="icon-btn" onclick="document.getElementById('importFile').click()" title="설정 및 모든 대화 가져오기">📥</button>
+                <button class="icon-btn" onclick="exportAllData()" title="설정 및 모든 대화 내보내기">📤</button>
+                <button class="icon-btn" onclick="openRegexModal()" title="정규식 수정">📖</button>
+                <button class="icon-btn" onclick="openConversationsModal()" title="대화 관리">📜</button>
+                <button class="settings-btn" onclick="openSettings()">설정</button>
+            </div>
+        </div>
+
+        <div class="chat-messages" id="chatMessages">
+            <!-- 초기 메시지는 updateMessagesDisplay에서 생성 -->
+        </div>
+
+        <div class="typing-indicator" id="typingIndicator">
+            AI가 입력중입니다...
+        </div>
+
+        <div class="chat-input">
+            <textarea class="input-field" id="messageInput" placeholder="메시지를 입력하세요..." onkeydown="handleKeyDown(event)" oninput="autoResize(this)"></textarea>
+            <button class="send-btn" id="sendBtn" onclick="sendMessage()">전송</button>
+        </div>
+    </div>
+
+    <div class="settings-modal" id="settingsModal">
+        <div class="modal-content">
+            <div class="modal-header">설정</div>
+            <form onsubmit="saveSettings(event)">
+                <div class="form-group">
+                    <label for="chatName">채팅방 이름:</label>
+                    <input type="text" id="chatName" value="Gemini Chat" placeholder="채팅방 이름을 입력하세요">
+                </div>
+                <div class="form-group">
+                    <label for="avatarUpload">아바타 이미지:</label>
+                    <input type="file" id="avatarUpload" accept="image/*" onchange="handleAvatarUpload(event)">
+                    <small style="color: #666; font-size: 12px;">jpg, png, gif 등의 이미지 파일을 업로드하세요</small>
+                </div>
+                <div class="form-group">
+                    <label for="apiKey">Gemini API Key:</label>
+                    <input type="password" id="apiKey" placeholder="API 키를 입력하세요">
+                </div>
+                <div class="form-group">
+                    <label for="modelSelect">모델 선택:</label>
+                    <select id="modelSelect" onchange="onModelSelectChange()">
+                        <option value="gemini-2.0-flash-exp">gemini-2.0-flash-exp (무료)</option>
+                        <option value="gemini-2.5-pro-preview-05-06">gemini-2.5-pro-preview-05-06 (유료)</option>
+                        <option value="custom">Custom (직접 입력)</option>
+                    </select>
+                </div>
+                <div class="form-group" id="customModelGroup" style="display: none;">
+                    <label for="customModelName">커스텀 모델명:</label>
+                    <input type="text" id="customModelName" placeholder="모델명을 입력하세요">
+                </div>
+                <div class="form-group">
+                    <label for="historyTurns">대화 전송 턴 수:</label>
+                    <input type="number" id="historyTurns" min="1" max="100" value="20" placeholder="20">
+                    <div class="warning-text" id="turnsWarning" style="display: none;">
+                        ⚠️ 유료 모델 사용 시: 많은 대화 턴을 전송할수록 API 사용료가 증가합니다.
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="systemPrompt">기본 프롬프트:</label>
+                    <textarea id="systemPrompt" placeholder="시스템 역할을 정의하는 기본 프롬프트를 입력하세요"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="assistantPrefill">Assistant 프리필:</label>
+                    <textarea id="assistantPrefill" placeholder="AI 응답의 시작 부분을 미리 설정합니다 (예: 안녕하세요! 저는...)"></textarea>
+                </div>
+                <div class="form-group">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="enterToSend" checked>
+                        <label for="enterToSend">엔터 키로 전송 (체크 해제시 Shift+Enter로 전송)</label>
+                    </div>
+                </div>
+                <div class="modal-buttons">
+                    <button type="button" class="btn btn-secondary" onclick="closeSettings()">취소</button>
+                    <button type="submit" class="btn btn-primary">저장</button>
+                </div>
+                
+                <button type="button" class="reset-all-btn" onclick="confirmResetAll()">⚠️ 모든 설정 및 대화 초기화</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="regex-modal" id="regexModal">
+        <div class="modal-content">
+            <div class="modal-header">정규식 수정 도구</div>
+            
+            <button class="add-regex-rule-btn" onclick="addNewRegexRule()">새 규칙 추가</button>
+            
+            <div class="regex-rules-list" id="regexRulesList">
+                <!-- 정규식 규칙들이 여기에 표시됩니다 -->
+            </div>
+            
+            <div id="regexEditForm" style="display: none;">
+                <h3 style="margin-bottom: 15px;">규칙 편집</h3>
+                <div class="form-group">
+                    <label for="regexRuleName">규칙 이름:</label>
+                    <input type="text" id="regexRuleName" placeholder="예: Response 문자열 제거">
+                </div>
+                <div class="form-group">
+                    <label for="regexPattern">찾을 패턴 (정규식):</label>
+                    <input type="text" id="regexPattern" class="regex-pattern-input" placeholder="예: Response 또는 /Response/gi">
+                    <div class="regex-help">단순 텍스트 또는 /pattern/flags 형식의 정규식</div>
+                </div>
+                <div class="form-group">
+                    <label for="regexReplacement">치환 문자열:</label>
+                    <textarea id="regexReplacement" class="regex-textarea" placeholder="빈 칸으로 두면 삭제됩니다"></textarea>
+                    <div class="regex-help">$1, $2 등으로 캡처 그룹 참조 가능</div>
+                </div>
+                <div class="modal-buttons">
+                    <button type="button" class="btn btn-secondary" onclick="cancelRegexEdit()">취소</button>
+                    <button type="button" class="btn btn-primary" onclick="saveRegexRule()">저장</button>
+                </div>
+            </div>
+            
+            <div class="modal-buttons" style="margin-top: 20px;">
+                <button type="button" class="btn btn-secondary" onclick="closeRegexModal()">닫기</button>
+                <button type="button" class="btn btn-success" onclick="applyAllRegexRules()">모든 규칙 적용</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="conversations-modal" id="conversationsModal">
+        <div class="modal-content">
+            <div class="modal-header">대화 관리</div>
+            <button class="new-conversation-btn" onclick="saveAndNewConversation()">이 대화를 저장하고 새로운 대화 시작하기</button>
+            <div class="conversations-list" id="conversationsList">
+                <!-- 대화 목록이 여기에 표시됩니다 -->
+            </div>
+            <div class="modal-buttons">
+                <button type="button" class="btn btn-secondary" onclick="closeConversationsModal()">닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="edit-modal" id="editModal">
+        <div class="modal-content">
+            <div class="modal-header">메시지 수정</div>
+            <div class="form-group">
+                <textarea id="editTextarea" class="edit-textarea" placeholder="메시지를 수정하세요..."></textarea>
+            </div>
+            <div class="modal-buttons">
+                <button type="button" class="btn btn-secondary" onclick="closeEditModal()">취소</button>
+                <button type="button" class="btn btn-primary" onclick="saveEdit()">저장</button>
+            </div>
+        </div>
+    </div>
+
+    <input type="file" id="importFile" class="file-input" accept=".json" onchange="importAllData(event)">
+
+    <script>
+        let chatHistory = [];
+        let systemNotifications = [];
+        let apiKey = '';
+        let modelName = 'gemini-2.0-flash-exp';
+        let systemPrompt = '';
+        let assistantPrefill = '';
+        let chatName = 'Gemini Chat';
+        let avatarImage = '';
+        let currentEditIndex = -1;
+        let currentEditRole = '';
+        let currentEditType = '';
+        let enterToSend = true;
+        let conversations = [];
+        let currentConversationId = null;
+        let regexRules = [];
+        let currentEditRuleIndex = -1;
+        let historyTurns = 20;
+
+        // 로컬 스토리지에서 설정 불러오기
+        function loadSettings() {
+            const savedApiKey = localStorage.getItem('gemini_api_key');
+            const savedModel = localStorage.getItem('gemini_model');
+            const savedPrompt = localStorage.getItem('system_prompt');
+            const savedPrefill = localStorage.getItem('assistant_prefill');
+            const savedChatName = localStorage.getItem('chat_name');
+            const savedAvatar = localStorage.getItem('avatar_image');
+            const savedEnterToSend = localStorage.getItem('enter_to_send');
+            const savedConversations = localStorage.getItem('conversations');
+            const savedCurrentConvId = localStorage.getItem('current_conversation_id');
+            const savedRegexRules = localStorage.getItem('regex_rules');
+            const savedHistoryTurns = localStorage.getItem('history_turns');
+            
+            if (savedApiKey) {
+                apiKey = savedApiKey;
+                document.getElementById('apiKey').value = savedApiKey;
+            }
+            if (savedModel) {
+                modelName = savedModel;
+                updateModelSelect(savedModel);
+            }
+            if (savedPrompt) {
+                systemPrompt = savedPrompt;
+                document.getElementById('systemPrompt').value = savedPrompt;
+            }
+            if (savedPrefill) {
+                assistantPrefill = savedPrefill;
+                document.getElementById('assistantPrefill').value = savedPrefill;
+            }
+            if (savedChatName) {
+                chatName = savedChatName;
+                document.getElementById('chatName').value = savedChatName;
+                document.getElementById('chatTitle').textContent = savedChatName;
+            }
+            if (savedAvatar) {
+                avatarImage = savedAvatar;
+                document.getElementById('chatAvatar').src = savedAvatar;
+            }
+            if (savedEnterToSend !== null) {
+                enterToSend = savedEnterToSend === 'true';
+                document.getElementById('enterToSend').checked = enterToSend;
+            }
+            if (savedConversations) {
+                conversations = JSON.parse(savedConversations);
+            }
+            if (savedRegexRules) {
+                regexRules = JSON.parse(savedRegexRules);
+            }
+            if (savedHistoryTurns) {
+                historyTurns = parseInt(savedHistoryTurns);
+                document.getElementById('historyTurns').value = historyTurns;
+            }
+            if (savedCurrentConvId) {
+                currentConversationId = savedCurrentConvId;
+                loadConversation(currentConversationId);
+            } else if (conversations.length === 0) {
+                createNewConversation();
+            }
+            updateMessagesDisplay();
+        }
+
+        // textarea 자동 높이 조정
+        function autoResize(textarea) {
+            textarea.style.height = 'auto';
+            textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
+        }
+
+        function updateModelSelect(model) {
+            const select = document.getElementById('modelSelect');
+            const customGroup = document.getElementById('customModelGroup');
+            
+            if (model === 'gemini-2.0-flash-exp' || model === 'gemini-2.5-pro-preview-05-06') {
+                select.value = model;
+                customGroup.style.display = 'none';
+            } else {
+                select.value = 'custom';
+                customGroup.style.display = 'block';
+                document.getElementById('customModelName').value = model;
+            }
+            
+            updateTurnsWarning();
+        }
+
+        function onModelSelectChange() {
+            const select = document.getElementById('modelSelect');
+            const customGroup = document.getElementById('customModelGroup');
+            
+            if (select.value === 'custom') {
+                customGroup.style.display = 'block';
+            } else {
+                customGroup.style.display = 'none';
+            }
+            
+            updateTurnsWarning();
+        }
+
+        function updateTurnsWarning() {
+            const select = document.getElementById('modelSelect');
+            const warning = document.getElementById('turnsWarning');
+            
+            if (select.value === 'gemini-2.5-pro-preview-05-06' || select.value === 'custom') {
+                warning.style.display = 'block';
+            } else {
+                warning.style.display = 'none';
+            }
+        }
+
+        function confirmResetAll() {
+            if (confirm('정말로 모든 설정과 대화를 초기화하시겠습니까?')) {
+                if (confirm('이 작업은 되돌릴 수 없습니다. 정말로 모든 데이터를 삭제하시겠습니까?')) {
+                    resetAll();
+                }
+            }
+        }
+
+        function resetAll() {
+            localStorage.clear();
+            
+            chatHistory = [];
+            systemNotifications = [];
+            apiKey = '';
+            modelName = 'gemini-2.0-flash-exp';
+            systemPrompt = '';
+            assistantPrefill = '';
+            chatName = 'Gemini Chat';
+            avatarImage = '';
+            enterToSend = true;
+            conversations = [];
+            currentConversationId = null;
+            regexRules = [];
+            historyTurns = 20;
+            
+            location.reload();
+        }
+
+        function generateConversationId() {
+            return Date.now().toString(36) + Math.random().toString(36).substr(2);
+        }
+
+        function generateConversationTitle() {
+            const count = conversations.length + 1;
+            return `Conv${count.toString().padStart(2, '0')}`;
+        }
+
+        function createNewConversation() {
+            const newConv = {
+                id: generateConversationId(),
+                title: generateConversationTitle(),
+                history: [],
+                systemNotifications: [],
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            };
+            conversations.push(newConv);
+            currentConversationId = newConv.id;
+            chatHistory = [];
+            systemNotifications = [];
+            saveConversations();
+            updateMessagesDisplay();
+        }
+
+        function saveConversations() {
+            localStorage.setItem('conversations', JSON.stringify(conversations));
+            localStorage.setItem('current_conversation_id', currentConversationId);
+        }
+
+        function loadConversation(convId) {
+            const conv = conversations.find(c => c.id === convId);
+            if (conv) {
+                currentConversationId = convId;
+                chatHistory = [...conv.history];
+                systemNotifications = conv.systemNotifications ? [...conv.systemNotifications] : [];
+                updateMessagesDisplay();
+            }
+        }
+
+        function updateCurrentConversation() {
+            const convIndex = conversations.findIndex(c => c.id === currentConversationId);
+            if (convIndex !== -1) {
+                conversations[convIndex].history = [...chatHistory];
+                conversations[convIndex].systemNotifications = [...systemNotifications];
+                conversations[convIndex].updatedAt = new Date().toISOString();
+                saveConversations();
+            }
+        }
+
+        function deleteConversation(convId) {
+            if (conversations.length <= 1) {
+                alert('최소 하나의 대화는 유지되어야 합니다.');
+                return;
+            }
+            
+            const index = conversations.findIndex(c => c.id === convId);
+            if (index !== -1) {
+                conversations.splice(index, 1);
+                if (convId === currentConversationId) {
+                    currentConversationId = conversations[0].id;
+                    loadConversation(currentConversationId);
+                }
+                saveConversations();
+                displayConversations();
+            }
+        }
+
+        function renameConversation(convId) {
+            const conv = conversations.find(c => c.id === convId);
+            if (conv) {
+                const newTitle = prompt('새로운 대화 제목:', conv.title);
+                if (newTitle && newTitle.trim()) {
+                    conv.title = newTitle.trim();
+                    saveConversations();
+                    displayConversations();
+                }
+            }
+        }
+
+        function saveAndNewConversation() {
+            if (chatHistory.length > 0) {
+                updateCurrentConversation();
+            }
+            createNewConversation();
+            closeConversationsModal();
+            addSystemMessageToDOM('새로운 대화가 시작되었습니다!');
+        }
+
+        function openSettings() {
+            document.getElementById('settingsModal').style.display = 'block';
+        }
+
+        function closeSettings() {
+            document.getElementById('settingsModal').style.display = 'none';
+        }
+
+        function openRegexModal() {
+            displayRegexRules();
+            document.getElementById('regexModal').style.display = 'block';
+        }
+
+        function closeRegexModal() {
+            document.getElementById('regexModal').style.display = 'none';
+            document.getElementById('regexEditForm').style.display = 'none';
+        }
+
+        function openConversationsModal() {
+            displayConversations();
+            document.getElementById('conversationsModal').style.display = 'block';
+        }
+
+        function closeConversationsModal() {
+            document.getElementById('conversationsModal').style.display = 'none';
+        }
+
+        function displayConversations() {
+            const listContainer = document.getElementById('conversationsList');
+            listContainer.innerHTML = '';
+            
+            conversations.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+            
+            conversations.forEach(conv => {
+                const item = document.createElement('div');
+                item.className = 'conversation-item' + (conv.id === currentConversationId ? ' active' : '');
+                
+                const info = document.createElement('div');
+                info.className = 'conversation-info';
+                info.onclick = () => {
+                    if (conv.id !== currentConversationId) {
+                        updateCurrentConversation();
+                        loadConversation(conv.id);
+                        closeConversationsModal();
+                    }
+                };
+                
+                const title = document.createElement('div');
+                title.className = 'conversation-title';
+                title.textContent = conv.title;
+                
+                const date = document.createElement('div');
+                date.className = 'conversation-date';
+                date.textContent = new Date(conv.updatedAt).toLocaleString('ko-KR');
+                
+                info.appendChild(title);
+                info.appendChild(date);
+                
+                const actions = document.createElement('div');
+                actions.className = 'conversation-actions';
+                
+                const renameBtn = document.createElement('button');
+                renameBtn.className = 'btn btn-primary';
+                renameBtn.textContent = '수정';
+                renameBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    renameConversation(conv.id);
+                };
+                
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'btn btn-danger';
+                deleteBtn.textContent = '삭제';
+                deleteBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    if (confirm('이 대화를 삭제하시겠습니까?')) {
+                        deleteConversation(conv.id);
+                    }
+                };
+                
+                actions.appendChild(renameBtn);
+                actions.appendChild(deleteBtn);
+                
+                item.appendChild(info);
+                item.appendChild(actions);
+                listContainer.appendChild(item);
+            });
+        }
+
+        // 정규식 규칙 관리 함수들
+        function displayRegexRules() {
+            const listContainer = document.getElementById('regexRulesList');
+            listContainer.innerHTML = '';
+            
+            regexRules.forEach((rule, index) => {
+                const item = document.createElement('div');
+                item.className = 'regex-rule-item';
+                
+                const info = document.createElement('div');
+                info.className = 'regex-rule-info';
+                
+                const name = document.createElement('div');
+                name.className = 'regex-rule-name';
+                name.textContent = rule.name;
+                
+                const pattern = document.createElement('div');
+                pattern.className = 'regex-rule-pattern';
+                pattern.textContent = `IN: ${rule.pattern} → OUT: ${rule.replacement || '(삭제)'}`;
+                
+                info.appendChild(name);
+                info.appendChild(pattern);
+                
+                const actions = document.createElement('div');
+                actions.className = 'regex-rule-actions';
+                
+                const editBtn = document.createElement('button');
+                editBtn.className = 'btn btn-primary';
+                editBtn.textContent = '수정';
+                editBtn.onclick = () => editRegexRule(index);
+                
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'btn btn-danger';
+                deleteBtn.textContent = '삭제';
+                deleteBtn.onclick = () => deleteRegexRule(index);
+                
+                actions.appendChild(editBtn);
+                actions.appendChild(deleteBtn);
+                
+                item.appendChild(info);
+                item.appendChild(actions);
+                listContainer.appendChild(item);
+            });
+        }
+
+        function addNewRegexRule() {
+            currentEditRuleIndex = -1;
+            document.getElementById('regexRuleName').value = '';
+            document.getElementById('regexPattern').value = '';
+            document.getElementById('regexReplacement').value = '';
+            document.getElementById('regexEditForm').style.display = 'block';
+        }
+
+        function editRegexRule(index) {
+            currentEditRuleIndex = index;
+            const rule = regexRules[index];
+            document.getElementById('regexRuleName').value = rule.name;
+            document.getElementById('regexPattern').value = rule.pattern;
+            document.getElementById('regexReplacement').value = rule.replacement;
+            document.getElementById('regexEditForm').style.display = 'block';
+        }
+
+        function deleteRegexRule(index) {
+            if (confirm('이 규칙을 삭제하시겠습니까?')) {
+                regexRules.splice(index, 1);
+                saveRegexRules();
+                displayRegexRules();
+            }
+        }
+
+        function saveRegexRule() {
+            const name = document.getElementById('regexRuleName').value.trim();
+            const pattern = document.getElementById('regexPattern').value.trim();
+            const replacement = document.getElementById('regexReplacement').value;
+            
+            if (!name || !pattern) {
+                alert('규칙 이름과 패턴을 입력해주세요.');
+                return;
+            }
+            
+            const rule = { name, pattern, replacement };
+            
+            if (currentEditRuleIndex === -1) {
+                regexRules.push(rule);
+            } else {
+                regexRules[currentEditRuleIndex] = rule;
+            }
+            
+            saveRegexRules();
+            displayRegexRules();
+            cancelRegexEdit();
+        }
+
+        function cancelRegexEdit() {
+            document.getElementById('regexEditForm').style.display = 'none';
+            currentEditRuleIndex = -1;
+        }
+
+        function saveRegexRules() {
+            localStorage.setItem('regex_rules', JSON.stringify(regexRules));
+        }
+
+        // 모든 정규식 규칙을 메시지에 적용
+        function applyRegexToMessage(message) {
+            let processedMessage = message;
+            
+            regexRules.forEach(rule => {
+                try {
+                    let regexPattern, flags;
+                    if (rule.pattern.startsWith('/') && rule.pattern.lastIndexOf('/') > 0) {
+                        const lastSlash = rule.pattern.lastIndexOf('/');
+                        regexPattern = rule.pattern.slice(1, lastSlash);
+                        flags = rule.pattern.slice(lastSlash + 1);
+                    } else {
+                        regexPattern = rule.pattern;
+                        flags = 'g';
+                    }
+                    
+                    const regex = new RegExp(regexPattern, flags);
+                    processedMessage = processedMessage.replace(regex, rule.replacement);
+                } catch (e) {
+                    console.error(`규칙 "${rule.name}" 적용 중 오류:`, e);
+                }
+            });
+            
+            return processedMessage;
+        }
+
+        function applyAllRegexRules() {
+            if (regexRules.length === 0) {
+                alert('적용할 규칙이 없습니다.');
+                return;
+            }
+            
+            let appliedCount = 0;
+            
+            chatHistory = chatHistory.map(msg => {
+                const originalContent = msg.content;
+                const newContent = applyRegexToMessage(originalContent);
+                if (originalContent !== newContent) {
+                    appliedCount++;
+                }
+                return {
+                    ...msg,
+                    content: newContent
+                };
+            });
+            
+            updateCurrentConversation();
+            updateMessagesDisplay();
+            closeRegexModal();
+            addSystemMessageToDOM(`${appliedCount}개의 메시지에 정규식 규칙이 적용되었습니다!`);
+        }
+
+        function saveSettings(event) {
+            event.preventDefault();
+            
+            apiKey = document.getElementById('apiKey').value;
+            
+            const modelSelect = document.getElementById('modelSelect').value;
+            if (modelSelect === 'custom') {
+                modelName = document.getElementById('customModelName').value || 'gemini-2.0-flash-exp';
+            } else {
+                modelName = modelSelect;
+            }
+            
+            systemPrompt = document.getElementById('systemPrompt').value;
+            assistantPrefill = document.getElementById('assistantPrefill').value;
+            chatName = document.getElementById('chatName').value;
+            enterToSend = document.getElementById('enterToSend').checked;
+            historyTurns = parseInt(document.getElementById('historyTurns').value) || 20;
+            
+            localStorage.setItem('gemini_api_key', apiKey);
+            localStorage.setItem('gemini_model', modelName);
+            localStorage.setItem('system_prompt', systemPrompt);
+            localStorage.setItem('assistant_prefill', assistantPrefill);
+            localStorage.setItem('chat_name', chatName);
+            localStorage.setItem('enter_to_send', enterToSend);
+            localStorage.setItem('history_turns', historyTurns);
+            if (avatarImage) {
+                localStorage.setItem('avatar_image', avatarImage);
+            }
+            
+            document.getElementById('chatTitle').textContent = chatName;
+            if (avatarImage) {
+                document.getElementById('chatAvatar').src = avatarImage;
+            }
+            
+            closeSettings();
+            
+            if (apiKey) {
+                addSystemMessageToDOM('설정이 저장되었습니다!');
+            }
+        }
+        
+        function addSystemMessageToDOM(content) {
+            const notification = {
+                id: Date.now(),
+                content: content,
+                timestamp: new Date().toISOString()
+            };
+            systemNotifications.push(notification);
+            updateCurrentConversation();
+            updateMessagesDisplay();
+        }
+
+        function deleteSystemNotification(notificationId) {
+            const index = systemNotifications.findIndex(n => n.id === notificationId);
+            if (index !== -1) {
+                systemNotifications.splice(index, 1);
+                updateCurrentConversation();
+                updateMessagesDisplay();
+            }
+        }
+
+        function handleAvatarUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                avatarImage = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function parseMarkdown(text) {
+            const escapeHtml = (str) => {
+                const div = document.createElement('div');
+                div.textContent = str;
+                return div.innerHTML;
+            };
+            
+            let html = escapeHtml(text);
+            html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+            html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+            
+            return html;
+        }
+
+        function addMessage(role, content) {
+            if (role !== '시스템') {
+                // 정규식 규칙 자동 적용
+                const processedContent = applyRegexToMessage(content);
+                chatHistory.push({ role, content: processedContent });
+                updateCurrentConversation();
+                updateMessagesDisplay();
+            } else {
+                addSystemMessageToDOM(content);
+            }
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const messageContent = input.value.trim();
+            
+            if (!messageContent) return;
+            if (!apiKey) {
+                alert('설정에서 API 키를 입력해주세요.');
+                return;
+            }
+            
+            input.value = '';
+            input.style.height = 'auto'; // 높이 초기화
+            addMessage('user', messageContent);
+            
+            const sendBtn = document.getElementById('sendBtn');
+            sendBtn.disabled = true;
+            document.getElementById('typingIndicator').style.display = 'block';
+            
+            try {
+                const response = await callGeminiAPI(messageContent);
+                addMessage('ai', response);
+            } catch (error) {
+                addMessage('시스템', `오류: ${error.message}`);
+            } finally {
+                sendBtn.disabled = false;
+                document.getElementById('typingIndicator').style.display = 'none';
+            }
+        }
+
+        async function callGeminiAPI(userMessageText) {
+            const messagesPayload = [];
+            
+            const historyToConsider = [...chatHistory];
+            const recentHistory = historyToConsider.slice(-historyTurns);
+
+            for (const msg of recentHistory) {
+                messagesPayload.push({
+                    role: msg.role === 'user' ? 'user' : 'model',
+                    parts: [{ text: msg.content }]
+                });
+            }
+            
+            if (systemPrompt && messagesPayload.length > 0) {
+                const lastMessageInPayload = messagesPayload[messagesPayload.length - 1];
+                if (lastMessageInPayload.role === 'user') {
+                    lastMessageInPayload.parts[0].text = `${lastMessageInPayload.parts[0].text}\n\n[기본 프롬프트]\n${systemPrompt}`;
+                }
+            }
+            
+            if (assistantPrefill) {
+                messagesPayload.push({
+                    role: 'model',
+                    parts: [{ text: assistantPrefill }]
+                });
+            }
+            
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: messagesPayload,
+                    generationConfig: {
+                        temperature: 0.7, topK: 40, topP: 0.95, maxOutputTokens: 8192,
+                    }
+                })
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error?.message || 'API 호출 실패');
+            }
+            
+            const data = await response.json();
+            if (data.candidates && data.candidates.length > 0 && data.candidates[0].content && data.candidates[0].content.parts) {
+                return data.candidates[0].content.parts[0].text;
+            } else {
+                console.error("Unexpected API response format:", data);
+                return "AI로부터 응답을 받지 못했습니다. (형식 오류)";
+            }
+        }
+
+        async function rerollLastResponse() {
+            if (chatHistory.length === 0) {
+                alert('리롤할 응답이 없습니다.');
+                return;
+            }
+            
+            let lastAiMessageIndex = -1;
+            let lastUserMessageContent = '';
+
+            for (let i = chatHistory.length - 1; i >= 0; i--) {
+                if (chatHistory[i].role === 'ai') {
+                    lastAiMessageIndex = i;
+                    for (let j = lastAiMessageIndex -1; j >=0; j--) {
+                        if (chatHistory[j].role === 'user') {
+                            lastUserMessageContent = chatHistory[j].content;
+                            break;
+                        }
+                    }
+                    break;
+                }
+            }
+
+            if (lastAiMessageIndex === -1 || !lastUserMessageContent) {
+                alert('리롤할 수 있는 이전 사용자 질문 또는 AI 응답을 찾을 수 없습니다.');
+                return;
+            }
+            
+            chatHistory.splice(lastAiMessageIndex, 1);
+            updateCurrentConversation();
+            updateMessagesDisplay();
+            
+            const sendBtn = document.getElementById('sendBtn');
+            sendBtn.disabled = true;
+            document.getElementById('typingIndicator').style.display = 'block';
+            
+            try {
+                const response = await callGeminiAPI(lastUserMessageContent);
+                addMessage('ai', response);
+            } catch (error) {
+                addMessage('시스템', `리롤 오류: ${error.message}`);
+            } finally {
+                sendBtn.disabled = false;
+                document.getElementById('typingIndicator').style.display = 'none';
+            }
+        }
+
+        function editMessage(index, type) {
+            if (type === 'chat') {
+                if (index < 0 || index >= chatHistory.length) return;
+                currentEditIndex = index;
+                currentEditType = 'chat';
+                currentEditRole = chatHistory[index].role;
+                document.getElementById('editTextarea').value = chatHistory[index].content;
+            }
+            
+            document.getElementById('editModal').style.display = 'block';
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').style.display = 'none';
+            currentEditIndex = -1;
+            currentEditRole = '';
+            currentEditType = '';
+        }
+
+        function saveEdit() {
+            if (currentEditType === 'chat' && currentEditIndex >= 0) {
+                const newContent = document.getElementById('editTextarea').value.trim();
+                if (!newContent) {
+                    alert('메시지를 입력해주세요.');
+                    return;
+                }
+                
+                // 정규식 규칙 적용
+                const processedContent = applyRegexToMessage(newContent);
+                chatHistory[currentEditIndex].content = processedContent;
+                updateCurrentConversation();
+                updateMessagesDisplay();
+            }
+            
+            closeEditModal();
+        }
+
+        function deleteMessage(index) {
+            if (confirm('이 메시지를 삭제하시겠습니까?')) {
+                chatHistory.splice(index, 1);
+                updateCurrentConversation();
+                updateMessagesDisplay();
+            }
+        }
+
+        function rewindToMessage(index) {
+            if (confirm('이 메시지 이후의 모든 대화를 삭제하시겠습니까?')) {
+                chatHistory = chatHistory.slice(0, index + 1);
+                updateCurrentConversation();
+                updateMessagesDisplay();
+            }
+        }
+
+        function updateMessagesDisplay() {
+            const messagesContainer = document.getElementById('chatMessages');
+            messagesContainer.innerHTML = '';
+            
+            const welcomeDiv = document.createElement('div');
+            welcomeDiv.className = 'message ai';
+            const welcomeBubble = document.createElement('div');
+            welcomeBubble.className = 'message-bubble';
+            welcomeBubble.innerHTML = parseMarkdown('안녕하세요! Gemini와 대화해보세요. 먼저 설정에서 API 키를 입력해주세요.');
+            welcomeDiv.appendChild(welcomeBubble);
+            
+            if (chatHistory.length === 0 && !apiKey) {
+                messagesContainer.appendChild(welcomeDiv);
+            }
+
+            // 채팅 메시지 표시
+            chatHistory.forEach((msg, index) => {
+                const wrapperDiv = document.createElement('div');
+                wrapperDiv.className = `message-wrapper ${msg.role}`;
+                
+                // 개행으로 메시지 분리
+                const lines = msg.content.split('\n').filter(line => line.trim());
+                
+                lines.forEach((line) => {
+                    const messageDiv = document.createElement('div');
+                    messageDiv.className = `message ${msg.role}`;
+                    
+                    const bubbleDiv = document.createElement('div');
+                    bubbleDiv.className = 'message-bubble';
+                    bubbleDiv.innerHTML = parseMarkdown(line);
+                    
+                    messageDiv.appendChild(bubbleDiv);
+                    wrapperDiv.appendChild(messageDiv);
+                });
+                
+                // 액션 버튼들을 가장 아래 말풍선 밑에 배치
+                const actionsContainer = document.createElement('div');
+                actionsContainer.className = 'message-actions-container';
+                
+                const editBtn = document.createElement('button');
+                editBtn.className = 'action-btn icon-btn edit-icon';
+                editBtn.innerHTML = '✏️';
+                editBtn.title = '수정';
+                editBtn.onclick = () => editMessage(index, 'chat');
+                actionsContainer.appendChild(editBtn);
+                
+                // 마지막 AI 메시지에 리롤 버튼 추가
+                if (msg.role === 'ai' && index === chatHistory.length - 1) {
+                    const rerollBtn = document.createElement('button');
+                    rerollBtn.className = 'action-btn icon-btn reroll-icon';
+                    rerollBtn.innerHTML = '🔄';
+                    rerollBtn.title = '리롤';
+                    rerollBtn.onclick = () => rerollLastResponse();
+                    actionsContainer.appendChild(rerollBtn);
+                }
+                
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'action-btn icon-btn delete-icon';
+                deleteBtn.innerHTML = '🗑️';
+                deleteBtn.title = '삭제';
+                deleteBtn.onclick = () => deleteMessage(index);
+                actionsContainer.appendChild(deleteBtn);
+                
+                if (index < chatHistory.length - 1) {
+                    const rewindBtn = document.createElement('button');
+                    rewindBtn.className = 'action-btn icon-btn rewind-icon';
+                    rewindBtn.innerHTML = '⏪';
+                    rewindBtn.title = '여기까지만 유지';
+                    rewindBtn.onclick = () => rewindToMessage(index);
+                    actionsContainer.appendChild(rewindBtn);
+                }
+                
+                wrapperDiv.appendChild(actionsContainer);
+                messagesContainer.appendChild(wrapperDiv);
+            });
+            
+            // 시스템 알림 표시
+            systemNotifications.forEach((notification) => {
+                const wrapperDiv = document.createElement('div');
+                wrapperDiv.className = 'message-wrapper ai system-notification';
+                
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'message ai';
+                
+                const bubbleDiv = document.createElement('div');
+                bubbleDiv.className = 'message-bubble';
+                bubbleDiv.innerHTML = parseMarkdown(notification.content);
+                
+                if (notification.content.startsWith('설정이 저장되었습니다!')) {
+                    bubbleDiv.style.background = '#e8f5e8';
+                    bubbleDiv.style.color = '#2e7d32';
+                } else if (notification.content.startsWith('오류:')) {
+                    bubbleDiv.style.background = '#ffebee';
+                    bubbleDiv.style.color = '#c62828';
+                } else if (notification.content.includes('성공적으로') || notification.content.includes('정규식') || notification.content.includes('새로운 대화가')) {
+                    bubbleDiv.style.background = '#e8f5e8';
+                    bubbleDiv.style.color = '#2e7d32';
+                }
+                
+                messageDiv.appendChild(bubbleDiv);
+                wrapperDiv.appendChild(messageDiv);
+                
+                // 시스템 알림도 삭제 가능
+                const actionsContainer = document.createElement('div');
+                actionsContainer.className = 'message-actions-container';
+                
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'action-btn icon-btn delete-icon';
+                deleteBtn.innerHTML = '🗑️';
+                deleteBtn.title = '삭제';
+                deleteBtn.onclick = () => deleteSystemNotification(notification.id);
+                actionsContainer.appendChild(deleteBtn);
+                
+                wrapperDiv.appendChild(actionsContainer);
+                messagesContainer.appendChild(wrapperDiv);
+            });
+            
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function handleKeyDown(event) {
+            const textarea = event.target;
+            
+            if (enterToSend && event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            } else if (!enterToSend && event.key === 'Enter' && event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        }
+
+        function exportAllData() {
+            const exportData = {
+                timestamp: new Date().toISOString(),
+                settings: {
+                    chatName: chatName,
+                    avatarImage: avatarImage,
+                    systemPrompt: systemPrompt,
+                    assistantPrefill: assistantPrefill,
+                    modelName: modelName,
+                    enterToSend: enterToSend,
+                    historyTurns: historyTurns
+                },
+                conversations: conversations,
+                currentConversationId: currentConversationId,
+                regexRules: regexRules
+            };
+            
+            const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `gemini_chat_all_data_${new Date().toISOString().slice(0, 10)}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function importAllData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    
+                    if (data.settings) {
+                        const settings = data.settings;
+                        if (settings.chatName) {
+                            chatName = settings.chatName;
+                            document.getElementById('chatName').value = chatName;
+                            document.getElementById('chatTitle').textContent = chatName;
+                            localStorage.setItem('chat_name', chatName);
+                        }
+                        if (settings.avatarImage) {
+                            avatarImage = settings.avatarImage;
+                            document.getElementById('chatAvatar').src = avatarImage;
+                            localStorage.setItem('avatar_image', avatarImage);
+                        }
+                        if (settings.systemPrompt !== undefined) {
+                            systemPrompt = settings.systemPrompt;
+                            document.getElementById('systemPrompt').value = systemPrompt;
+                            localStorage.setItem('system_prompt', systemPrompt);
+                        }
+                        if (settings.assistantPrefill !== undefined) {
+                            assistantPrefill = settings.assistantPrefill;
+                            document.getElementById('assistantPrefill').value = assistantPrefill;
+                            localStorage.setItem('assistant_prefill', assistantPrefill);
+                        }
+                        if (settings.modelName) {
+                            modelName = settings.modelName;
+                            updateModelSelect(modelName);
+                            localStorage.setItem('gemini_model', modelName);
+                        }
+                        if (settings.enterToSend !== undefined) {
+                            enterToSend = settings.enterToSend;
+                            document.getElementById('enterToSend').checked = enterToSend;
+                            localStorage.setItem('enter_to_send', enterToSend);
+                        }
+                        if (settings.historyTurns !== undefined) {
+                            historyTurns = settings.historyTurns;
+                            document.getElementById('historyTurns').value = historyTurns;
+                            localStorage.setItem('history_turns', historyTurns);
+                        }
+                    }
+                    
+                    if (data.conversations && Array.isArray(data.conversations)) {
+                        conversations = data.conversations;
+                        saveConversations();
+                    }
+                    
+                    if (data.currentConversationId) {
+                        currentConversationId = data.currentConversationId;
+                        loadConversation(currentConversationId);
+                    }
+                    
+                    if (data.regexRules && Array.isArray(data.regexRules)) {
+                        regexRules = data.regexRules;
+                        saveRegexRules();
+                    }
+                    
+                    updateMessagesDisplay();
+                    addSystemMessageToDOM('모든 데이터를 성공적으로 불러왔습니다!');
+                    
+                } catch (error) {
+                    alert('파일을 읽는 중 오류가 발생했습니다: ' + error.message);
+                    console.error("Import error:", error);
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
+        window.onload = function() {
+            loadSettings();
+        };
+    </script>
+</body>
+</html>
