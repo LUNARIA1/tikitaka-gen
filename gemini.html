@@ -128,6 +128,44 @@
             align-items: flex-end;
         }
 
+        /* 프로필 사진이 있을 때 메시지 래퍼 스타일 */
+        .message-wrapper.with-profile {
+            flex-direction: row;
+            align-items: flex-start;
+        }
+
+        .message-wrapper.user.with-profile {
+            flex-direction: row-reverse;
+            align-items: flex-start;
+        }
+
+        /* 프로필 사진 컨테이너 */
+        .profile-photo-container {
+            width: 36px;
+            margin: 0 8px;
+            flex-shrink: 0;
+        }
+
+        .profile-photo {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #e1e8ed;
+        }
+
+        /* 프로필 사진이 있을 때 메시지 그룹 */
+        .message-group {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            max-width: calc(80% - 44px); /* 프로필 사진 공간 제외 */
+        }
+
+        .message-wrapper.user .message-group {
+            align-items: flex-end;
+        }
+
         /* 액션 버튼들을 가장 아래 말풍선 밑에 배치 */
         .message-actions-container {
             display: flex;
@@ -165,7 +203,7 @@
         }
 
         .message-bubble {
-            max-width: 80%;
+            max-width: 100%;
             padding: 12px 16px;
             border-radius: 18px;
             word-wrap: break-word;
@@ -353,6 +391,50 @@
 
         .checkbox-group input[type="checkbox"] {
             width: auto;
+        }
+
+        /* 오타쿠 모드 스타일 */
+        .otaku-mode-section {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 2px dashed #e1e8ed;
+        }
+
+        .otaku-checkbox-wrapper {
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            padding: 2px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .otaku-checkbox-inner {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+        }
+
+        .otaku-mode-fields {
+            display: none;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .otaku-profile-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .otaku-profile-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #ff6b6b;
+            margin-bottom: 12px;
         }
 
         .regex-textarea {
@@ -784,6 +866,7 @@
                 <div class="form-group">
                     <label for="systemPrompt">기본 프롬프트:</label>
                     <textarea id="systemPrompt" placeholder="시스템 역할을 정의하는 기본 프롬프트를 입력하세요"></textarea>
+                    <small id="otakuModeHint" style="display: none; color: #ff6b6b; font-size: 12px;">💡 {{description}}과 {{persona}}를 사용할 수 있습니다!</small>
                 </div>
                 <div class="form-group">
                     <label for="assistantPrefill">Assistant 프리필:</label>
@@ -795,6 +878,43 @@
                         <label for="enterToSend">엔터 키로 전송 (체크 해제시 Shift+Enter로 전송)</label>
                     </div>
                 </div>
+                
+                <!-- 오타쿠 모드 섹션 -->
+                <div class="otaku-mode-section">
+                    <div class="otaku-checkbox-wrapper">
+                        <div class="otaku-checkbox-inner">
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="otakuMode" onchange="toggleOtakuMode()">
+                                <label for="otakuMode">나는 사실 오타쿠인데요ㅋ</label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="otaku-mode-fields" id="otakuModeFields">
+                        <div class="otaku-profile-section">
+                            <div class="otaku-profile-title">🎭 캐릭터 프로필</div>
+                            <div class="form-group">
+                                <textarea id="characterProfile" placeholder="AI가 연기할 캐릭터의 프로필을 작성하세요..."></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label for="characterPhotoUpload">캐릭터 프로필 사진:</label>
+                                <input type="file" id="characterPhotoUpload" accept="image/*" onchange="handleCharacterPhotoUpload(event)">
+                            </div>
+                        </div>
+                        
+                        <div class="otaku-profile-section">
+                            <div class="otaku-profile-title">👤 페르소나 프로필</div>
+                            <div class="form-group">
+                                <textarea id="personaProfile" placeholder="당신(유저)의 페르소나 프로필을 작성하세요..."></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label for="personaPhotoUpload">페르소나 프로필 사진:</label>
+                                <input type="file" id="personaPhotoUpload" accept="image/*" onchange="handlePersonaPhotoUpload(event)">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
                 <div class="modal-buttons">
                     <button type="button" class="btn btn-secondary" onclick="closeSettings()">취소</button>
                     <button type="submit" class="btn btn-primary">저장</button>
@@ -890,6 +1010,13 @@
         let regexRules = [];
         let currentEditRuleIndex = -1;
         let historyTurns = 20;
+        
+        // 오타쿠 모드 관련 변수
+        let otakuMode = false;
+        let characterProfile = '';
+        let personaProfile = '';
+        let characterPhoto = '';
+        let personaPhoto = '';
 
         // 동적 뷰포트 높이 설정
         function setViewportHeight() {
@@ -927,6 +1054,13 @@
             const savedCurrentConvId = localStorage.getItem('current_conversation_id');
             const savedRegexRules = localStorage.getItem('regex_rules');
             const savedHistoryTurns = localStorage.getItem('history_turns');
+            
+            // 오타쿠 모드 설정 불러오기
+            const savedOtakuMode = localStorage.getItem('otaku_mode');
+            const savedCharacterProfile = localStorage.getItem('character_profile');
+            const savedPersonaProfile = localStorage.getItem('persona_profile');
+            const savedCharacterPhoto = localStorage.getItem('character_photo');
+            const savedPersonaPhoto = localStorage.getItem('persona_photo');
             
             if (savedApiKey) {
                 apiKey = savedApiKey;
@@ -967,6 +1101,29 @@
                 historyTurns = parseInt(savedHistoryTurns);
                 document.getElementById('historyTurns').value = historyTurns;
             }
+            
+            // 오타쿠 모드 설정 복원
+            if (savedOtakuMode === 'true') {
+                otakuMode = true;
+                document.getElementById('otakuMode').checked = true;
+                document.getElementById('otakuModeFields').style.display = 'block';
+                document.getElementById('otakuModeHint').style.display = 'block';
+            }
+            if (savedCharacterProfile) {
+                characterProfile = savedCharacterProfile;
+                document.getElementById('characterProfile').value = characterProfile;
+            }
+            if (savedPersonaProfile) {
+                personaProfile = savedPersonaProfile;
+                document.getElementById('personaProfile').value = personaProfile;
+            }
+            if (savedCharacterPhoto) {
+                characterPhoto = savedCharacterPhoto;
+            }
+            if (savedPersonaPhoto) {
+                personaPhoto = savedPersonaPhoto;
+            }
+            
             if (savedCurrentConvId) {
                 currentConversationId = savedCurrentConvId;
                 loadConversation(currentConversationId);
@@ -1022,6 +1179,45 @@
             }
         }
 
+        // 오타쿠 모드 토글
+        function toggleOtakuMode() {
+            const checkbox = document.getElementById('otakuMode');
+            const fields = document.getElementById('otakuModeFields');
+            const hint = document.getElementById('otakuModeHint');
+            
+            otakuMode = checkbox.checked;
+            
+            if (otakuMode) {
+                fields.style.display = 'block';
+                hint.style.display = 'block';
+            } else {
+                fields.style.display = 'none';
+                hint.style.display = 'none';
+            }
+        }
+
+        function handleCharacterPhotoUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                characterPhoto = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function handlePersonaPhotoUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                personaPhoto = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
         function confirmResetAll() {
             if (confirm('정말로 모든 설정과 대화를 초기화하시겠습니까?')) {
                 if (confirm('이 작업은 되돌릴 수 없습니다. 정말로 모든 데이터를 삭제하시겠습니까?')) {
@@ -1046,6 +1242,11 @@
             currentConversationId = null;
             regexRules = [];
             historyTurns = 20;
+            otakuMode = false;
+            characterProfile = '';
+            personaProfile = '';
+            characterPhoto = '';
+            personaPhoto = '';
             
             location.reload();
         }
@@ -1400,6 +1601,10 @@
             enterToSend = document.getElementById('enterToSend').checked;
             historyTurns = parseInt(document.getElementById('historyTurns').value) || 20;
             
+            // 오타쿠 모드 설정 저장
+            characterProfile = document.getElementById('characterProfile').value;
+            personaProfile = document.getElementById('personaProfile').value;
+            
             localStorage.setItem('gemini_api_key', apiKey);
             localStorage.setItem('gemini_model', modelName);
             localStorage.setItem('system_prompt', systemPrompt);
@@ -1407,8 +1612,18 @@
             localStorage.setItem('chat_name', chatName);
             localStorage.setItem('enter_to_send', enterToSend);
             localStorage.setItem('history_turns', historyTurns);
+            localStorage.setItem('otaku_mode', otakuMode);
+            localStorage.setItem('character_profile', characterProfile);
+            localStorage.setItem('persona_profile', personaProfile);
+            
             if (avatarImage) {
                 localStorage.setItem('avatar_image', avatarImage);
+            }
+            if (characterPhoto) {
+                localStorage.setItem('character_photo', characterPhoto);
+            }
+            if (personaPhoto) {
+                localStorage.setItem('persona_photo', personaPhoto);
             }
             
             document.getElementById('chatTitle').textContent = chatName;
@@ -1522,10 +1737,18 @@
                 });
             }
             
-            if (systemPrompt && messagesPayload.length > 0) {
+            // 시스템 프롬프트 처리 (오타쿠 모드 변수 대체 포함)
+            let processedSystemPrompt = systemPrompt;
+            if (otakuMode && systemPrompt) {
+                processedSystemPrompt = systemPrompt
+                    .replace(/{{description}}/g, characterProfile)
+                    .replace(/{{persona}}/g, personaProfile);
+            }
+            
+            if (processedSystemPrompt && messagesPayload.length > 0) {
                 const lastMessageInPayload = messagesPayload[messagesPayload.length - 1];
                 if (lastMessageInPayload.role === 'user') {
-                    lastMessageInPayload.parts[0].text = `${lastMessageInPayload.parts[0].text}\n\n[기본 프롬프트]\n${systemPrompt}`;
+                    lastMessageInPayload.parts[0].text = `${lastMessageInPayload.parts[0].text}\n\n[기본 프롬프트]\n${processedSystemPrompt}`;
                 }
             }
             
@@ -1680,55 +1903,127 @@
                 const wrapperDiv = document.createElement('div');
                 wrapperDiv.className = `message-wrapper ${msg.role}`;
                 
-                // 메시지를 개행 문자가 아닌 그대로 하나의 버블로 표시
-                const messageDiv = document.createElement('div');
-                messageDiv.className = `message ${msg.role}`;
-                
-                const bubbleDiv = document.createElement('div');
-                bubbleDiv.className = 'message-bubble';
-                bubbleDiv.innerHTML = parseMarkdown(msg.content);
-                
-                messageDiv.appendChild(bubbleDiv);
-                wrapperDiv.appendChild(messageDiv);
-                
-                // 액션 버튼들을 가장 아래 말풍선 밑에 배치
-                const actionsContainer = document.createElement('div');
-                actionsContainer.className = 'message-actions-container';
-                
-                const editBtn = document.createElement('button');
-                editBtn.className = 'action-btn icon-btn edit-icon';
-                editBtn.innerHTML = '✏️';
-                editBtn.title = '수정';
-                editBtn.onclick = () => editMessage(index, 'chat');
-                actionsContainer.appendChild(editBtn);
-                
-                // 마지막 AI 메시지에 리롤 버튼 추가
-                if (msg.role === 'ai' && index === chatHistory.length - 1) {
-                    const rerollBtn = document.createElement('button');
-                    rerollBtn.className = 'action-btn icon-btn reroll-icon';
-                    rerollBtn.innerHTML = '🔄';
-                    rerollBtn.title = '리롤';
-                    rerollBtn.onclick = () => rerollLastResponse();
-                    actionsContainer.appendChild(rerollBtn);
+                // 오타쿠 모드에서 프로필 사진 표시
+                if (otakuMode && ((msg.role === 'ai' && characterPhoto) || (msg.role === 'user' && personaPhoto))) {
+                    wrapperDiv.classList.add('with-profile');
+                    
+                    // 프로필 사진 컨테이너
+                    const photoContainer = document.createElement('div');
+                    photoContainer.className = 'profile-photo-container';
+                    
+                    const photo = document.createElement('img');
+                    photo.className = 'profile-photo';
+                    photo.src = msg.role === 'ai' ? characterPhoto : personaPhoto;
+                    photo.alt = msg.role === 'ai' ? 'Character' : 'Persona';
+                    
+                    photoContainer.appendChild(photo);
+                    wrapperDiv.appendChild(photoContainer);
+                    
+                    // 메시지 그룹 컨테이너
+                    const messageGroup = document.createElement('div');
+                    messageGroup.className = 'message-group';
+                    
+                    const messageDiv = document.createElement('div');
+                    messageDiv.className = `message ${msg.role}`;
+                    
+                    const bubbleDiv = document.createElement('div');
+                    bubbleDiv.className = 'message-bubble';
+                    bubbleDiv.innerHTML = parseMarkdown(msg.content);
+                    
+                    messageDiv.appendChild(bubbleDiv);
+                    messageGroup.appendChild(messageDiv);
+                    
+                    // 액션 버튼들
+                    const actionsContainer = document.createElement('div');
+                    actionsContainer.className = 'message-actions-container';
+                    
+                    const editBtn = document.createElement('button');
+                    editBtn.className = 'action-btn icon-btn edit-icon';
+                    editBtn.innerHTML = '✏️';
+                    editBtn.title = '수정';
+                    editBtn.onclick = () => editMessage(index, 'chat');
+                    actionsContainer.appendChild(editBtn);
+                    
+                    // 마지막 AI 메시지에 리롤 버튼 추가
+                    if (msg.role === 'ai' && index === chatHistory.length - 1) {
+                        const rerollBtn = document.createElement('button');
+                        rerollBtn.className = 'action-btn icon-btn reroll-icon';
+                        rerollBtn.innerHTML = '🔄';
+                        rerollBtn.title = '리롤';
+                        rerollBtn.onclick = () => rerollLastResponse();
+                        actionsContainer.appendChild(rerollBtn);
+                    }
+                    
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'action-btn icon-btn delete-icon';
+                    deleteBtn.innerHTML = '🗑️';
+                    deleteBtn.title = '삭제';
+                    deleteBtn.onclick = () => deleteMessage(index);
+                    actionsContainer.appendChild(deleteBtn);
+                    
+                    if (index < chatHistory.length - 1) {
+                        const rewindBtn = document.createElement('button');
+                        rewindBtn.className = 'action-btn icon-btn rewind-icon';
+                        rewindBtn.innerHTML = '⏪';
+                        rewindBtn.title = '여기까지만 유지';
+                        rewindBtn.onclick = () => rewindToMessage(index);
+                        actionsContainer.appendChild(rewindBtn);
+                    }
+                    
+                    messageGroup.appendChild(actionsContainer);
+                    wrapperDiv.appendChild(messageGroup);
+                } else {
+                    // 일반 모드 또는 프로필 사진이 없을 때
+                    const messageDiv = document.createElement('div');
+                    messageDiv.className = `message ${msg.role}`;
+                    
+                    const bubbleDiv = document.createElement('div');
+                    bubbleDiv.className = 'message-bubble';
+                    bubbleDiv.innerHTML = parseMarkdown(msg.content);
+                    
+                    messageDiv.appendChild(bubbleDiv);
+                    wrapperDiv.appendChild(messageDiv);
+                    
+                    // 액션 버튼들을 가장 아래 말풍선 밑에 배치
+                    const actionsContainer = document.createElement('div');
+                    actionsContainer.className = 'message-actions-container';
+                    
+                    const editBtn = document.createElement('button');
+                    editBtn.className = 'action-btn icon-btn edit-icon';
+                    editBtn.innerHTML = '✏️';
+                    editBtn.title = '수정';
+                    editBtn.onclick = () => editMessage(index, 'chat');
+                    actionsContainer.appendChild(editBtn);
+                    
+                    // 마지막 AI 메시지에 리롤 버튼 추가
+                    if (msg.role === 'ai' && index === chatHistory.length - 1) {
+                        const rerollBtn = document.createElement('button');
+                        rerollBtn.className = 'action-btn icon-btn reroll-icon';
+                        rerollBtn.innerHTML = '🔄';
+                        rerollBtn.title = '리롤';
+                        rerollBtn.onclick = () => rerollLastResponse();
+                        actionsContainer.appendChild(rerollBtn);
+                    }
+                    
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'action-btn icon-btn delete-icon';
+                    deleteBtn.innerHTML = '🗑️';
+                    deleteBtn.title = '삭제';
+                    deleteBtn.onclick = () => deleteMessage(index);
+                    actionsContainer.appendChild(deleteBtn);
+                    
+                    if (index < chatHistory.length - 1) {
+                        const rewindBtn = document.createElement('button');
+                        rewindBtn.className = 'action-btn icon-btn rewind-icon';
+                        rewindBtn.innerHTML = '⏪';
+                        rewindBtn.title = '여기까지만 유지';
+                        rewindBtn.onclick = () => rewindToMessage(index);
+                        actionsContainer.appendChild(rewindBtn);
+                    }
+                    
+                    wrapperDiv.appendChild(actionsContainer);
                 }
                 
-                const deleteBtn = document.createElement('button');
-                deleteBtn.className = 'action-btn icon-btn delete-icon';
-                deleteBtn.innerHTML = '🗑️';
-                deleteBtn.title = '삭제';
-                deleteBtn.onclick = () => deleteMessage(index);
-                actionsContainer.appendChild(deleteBtn);
-                
-                if (index < chatHistory.length - 1) {
-                    const rewindBtn = document.createElement('button');
-                    rewindBtn.className = 'action-btn icon-btn rewind-icon';
-                    rewindBtn.innerHTML = '⏪';
-                    rewindBtn.title = '여기까지만 유지';
-                    rewindBtn.onclick = () => rewindToMessage(index);
-                    actionsContainer.appendChild(rewindBtn);
-                }
-                
-                wrapperDiv.appendChild(actionsContainer);
                 messagesContainer.appendChild(wrapperDiv);
             });
             
@@ -1798,7 +2093,12 @@
                     assistantPrefill: assistantPrefill,
                     modelName: modelName,
                     enterToSend: enterToSend,
-                    historyTurns: historyTurns
+                    historyTurns: historyTurns,
+                    otakuMode: otakuMode,
+                    characterProfile: characterProfile,
+                    personaProfile: personaProfile,
+                    characterPhoto: characterPhoto,
+                    personaPhoto: personaPhoto
                 },
                 conversations: conversations,
                 currentConversationId: currentConversationId,
@@ -1862,6 +2162,33 @@
                             historyTurns = settings.historyTurns;
                             document.getElementById('historyTurns').value = historyTurns;
                             localStorage.setItem('history_turns', historyTurns);
+                        }
+                        
+                        // 오타쿠 모드 설정 가져오기
+                        if (settings.otakuMode !== undefined) {
+                            otakuMode = settings.otakuMode;
+                            document.getElementById('otakuMode').checked = otakuMode;
+                            document.getElementById('otakuModeFields').style.display = otakuMode ? 'block' : 'none';
+                            document.getElementById('otakuModeHint').style.display = otakuMode ? 'block' : 'none';
+                            localStorage.setItem('otaku_mode', otakuMode);
+                        }
+                        if (settings.characterProfile !== undefined) {
+                            characterProfile = settings.characterProfile;
+                            document.getElementById('characterProfile').value = characterProfile;
+                            localStorage.setItem('character_profile', characterProfile);
+                        }
+                        if (settings.personaProfile !== undefined) {
+                            personaProfile = settings.personaProfile;
+                            document.getElementById('personaProfile').value = personaProfile;
+                            localStorage.setItem('persona_profile', personaProfile);
+                        }
+                        if (settings.characterPhoto) {
+                            characterPhoto = settings.characterPhoto;
+                            localStorage.setItem('character_photo', characterPhoto);
+                        }
+                        if (settings.personaPhoto) {
+                            personaPhoto = settings.personaPhoto;
+                            localStorage.setItem('persona_photo', personaPhoto);
                         }
                     }
                     
