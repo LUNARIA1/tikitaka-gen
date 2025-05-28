@@ -150,6 +150,7 @@
             align-items: center;
             position: relative;
             margin-bottom: 2px;
+            width: 100%;
         }
 
         .message:last-child {
@@ -168,8 +169,10 @@
             padding: 12px 16px;
             border-radius: 18px;
             word-wrap: break-word;
+            word-break: keep-all; /* 한글 단어 단위로 줄바꿈 */
             white-space: pre-wrap;
             position: relative;
+            min-width: 60px; /* 최소 너비 설정 */
         }
 
         /* 마크다운 스타일 */
@@ -664,6 +667,23 @@
             .settings-btn {
                 padding: 6px 10px;
                 font-size: 11px;
+            }
+            
+            .chat-messages {
+                padding: 15px 10px;
+            }
+            
+            /* 모바일에서 메시지 버블 크기 조정 */
+            .message-bubble {
+                max-width: 90%; /* 모바일에서 더 넓게 */
+                min-width: 80px; /* 최소 너비 증가 */
+                word-break: normal; /* 단어가 너무 일찍 끊기지 않도록 */
+                overflow-wrap: break-word; /* 긴 단어만 필요시 줄바꿈 */
+            }
+            
+            .message.user .message-bubble {
+                /* 사용자 메시지는 특히 더 넓게 */
+                min-width: 100px;
             }
             
             .chat-input {
@@ -1660,20 +1680,16 @@
                 const wrapperDiv = document.createElement('div');
                 wrapperDiv.className = `message-wrapper ${msg.role}`;
                 
-                // 개행으로 메시지 분리
-                const lines = msg.content.split('\n').filter(line => line.trim());
+                // 메시지를 개행 문자가 아닌 그대로 하나의 버블로 표시
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${msg.role}`;
                 
-                lines.forEach((line) => {
-                    const messageDiv = document.createElement('div');
-                    messageDiv.className = `message ${msg.role}`;
-                    
-                    const bubbleDiv = document.createElement('div');
-                    bubbleDiv.className = 'message-bubble';
-                    bubbleDiv.innerHTML = parseMarkdown(line);
-                    
-                    messageDiv.appendChild(bubbleDiv);
-                    wrapperDiv.appendChild(messageDiv);
-                });
+                const bubbleDiv = document.createElement('div');
+                bubbleDiv.className = 'message-bubble';
+                bubbleDiv.innerHTML = parseMarkdown(msg.content);
+                
+                messageDiv.appendChild(bubbleDiv);
+                wrapperDiv.appendChild(messageDiv);
                 
                 // 액션 버튼들을 가장 아래 말풍선 밑에 배치
                 const actionsContainer = document.createElement('div');
