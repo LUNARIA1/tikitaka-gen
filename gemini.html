@@ -1037,7 +1037,7 @@
                 <div class="form-group">
                     <label for="systemPrompt">기본 프롬프트:</label>
                     <textarea id="systemPrompt" placeholder="시스템 역할을 정의하는 기본 프롬프트를 입력하세요"></textarea>
-                    <small id="otakuModeHint" style="display: none; color: #ff6b6b; font-size: 12px;">💡 {{캐릭터프로필}}과 {{페르소나프로필}}를 사용할 수 있습니다!</small>
+                    <small id="otakuModeHint" style="display: none; color: #ff6b6b; font-size: 12px;">💡 {{description}}과 {{persona}}를 사용할 수 있습니다!</small>
                 </div>
                 <div class="form-group">
                     <label for="assistantPrefill">Assistant 프리필:</label>
@@ -2011,8 +2011,8 @@
             let processedSystemPrompt = systemPrompt;
             if (otakuMode && systemPrompt) {
                 processedSystemPrompt = systemPrompt
-                    .replace(/{{캐릭터프로필}}/g, characterProfile)
-                    .replace(/{{페르소나프로필}}/g, personaProfile);
+                    .replace(/{{description}}/g, characterProfile)
+                    .replace(/{{persona}}/g, personaProfile);
             }
             
             if (processedSystemPrompt && messagesPayload.length > 0) {
