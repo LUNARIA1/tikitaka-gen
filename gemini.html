@@ -988,6 +988,52 @@
                         <input type="range" id="topP" class="slider" min="0" max="1" step="0.05" value="0.9" oninput="updateSliderValue('topP', this.value)">
                     </div>
                 </div>
+
+                <!-- Safety Settings Section -->
+                <div class="form-group">
+                    <label style="font-weight: bold; margin-bottom: 10px; display: block; border-top: 1px solid #eee; padding-top: 20px;">안전 설정 (Safety Settings):</label>
+                    <div class="form-group">
+                        <label for="safetyHarassment">괴롭힘 (Harassment):</label>
+                        <select id="safetyHarassment">
+                            <option value="OFF">OFF</option>
+                            <option value="BLOCK_ONLY_HIGH">거의 차단 안함 (Block few)</option>
+                            <option value="BLOCK_MEDIUM_AND_ABOVE" selected>일부 차단 (Block some)</option>
+                            <option value="BLOCK_LOW_AND_ABOVE">대부분 차단 (Block most)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="safetyHateSpeech">증오 발언 (Hate Speech):</label>
+                        <select id="safetyHateSpeech">
+                            <option value="OFF">OFF</option>
+                            <option value="BLOCK_ONLY_HIGH">거의 차단 안함 (Block few)</option>
+                            <option value="BLOCK_MEDIUM_AND_ABOVE" selected>일부 차단 (Block some)</option>
+                            <option value="BLOCK_LOW_AND_ABOVE">대부분 차단 (Block most)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="safetySexuallyExplicit">성적으로 노골적인 콘텐츠 (Sexually Explicit):</label>
+                        <select id="safetySexuallyExplicit">
+                            <option value="OFF">OFF</option>
+                            <option value="BLOCK_ONLY_HIGH">거의 차단 안함 (Block few)</option>
+                            <option value="BLOCK_MEDIUM_AND_ABOVE" selected>일부 차단 (Block some)</option>
+                            <option value="BLOCK_LOW_AND_ABOVE">대부분 차단 (Block most)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="safetyDangerousContent">위험한 콘텐츠 (Dangerous Content):</label>
+                        <select id="safetyDangerousContent">
+                            <option value="OFF">OFF</option>
+                            <option value="BLOCK_ONLY_HIGH">거의 차단 안함 (Block few)</option>
+                            <option value="BLOCK_MEDIUM_AND_ABOVE" selected>일부 차단 (Block some)</option>
+                            <option value="BLOCK_LOW_AND_ABOVE">대부분 차단 (Block most)</option>
+                        </select>
+                    </div>
+                    <div class="warning-text">
+                        💡 안전 필터 설정을 너무 낮추면 부적절하거나 유해한 콘텐츠가 생성될 수 있습니다. 주의해서 사용하세요.
+                    </div>
+                </div>
+                <!-- End Safety Settings Section -->
+
                 <div class="form-group">
                     <label for="systemPrompt">기본 프롬프트:</label>
                     <textarea id="systemPrompt" placeholder="시스템 역할을 정의하는 기본 프롬프트를 입력하세요"></textarea>
@@ -1145,30 +1191,34 @@
         let characterPhoto = '';
         let personaPhoto = '';
 
+        // Safety Settings
+        let safetySettingsConfig = {
+            harassment: 'OFF', // 기본값: 일부 차단
+            hateSpeech: 'OFF',
+            sexuallyExplicit: 'OFF',
+            dangerousContent: 'OFF'
+        };
+
+
         // 동적 뷰포트 높이 설정
         function setViewportHeight() {
-            // 실제 뷰포트 높이를 가져와서 CSS 변수로 설정
             let vh = window.innerHeight * 0.01;
             document.documentElement.style.setProperty('--vh', `${vh}px`);
         }
 
-        // 페이지 로드 시 및 리사이즈 시 뷰포트 높이 업데이트
         setViewportHeight();
         window.addEventListener('resize', setViewportHeight);
         window.addEventListener('orientationchange', setViewportHeight);
 
-        // 모바일 키보드가 나타날 때 스크롤 처리
         function handleInputFocus() {
             const messageInput = document.getElementById('messageInput');
             messageInput.addEventListener('focus', function() {
                 setTimeout(() => {
-                    // 입력창이 화면에 보이도록 스크롤
                     this.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }, 300);
             });
         }
 
-        // 슬라이더 값 업데이트
         function updateSliderValue(sliderId, value) {
             document.getElementById(sliderId + 'Value').textContent = value;
             if (sliderId === 'temperature') {
@@ -1178,7 +1228,6 @@
             }
         }
 
-        // 로컬 스토리지에서 설정 불러오기
         function loadSettings() {
             const savedApiKey = localStorage.getItem('gemini_api_key');
             const savedModel = localStorage.getItem('gemini_model');
@@ -1193,8 +1242,8 @@
             const savedHistoryTurns = localStorage.getItem('history_turns');
             const savedTemperature = localStorage.getItem('temperature');
             const savedTopP = localStorage.getItem('top_p');
+            const savedSafetySettings = localStorage.getItem('safety_settings_config');
             
-            // 오타쿠 모드 설정 불러오기
             const savedOtakuMode = localStorage.getItem('otaku_mode');
             const savedCharacterProfile = localStorage.getItem('character_profile');
             const savedPersonaProfile = localStorage.getItem('persona_profile');
@@ -1250,8 +1299,22 @@
                 document.getElementById('topP').value = topP;
                 document.getElementById('topPValue').textContent = topP;
             }
+
+            if (savedSafetySettings) {
+                try {
+                    const parsedSettings = JSON.parse(savedSafetySettings);
+                    if (typeof parsedSettings === 'object' && parsedSettings !== null) {
+                         safetySettingsConfig = { ...safetySettingsConfig, ...parsedSettings };
+                    }
+                } catch (e) {
+                    console.error("Error parsing safety settings from localStorage", e);
+                }
+            }
+            document.getElementById('safetyHarassment').value = safetySettingsConfig.harassment;
+            document.getElementById('safetyHateSpeech').value = safetySettingsConfig.hateSpeech;
+            document.getElementById('safetySexuallyExplicit').value = safetySettingsConfig.sexuallyExplicit;
+            document.getElementById('safetyDangerousContent').value = safetySettingsConfig.dangerousContent;
             
-            // 오타쿠 모드 설정 복원
             if (savedOtakuMode === 'true') {
                 otakuMode = true;
                 document.getElementById('otakuMode').checked = true;
@@ -1282,7 +1345,6 @@
             updateMessagesDisplay();
         }
 
-        // textarea 자동 높이 조정
         function autoResize(textarea) {
             textarea.style.height = 'auto';
             textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
@@ -1300,7 +1362,6 @@
                 customGroup.style.display = 'block';
                 document.getElementById('customModelName').value = model;
             }
-            
             updateTurnsWarning();
         }
 
@@ -1313,7 +1374,6 @@
             } else {
                 customGroup.style.display = 'none';
             }
-            
             updateTurnsWarning();
         }
 
@@ -1328,7 +1388,6 @@
             }
         }
 
-        // 오타쿠 모드 토글
         function toggleOtakuMode() {
             const checkbox = document.getElementById('otakuMode');
             const fields = document.getElementById('otakuModeFields');
@@ -1398,6 +1457,12 @@
             personaProfile = '';
             characterPhoto = '';
             personaPhoto = '';
+            safetySettingsConfig = { // Reset safety settings to default
+                harassment: 'OFF',
+                hateSpeech: 'OFF',
+                sexuallyExplicit: 'OFF',
+                dangerousContent: 'OFF'
+            };
             
             location.reload();
         }
@@ -1580,7 +1645,6 @@
             });
         }
 
-        // 정규식 규칙 관리 함수들
         function displayRegexRules() {
             const listContainer = document.getElementById('regexRulesList');
             listContainer.innerHTML = '';
@@ -1682,7 +1746,6 @@
             localStorage.setItem('regex_rules', JSON.stringify(regexRules));
         }
 
-        // 모든 정규식 규칙을 메시지에 적용
         function applyRegexToMessage(message) {
             let processedMessage = message;
             
@@ -1723,7 +1786,6 @@
                     appliedCount++;
                 }
                 
-                // variants가 있는 경우 모든 변형에도 적용
                 if (msg.variants && msg.variants.length > 0) {
                     msg.variants = msg.variants.map(variant => applyRegexToMessage(variant));
                 }
@@ -1759,8 +1821,13 @@
             historyTurns = parseInt(document.getElementById('historyTurns').value) || 20;
             temperature = parseFloat(document.getElementById('temperature').value);
             topP = parseFloat(document.getElementById('topP').value);
+
+            // Save Safety Settings
+            safetySettingsConfig.harassment = document.getElementById('safetyHarassment').value;
+            safetySettingsConfig.hateSpeech = document.getElementById('safetyHateSpeech').value;
+            safetySettingsConfig.sexuallyExplicit = document.getElementById('safetySexuallyExplicit').value;
+            safetySettingsConfig.dangerousContent = document.getElementById('safetyDangerousContent').value;
             
-            // 오타쿠 모드 설정 저장
             characterProfile = document.getElementById('characterProfile').value;
             personaProfile = document.getElementById('personaProfile').value;
             
@@ -1773,6 +1840,7 @@
             localStorage.setItem('history_turns', historyTurns);
             localStorage.setItem('temperature', temperature);
             localStorage.setItem('top_p', topP);
+            localStorage.setItem('safety_settings_config', JSON.stringify(safetySettingsConfig));
             localStorage.setItem('otaku_mode', otakuMode);
             localStorage.setItem('character_profile', characterProfile);
             localStorage.setItem('persona_profile', personaProfile);
@@ -1844,11 +1912,9 @@
             return html;
         }
 
-        // 사용하지 않은 변형 답변들을 정리
         function cleanupUnusedVariants() {
             chatHistory = chatHistory.map(msg => {
                 if (msg.role === 'ai' && msg.variants && msg.variants.length > 0) {
-                    // 현재 선택된 답변만 content로 설정하고 variants 제거
                     const selectedContent = msg.currentVariantIndex >= 0 && msg.currentVariantIndex < msg.variants.length
                         ? msg.variants[msg.currentVariantIndex]
                         : msg.content;
@@ -1866,14 +1932,11 @@
 
         function addMessage(role, content) {
             if (role !== '시스템') {
-                // 새로운 메시지를 추가하기 전에 이전 변형 답변들 정리
                 cleanupUnusedVariants();
                 
-                // 정규식 규칙 자동 적용
                 const processedContent = applyRegexToMessage(content);
                 const newMessage = { role, content: processedContent };
                 
-                // AI 메시지인 경우 variants 배열 초기화
                 if (role === 'ai') {
                     newMessage.variants = [processedContent];
                     newMessage.currentVariantIndex = 0;
@@ -1898,7 +1961,7 @@
             }
             
             input.value = '';
-            input.style.height = 'auto'; // 높이 초기화
+            input.style.height = 'auto';
             addMessage('user', messageContent);
             
             const sendBtn = document.getElementById('sendBtn');
@@ -1918,12 +1981,9 @@
 
         async function callGeminiAPI(userMessageText, excludeLastAI = false) {
             const messagesPayload = [];
-            
             let historyToConsider = [...chatHistory];
             
-            // 리롤 시 마지막 AI 메시지 제외
             if (excludeLastAI) {
-                // 마지막 AI 메시지의 인덱스를 찾아서 제외
                 for (let i = historyToConsider.length - 1; i >= 0; i--) {
                     if (historyToConsider[i].role === 'ai') {
                         historyToConsider = historyToConsider.slice(0, i);
@@ -1941,7 +2001,6 @@
                 });
             }
             
-            // 새로운 사용자 메시지 추가 (일반 전송 시에만)
             if (userMessageText && !excludeLastAI) {
                 messagesPayload.push({
                     role: 'user',
@@ -1949,7 +2008,6 @@
                 });
             }
             
-            // 시스템 프롬프트 처리 (오타쿠 모드 변수 대체 포함)
             let processedSystemPrompt = systemPrompt;
             if (otakuMode && systemPrompt) {
                 processedSystemPrompt = systemPrompt
@@ -1971,18 +2029,28 @@
                 });
             }
             
+            const safetySettingsPayload = [
+                { category: "HARM_CATEGORY_HARASSMENT", threshold: safetySettingsConfig.harassment },
+                { category: "HARM_CATEGORY_HATE_SPEECH", threshold: safetySettingsConfig.hateSpeech },
+                { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: safetySettingsConfig.sexuallyExplicit },
+                { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: safetySettingsConfig.dangerousContent }
+            ];
+
+            const requestBody = {
+                contents: messagesPayload,
+                generationConfig: {
+                    temperature: temperature,
+                    topK: 40,
+                    topP: topP,
+                    maxOutputTokens: 8192,
+                },
+                safetySettings: safetySettingsPayload
+            };
+            
             const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contents: messagesPayload,
-                    generationConfig: {
-                        temperature: temperature,
-                        topK: 40,
-                        topP: topP,
-                        maxOutputTokens: 8192,
-                    }
-                })
+                body: JSON.stringify(requestBody)
             });
             
             if (!response.ok) {
@@ -1993,9 +2061,19 @@
             const data = await response.json();
             if (data.candidates && data.candidates.length > 0 && data.candidates[0].content && data.candidates[0].content.parts) {
                 return data.candidates[0].content.parts[0].text;
+            } else if (data.promptFeedback && data.promptFeedback.blockReason) {
+                const blockReason = data.promptFeedback.blockReason;
+                const safetyRatingsDetails = data.promptFeedback.safetyRatings ? 
+                    data.promptFeedback.safetyRatings.map(r => `${r.category.replace('HARM_CATEGORY_', '')}: ${r.probability}`).join(', ') : 
+                    '세부 정보 없음';
+                console.warn(`Response blocked due to safety settings. Reason: ${blockReason}. Details: ${safetyRatingsDetails}`);
+                return `⚠️ AI 응답이 안전 설정에 의해 차단되었습니다. (사유: ${blockReason})`;
             } else {
                 console.error("Unexpected API response format:", data);
-                return "AI로부터 응답을 받지 못했습니다. (형식 오류)";
+                if (data.candidates && data.candidates[0] && data.candidates[0].finishReason === "SAFETY") {
+                    return "⚠️ AI 응답이 안전 설정에 의해 차단되었습니다.";
+                }
+                return "AI로부터 응답을 받지 못했습니다. (형식 또는 안전 문제)";
             }
         }
 
@@ -2031,18 +2109,15 @@
             document.getElementById('typingIndicator').style.display = 'block';
             
             try {
-                // excludeLastAI를 true로 설정하여 마지막 AI 응답을 제외하고 API 호출
                 const response = await callGeminiAPI(lastUserMessageContent, true);
                 const processedResponse = applyRegexToMessage(response);
                 
-                // 기존 AI 메시지에 새로운 답변 추가
                 const lastAiMessage = chatHistory[lastAiMessageIndex];
                 if (!lastAiMessage.variants) {
                     lastAiMessage.variants = [lastAiMessage.content];
                     lastAiMessage.currentVariantIndex = 0;
                 }
                 
-                // 새로운 변형을 추가하고 현재 인덱스를 업데이트
                 lastAiMessage.variants.push(processedResponse);
                 lastAiMessage.currentVariantIndex = lastAiMessage.variants.length - 1;
                 lastAiMessage.content = processedResponse;
@@ -2104,11 +2179,9 @@
                     return;
                 }
                 
-                // 정규식 규칙 적용
                 const processedContent = applyRegexToMessage(newContent);
                 chatHistory[currentEditIndex].content = processedContent;
                 
-                // AI 메시지의 경우 variants도 업데이트
                 if (chatHistory[currentEditIndex].role === 'ai' && chatHistory[currentEditIndex].variants) {
                     chatHistory[currentEditIndex].variants[chatHistory[currentEditIndex].currentVariantIndex] = processedContent;
                 }
@@ -2151,19 +2224,15 @@
                 messagesContainer.appendChild(welcomeDiv);
             }
 
-            // 채팅 메시지 표시
             chatHistory.forEach((msg, index) => {
                 const wrapperDiv = document.createElement('div');
                 wrapperDiv.className = `message-wrapper ${msg.role}`;
                 
-                // 메시지를 개행 문자로 분리
                 const messageParts = msg.content.split('\n').filter(part => part.trim() !== '');
                 
-                // 오타쿠 모드에서 프로필 사진 표시
                 if (otakuMode && ((msg.role === 'ai' && characterPhoto) || (msg.role === 'user' && personaPhoto))) {
                     wrapperDiv.classList.add('with-profile');
                     
-                    // 프로필 사진 컨테이너
                     const photoContainer = document.createElement('div');
                     photoContainer.className = 'profile-photo-container';
                     
@@ -2175,11 +2244,9 @@
                     photoContainer.appendChild(photo);
                     wrapperDiv.appendChild(photoContainer);
                     
-                    // 메시지 그룹 컨테이너
                     const messageGroup = document.createElement('div');
                     messageGroup.className = 'message-group';
                     
-                    // 각 메시지 부분을 별도의 말풍선으로 생성
                     messageParts.forEach((part, partIndex) => {
                         const messageDiv = document.createElement('div');
                         messageDiv.className = `message ${msg.role}`;
@@ -2192,11 +2259,9 @@
                         messageGroup.appendChild(messageDiv);
                     });
                     
-                    // 컨트롤 컨테이너 (액션 버튼 + 변형 네비게이션)
                     const controlsContainer = document.createElement('div');
                     controlsContainer.className = 'message-controls';
                     
-                    // 액션 버튼들
                     const actionsContainer = document.createElement('div');
                     actionsContainer.className = 'message-actions-container';
                     
@@ -2207,7 +2272,6 @@
                     editBtn.onclick = () => editMessage(index, 'chat');
                     actionsContainer.appendChild(editBtn);
                     
-                    // 마지막 AI 메시지에 리롤 버튼 추가
                     if (msg.role === 'ai' && index === chatHistory.length - 1) {
                         const rerollBtn = document.createElement('button');
                         rerollBtn.className = 'action-btn icon-btn reroll-icon';
@@ -2235,7 +2299,6 @@
                     
                     controlsContainer.appendChild(actionsContainer);
                     
-                    // AI 메시지이고 변형 답변이 있는 경우 네비게이션 표시
                     if (msg.role === 'ai' && msg.variants && msg.variants.length > 1) {
                         const variantNav = document.createElement('div');
                         variantNav.className = 'variant-navigation';
@@ -2265,8 +2328,6 @@
                     messageGroup.appendChild(controlsContainer);
                     wrapperDiv.appendChild(messageGroup);
                 } else {
-                    // 일반 모드 또는 프로필 사진이 없을 때
-                    // 각 메시지 부분을 별도의 말풍선으로 생성
                     messageParts.forEach((part, partIndex) => {
                         const messageDiv = document.createElement('div');
                         messageDiv.className = `message ${msg.role}`;
@@ -2279,11 +2340,9 @@
                         wrapperDiv.appendChild(messageDiv);
                     });
                     
-                    // 컨트롤 컨테이너 (액션 버튼 + 변형 네비게이션)
                     const controlsContainer = document.createElement('div');
                     controlsContainer.className = 'message-controls';
                     
-                    // 액션 버튼들을 가장 아래 말풍선 밑에 배치
                     const actionsContainer = document.createElement('div');
                     actionsContainer.className = 'message-actions-container';
                     
@@ -2294,7 +2353,6 @@
                     editBtn.onclick = () => editMessage(index, 'chat');
                     actionsContainer.appendChild(editBtn);
                     
-                    // 마지막 AI 메시지에 리롤 버튼 추가
                     if (msg.role === 'ai' && index === chatHistory.length - 1) {
                         const rerollBtn = document.createElement('button');
                         rerollBtn.className = 'action-btn icon-btn reroll-icon';
@@ -2322,7 +2380,6 @@
                     
                     controlsContainer.appendChild(actionsContainer);
                     
-                    // AI 메시지이고 변형 답변이 있는 경우 네비게이션 표시
                     if (msg.role === 'ai' && msg.variants && msg.variants.length > 1) {
                         const variantNav = document.createElement('div');
                         variantNav.className = 'variant-navigation';
@@ -2355,7 +2412,6 @@
                 messagesContainer.appendChild(wrapperDiv);
             });
             
-            // 시스템 알림 표시
             systemNotifications.forEach((notification) => {
                 const wrapperDiv = document.createElement('div');
                 wrapperDiv.className = 'message-wrapper ai system-notification';
@@ -2370,7 +2426,7 @@
                 if (notification.content.startsWith('설정이 저장되었습니다!')) {
                     bubbleDiv.style.background = '#e8f5e8';
                     bubbleDiv.style.color = '#2e7d32';
-                } else if (notification.content.startsWith('오류:')) {
+                } else if (notification.content.startsWith('오류:') || notification.content.startsWith('⚠️ AI 응답이 안전 설정에 의해 차단되었습니다.')) {
                     bubbleDiv.style.background = '#ffebee';
                     bubbleDiv.style.color = '#c62828';
                 } else if (notification.content.includes('성공적으로') || notification.content.includes('정규식') || notification.content.includes('새로운 대화가')) {
@@ -2381,7 +2437,6 @@
                 messageDiv.appendChild(bubbleDiv);
                 wrapperDiv.appendChild(messageDiv);
                 
-                // 시스템 알림도 삭제 가능
                 const actionsContainer = document.createElement('div');
                 actionsContainer.className = 'message-actions-container';
                 
@@ -2424,6 +2479,7 @@
                     historyTurns: historyTurns,
                     temperature: temperature,
                     topP: topP,
+                    safetySettingsConfig: safetySettingsConfig, // Export safety settings
                     otakuMode: otakuMode,
                     characterProfile: characterProfile,
                     personaProfile: personaProfile,
@@ -2505,8 +2561,18 @@
                             document.getElementById('topPValue').textContent = topP;
                             localStorage.setItem('top_p', topP);
                         }
+                        // Import Safety Settings
+                        if (settings.safetySettingsConfig) {
+                            if (typeof settings.safetySettingsConfig === 'object' && settings.safetySettingsConfig !== null) {
+                                safetySettingsConfig = { ...safetySettingsConfig, ...settings.safetySettingsConfig };
+                            }
+                            localStorage.setItem('safety_settings_config', JSON.stringify(safetySettingsConfig));
+                            document.getElementById('safetyHarassment').value = safetySettingsConfig.harassment;
+                            document.getElementById('safetyHateSpeech').value = safetySettingsConfig.hateSpeech;
+                            document.getElementById('safetySexuallyExplicit').value = safetySettingsConfig.sexuallyExplicit;
+                            document.getElementById('safetyDangerousContent').value = safetySettingsConfig.dangerousContent;
+                        }
                         
-                        // 오타쿠 모드 설정 가져오기
                         if (settings.otakuMode !== undefined) {
                             otakuMode = settings.otakuMode;
                             document.getElementById('otakuMode').checked = otakuMode;
