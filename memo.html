@@ -61,6 +61,53 @@
             transition: all 0.3s ease;
         }
 
+        .search-container {
+            display: flex;
+            align-items: center;
+            position: relative;
+            margin-top: 15px;
+            width: 100%;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 10px 35px 10px 15px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+        }
+
+        .clear-search {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #6c757d;
+            cursor: pointer;
+            font-size: 18px;
+            padding: 0;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0.7;
+            transition: opacity 0.2s ease;
+        }
+
+        .clear-search:hover {
+            opacity: 1;
+        }
+
         .button-group {
             display: flex;
             gap: 10px;
@@ -136,6 +183,13 @@
         .clipboard-item.drag-over {
             border-color: #007bff;
             background-color: #e3f2fd;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 30px;
+            color: #6c757d;
+            font-size: 16px;
         }
 
         @keyframes fadeIn {
@@ -396,7 +450,7 @@
         @media (max-width: 600px) {
             .container {
                 padding: 20px;
-                padding-top: 120px;
+                padding-top: 150px;
             }
 
             .header {
@@ -482,6 +536,10 @@
                     <button class="btn btn-secondary" onclick="exportData()">📥 내보내기</button>
                     <button class="btn btn-secondary" onclick="importData()">📤 가져오기</button>
                 </div>
+                <div class="search-container">
+                    <input type="text" class="search-input" id="searchInput" placeholder="제목으로 검색..." oninput="filterItems()">
+                    <button class="clear-search" id="clearSearch" onclick="clearSearch()">×</button>
+                </div>
             </div>
         </div>
         
@@ -548,12 +606,20 @@
         };
 
         let draggedIndex = null;
+        let searchTerm = '';
 
         // 초기화
         document.addEventListener('DOMContentLoaded', function() {
             loadData();
             renderItems();
             applyTitleSettings();
+            
+            // 검색 입력 시 Enter 키 처리
+            document.getElementById('searchInput').addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    clearSearch();
+                }
+            });
         });
 
         // 로컬 스토리지에서 데이터 로드
@@ -581,13 +647,64 @@
             title.style.fontStyle = settings.isItalic ? 'italic' : 'normal';
         }
 
+        // 아이템 필터링 및 렌더링
+        function filterItems() {
+            searchTerm = document.getElementById('searchInput').value.trim().toLowerCase();
+            renderItems();
+        }
+
+        // 검색어 지우기
+        function clearSearch() {
+            document.getElementById('searchInput').value = '';
+            searchTerm = '';
+            renderItems();
+        }
+
         // 아이템 렌더링
         function renderItems() {
             const container = document.getElementById('itemsContainer');
             container.innerHTML = '';
             
-            clipboardData.items.forEach((item, index) => {
-                const itemElement = createItemElement(item, index);
+            // 검색어로 필터링
+            const filteredItems = searchTerm ? 
+                clipboardData.items.filter(item => 
+                    item.title.toLowerCase().includes(searchTerm)
+                ) : 
+                clipboardData.items;
+            
+            if (filteredItems.length === 0) {
+                // 결과가 없을 때 메시지 표시
+                const noResults = document.createElement('div');
+                noResults.className = 'no-results';
+                
+                if (searchTerm) {
+                    noResults.innerHTML = `
+                        <p>"${searchTerm}"에 대한 검색 결과가 없습니다.</p>
+                        <button class="btn btn-secondary" style="margin-top: 15px;" onclick="clearSearch()">
+                            검색 지우기
+                        </button>
+                    `;
+                } else {
+                    noResults.innerHTML = `
+                        <p>항목이 없습니다. 새 항목을 추가해보세요!</p>
+                        <button class="btn btn-success" style="margin-top: 15px;" onclick="addNewItem()">
+                            ➕ 새 항목 추가
+                        </button>
+                    `;
+                }
+                
+                container.appendChild(noResults);
+                return;
+            }
+            
+            // 필터링된 아이템 표시
+            filteredItems.forEach((item, filteredIndex) => {
+                // 원래 배열에서의 인덱스 찾기
+                const originalIndex = clipboardData.items.findIndex(
+                    originalItem => originalItem === item
+                );
+                
+                const itemElement = createItemElement(item, originalIndex);
                 container.appendChild(itemElement);
             });
         }
@@ -603,7 +720,7 @@
                 <div class="item-header">
                     <div class="item-title-container">
                         <span class="drag-handle">⋮⋮</span>
-                        <h3 class="item-title" onclick="editTitle(${index})">${item.title}</h3>
+                        <h3 class="item-title" onclick="editTitle(${index})">${highlightSearchTerm(item.title)}</h3>
                         <input type="text" class="item-title-input" 
                                value="${item.title}" 
                                onblur="saveTitle(${index}, this.value)"
@@ -632,6 +749,14 @@
             div.addEventListener('dragend', handleDragEnd);
             
             return div;
+        }
+
+        // 검색어 하이라이트 처리
+        function highlightSearchTerm(title) {
+            if (!searchTerm) return title;
+            
+            const regex = new RegExp('(' + searchTerm + ')', 'gi');
+            return title.replace(regex, '<span style="background-color: #ffee99; padding: 0 2px; border-radius: 2px;">$1</span>');
         }
 
         // 드래그 이벤트 핸들러들
@@ -676,8 +801,8 @@
 
         // 제목 편집 함수들
         function editTitle(index) {
-            const titleSpan = document.querySelectorAll('.item-title')[index];
-            const titleInput = document.querySelectorAll('.item-title-input')[index];
+            const titleSpan = document.querySelectorAll('.item-title')[getVisibleIndex(index)];
+            const titleInput = document.querySelectorAll('.item-title-input')[getVisibleIndex(index)];
             
             titleSpan.style.display = 'none';
             titleInput.style.display = 'block';
@@ -693,12 +818,8 @@
             clipboardData.items[index].title = newTitle.trim();
             saveData();
             
-            const titleSpan = document.querySelectorAll('.item-title')[index];
-            const titleInput = document.querySelectorAll('.item-title-input')[index];
-            
-            titleSpan.textContent = newTitle.trim();
-            titleSpan.style.display = 'block';
-            titleInput.style.display = 'none';
+            // 검색어를 유지한 상태로 렌더링 다시 실행
+            renderItems();
         }
 
         function handleTitleKeydown(event, index, value) {
@@ -710,11 +831,27 @@
             }
         }
 
+        // 화면에 표시된 아이템의 인덱스로 변환 (필터링 고려)
+        function getVisibleIndex(originalIndex) {
+            if (!searchTerm) return originalIndex;
+            
+            let visibleIndex = 0;
+            for (let i = 0; i < clipboardData.items.length; i++) {
+                if (clipboardData.items[i].title.toLowerCase().includes(searchTerm)) {
+                    if (i === originalIndex) {
+                        return visibleIndex;
+                    }
+                    visibleIndex++;
+                }
+            }
+            return 0;
+        }
+
         // 텍스트 확장 기능
         function toggleExpandText(index) {
-            const textInput = document.querySelectorAll('.text-input')[index];
+            const textInput = document.querySelectorAll('.text-input')[getVisibleIndex(index)];
             const overlay = document.getElementById('overlay');
-            const expandBtn = document.querySelectorAll('.expand-btn')[index];
+            const expandBtn = document.querySelectorAll('.expand-btn')[getVisibleIndex(index)];
             
             if (textInput.classList.contains('expanded')) {
                 closeExpandedText();
@@ -750,6 +887,7 @@
                 });
             }
         }
+
         function addNewItem() {
             const title = prompt('제목을 입력하세요:');
             if (title) {
