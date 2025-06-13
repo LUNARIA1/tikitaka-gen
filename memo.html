@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>클립보드 매니저</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            background-color: #f5f5f5;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            padding-top: 100px;
+        }
+
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background-color: white;
+            z-index: 500;
+            padding: 15px 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .header-inner {
+            max-width: 800px;
+            margin: 0 auto;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .main-title {
+            font-size: 28px;
+            color: #333;
+            transition: all 0.3s ease;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s ease;
+            font-weight: 500;
+        }
+
+        .btn-primary {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #0056b3;
+        }
+
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #545b62;
+        }
+
+        .btn-success {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background-color: #218838;
+        }
+
+        .btn-danger {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #c82333;
+        }
+
+        .clipboard-item {
+            margin-bottom: 20px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+            position: relative;
+            animation: fadeIn 0.3s ease;
+            cursor: move;
+            transition: all 0.2s ease;
+        }
+
+        .clipboard-item:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .clipboard-item.dragging {
+            opacity: 0.5;
+            transform: rotate(2deg);
+        }
+
+        .clipboard-item.drag-over {
+            border-color: #007bff;
+            background-color: #e3f2fd;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .item-title-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
+        }
+
+        .item-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #495057;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: background-color 0.2s ease;
+        }
+
+        .item-title:hover {
+            background-color: rgba(0, 123, 255, 0.1);
+        }
+
+        .item-title-input {
+            font-size: 18px;
+            font-weight: 600;
+            color: #495057;
+            border: 2px solid #007bff;
+            border-radius: 4px;
+            padding: 4px 8px;
+            background-color: white;
+            display: none;
+        }
+
+        .drag-handle {
+            color: #6c757d;
+            cursor: grab;
+            font-size: 16px;
+            padding: 5px;
+        }
+
+        .drag-handle:active {
+            cursor: grabbing;
+        }
+
+        .item-controls {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .edit-title-btn {
+            background: none;
+            border: none;
+            color: #6c757d;
+            cursor: pointer;
+            font-size: 16px;
+            padding: 5px;
+            border-radius: 4px;
+            transition: background-color 0.2s ease;
+        }
+
+        .edit-title-btn:hover {
+            background-color: rgba(108, 117, 125, 0.1);
+        }
+
+        .delete-btn {
+            background: none;
+            border: none;
+            color: #dc3545;
+            cursor: pointer;
+            font-size: 20px;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            transition: background-color 0.2s ease;
+        }
+
+        .delete-btn:hover {
+            background-color: rgba(220, 53, 69, 0.1);
+        }
+
+        .text-container {
+            display: flex;
+            gap: 10px;
+            align-items: flex-start;
+        }
+
+        .text-input {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            font-size: 14px;
+            resize: vertical;
+            min-height: 100px;
+            font-family: inherit;
+            transition: all 0.3s ease;
+        }
+
+        .text-input:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+
+        .text-input.expanded {
+            min-height: 300px;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90vw;
+            max-width: 800px;
+            height: 60vh;
+            z-index: 1000;
+            background: white;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            resize: none;
+        }
+
+        .text-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .expand-btn {
+            padding: 8px 12px;
+            white-space: nowrap;
+            font-size: 12px;
+        }
+
+        .copy-btn {
+            padding: 12px 24px;
+            white-space: nowrap;
+        }
+
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+        }
+
+        .settings-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            animation: fadeIn 0.2s ease;
+        }
+
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 30px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .modal-header {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .setting-group {
+            margin-bottom: 15px;
+        }
+
+        .setting-label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+            color: #495057;
+        }
+
+        .setting-input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: #28a745;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 6px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            display: none;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+            }
+            to {
+                transform: translateX(0);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+                padding-top: 120px;
+            }
+
+            .header {
+                padding: 10px 15px;
+            }
+
+            .header-inner {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .button-group {
+                flex-wrap: wrap;
+            }
+
+            .btn {
+                flex: 1;
+                min-width: 100px;
+            }
+
+            .text-container {
+                flex-direction: column;
+            }
+
+            .text-buttons {
+                flex-direction: row;
+            }
+
+            .text-input {
+                min-height: 120px;
+                font-size: 16px;
+            }
+
+            .text-input.expanded {
+                width: 95vw;
+                height: 70vh;
+            }
+
+            .expand-btn {
+                width: 50%;
+                padding: 10px 12px;
+                font-size: 14px;
+            }
+
+            .copy-btn {
+                width: 50%;
+                padding: 14px 24px;
+                font-size: 16px;
+            }
+
+            .item-title {
+                font-size: 16px;
+            }
+
+            .item-title-input {
+                font-size: 16px;
+            }
+
+            .item-header {
+                flex-wrap: wrap;
+                gap: 10px;
+            }
+
+            .item-title-container {
+                order: 2;
+                flex: 1 1 100%;
+            }
+
+            .item-controls {
+                order: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-inner">
+                <h1 class="main-title" id="mainTitle">클립보드 매니저</h1>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="openSettings()">⚙️ 설정</button>
+                    <button class="btn btn-success" onclick="addNewItem()">➕ 추가</button>
+                    <button class="btn btn-secondary" onclick="exportData()">📥 내보내기</button>
+                    <button class="btn btn-secondary" onclick="importData()">📤 가져오기</button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="itemsContainer"></div>
+    </div>
+
+    <div class="overlay" id="overlay" onclick="closeExpandedText()"></div>
+
+    <div class="settings-modal" id="settingsModal">
+        <div class="modal-content">
+            <h2 class="modal-header">제목 설정</h2>
+            
+            <div class="setting-group">
+                <label class="setting-label">제목 텍스트</label>
+                <input type="text" class="setting-input" id="titleText" placeholder="클립보드 매니저">
+            </div>
+            
+            <div class="setting-group">
+                <label class="setting-label">글꼴 크기 (px)</label>
+                <input type="number" class="setting-input" id="fontSize" min="10" max="50" value="28">
+            </div>
+            
+            <div class="setting-group">
+                <label class="setting-label">색상</label>
+                <input type="color" class="setting-input" id="fontColor" value="#333333">
+            </div>
+            
+            <div class="setting-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="isBold">
+                    <span>굵게</span>
+                </label>
+            </div>
+            
+            <div class="setting-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="isItalic">
+                    <span>기울임</span>
+                </label>
+            </div>
+            
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" onclick="closeSettings()">취소</button>
+                <button class="btn btn-primary" onclick="saveSettings()">저장</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <input type="file" id="fileInput" style="display: none;" accept=".json">
+
+    <script>
+        // 데이터 구조
+        let clipboardData = {
+            settings: {
+                title: '클립보드 매니저',
+                fontSize: 28,
+                color: '#333333',
+                isBold: false,
+                isItalic: false
+            },
+            items: []
+        };
+
+        let draggedIndex = null;
+
+        // 초기화
+        document.addEventListener('DOMContentLoaded', function() {
+            loadData();
+            renderItems();
+            applyTitleSettings();
+        });
+
+        // 로컬 스토리지에서 데이터 로드
+        function loadData() {
+            const savedData = localStorage.getItem('clipboardData');
+            if (savedData) {
+                clipboardData = JSON.parse(savedData);
+            }
+        }
+
+        // 로컬 스토리지에 데이터 저장
+        function saveData() {
+            localStorage.setItem('clipboardData', JSON.stringify(clipboardData));
+        }
+
+        // 제목 설정 적용
+        function applyTitleSettings() {
+            const title = document.getElementById('mainTitle');
+            const settings = clipboardData.settings;
+            
+            title.textContent = settings.title;
+            title.style.fontSize = settings.fontSize + 'px';
+            title.style.color = settings.color;
+            title.style.fontWeight = settings.isBold ? 'bold' : 'normal';
+            title.style.fontStyle = settings.isItalic ? 'italic' : 'normal';
+        }
+
+        // 아이템 렌더링
+        function renderItems() {
+            const container = document.getElementById('itemsContainer');
+            container.innerHTML = '';
+            
+            clipboardData.items.forEach((item, index) => {
+                const itemElement = createItemElement(item, index);
+                container.appendChild(itemElement);
+            });
+        }
+
+        // 아이템 요소 생성
+        function createItemElement(item, index) {
+            const div = document.createElement('div');
+            div.className = 'clipboard-item';
+            div.draggable = true;
+            div.dataset.index = index;
+            
+            div.innerHTML = `
+                <div class="item-header">
+                    <div class="item-title-container">
+                        <span class="drag-handle">⋮⋮</span>
+                        <h3 class="item-title" onclick="editTitle(${index})">${item.title}</h3>
+                        <input type="text" class="item-title-input" 
+                               value="${item.title}" 
+                               onblur="saveTitle(${index}, this.value)"
+                               onkeydown="handleTitleKeydown(event, ${index}, this.value)">
+                    </div>
+                    <div class="item-controls">
+                        <button class="edit-title-btn" onclick="editTitle(${index})" title="제목 수정">✏️</button>
+                        <button class="delete-btn" onclick="deleteItem(${index})">×</button>
+                    </div>
+                </div>
+                <div class="text-container">
+                    <textarea class="text-input" 
+                              placeholder="복사할 텍스트를 입력하세요..." 
+                              onchange="updateItemText(${index}, this.value)">${item.text}</textarea>
+                    <div class="text-buttons">
+                        <button class="btn btn-secondary expand-btn" onclick="toggleExpandText(${index})">🔍 확장</button>
+                        <button class="btn btn-primary copy-btn" onclick="copyToClipboard(${index})">📋 복사하기</button>
+                    </div>
+                </div>
+            `;
+
+            // 드래그 이벤트 리스너 추가
+            div.addEventListener('dragstart', handleDragStart);
+            div.addEventListener('dragover', handleDragOver);
+            div.addEventListener('drop', handleDrop);
+            div.addEventListener('dragend', handleDragEnd);
+            
+            return div;
+        }
+
+        // 드래그 이벤트 핸들러들
+        function handleDragStart(e) {
+            draggedIndex = parseInt(e.target.dataset.index);
+            e.target.classList.add('dragging');
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            const item = e.currentTarget;
+            if (!item.classList.contains('dragging')) {
+                item.classList.add('drag-over');
+            }
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            const dropIndex = parseInt(e.currentTarget.dataset.index);
+            
+            if (draggedIndex !== null && draggedIndex !== dropIndex) {
+                // 배열에서 아이템 이동
+                const draggedItem = clipboardData.items[draggedIndex];
+                clipboardData.items.splice(draggedIndex, 1);
+                clipboardData.items.splice(dropIndex, 0, draggedItem);
+                
+                saveData();
+                renderItems();
+                showToast('순서가 변경되었습니다!');
+            }
+            
+            e.currentTarget.classList.remove('drag-over');
+        }
+
+        function handleDragEnd(e) {
+            e.target.classList.remove('dragging');
+            document.querySelectorAll('.clipboard-item').forEach(item => {
+                item.classList.remove('drag-over');
+            });
+            draggedIndex = null;
+        }
+
+        // 제목 편집 함수들
+        function editTitle(index) {
+            const titleSpan = document.querySelectorAll('.item-title')[index];
+            const titleInput = document.querySelectorAll('.item-title-input')[index];
+            
+            titleSpan.style.display = 'none';
+            titleInput.style.display = 'block';
+            titleInput.focus();
+            titleInput.select();
+        }
+
+        function saveTitle(index, newTitle) {
+            if (newTitle.trim() === '') {
+                newTitle = '제목 없음';
+            }
+            
+            clipboardData.items[index].title = newTitle.trim();
+            saveData();
+            
+            const titleSpan = document.querySelectorAll('.item-title')[index];
+            const titleInput = document.querySelectorAll('.item-title-input')[index];
+            
+            titleSpan.textContent = newTitle.trim();
+            titleSpan.style.display = 'block';
+            titleInput.style.display = 'none';
+        }
+
+        function handleTitleKeydown(event, index, value) {
+            if (event.key === 'Enter') {
+                event.target.blur();
+            } else if (event.key === 'Escape') {
+                event.target.value = clipboardData.items[index].title;
+                event.target.blur();
+            }
+        }
+
+        // 텍스트 확장 기능
+        function toggleExpandText(index) {
+            const textInput = document.querySelectorAll('.text-input')[index];
+            const overlay = document.getElementById('overlay');
+            const expandBtn = document.querySelectorAll('.expand-btn')[index];
+            
+            if (textInput.classList.contains('expanded')) {
+                closeExpandedText();
+            } else {
+                textInput.classList.add('expanded');
+                overlay.style.display = 'block';
+                expandBtn.textContent = '📤 축소';
+                textInput.focus();
+                
+                // ESC 키로 닫기
+                const handleEsc = (e) => {
+                    if (e.key === 'Escape') {
+                        closeExpandedText();
+                        document.removeEventListener('keydown', handleEsc);
+                    }
+                };
+                document.addEventListener('keydown', handleEsc);
+            }
+        }
+
+        function closeExpandedText() {
+            const expandedInput = document.querySelector('.text-input.expanded');
+            const overlay = document.getElementById('overlay');
+            
+            if (expandedInput) {
+                expandedInput.classList.remove('expanded');
+                overlay.style.display = 'none';
+                
+                // 확장 버튼 텍스트 복원
+                const expandBtns = document.querySelectorAll('.expand-btn');
+                expandBtns.forEach(btn => {
+                    btn.textContent = '🔍 확장';
+                });
+            }
+        }
+        function addNewItem() {
+            const title = prompt('제목을 입력하세요:');
+            if (title) {
+                clipboardData.items.push({
+                    title: title,
+                    text: ''
+                });
+                saveData();
+                renderItems();
+                showToast('새 항목이 추가되었습니다!');
+            }
+        }
+
+        // 아이템 삭제
+        function deleteItem(index) {
+            if (confirm('정말 삭제하시겠습니까?')) {
+                clipboardData.items.splice(index, 1);
+                saveData();
+                renderItems();
+                showToast('항목이 삭제되었습니다.');
+            }
+        }
+
+        // 아이템 텍스트 업데이트
+        function updateItemText(index, text) {
+            clipboardData.items[index].text = text;
+            saveData();
+        }
+
+        // 클립보드에 복사
+        async function copyToClipboard(index) {
+            const text = clipboardData.items[index].text;
+            try {
+                await navigator.clipboard.writeText(text);
+                showToast('클립보드에 복사되었습니다!');
+            } catch (err) {
+                // Fallback for older browsers
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                showToast('클립보드에 복사되었습니다!');
+            }
+        }
+
+        // 설정 모달 열기
+        function openSettings() {
+            const settings = clipboardData.settings;
+            document.getElementById('titleText').value = settings.title;
+            document.getElementById('fontSize').value = settings.fontSize;
+            document.getElementById('fontColor').value = settings.color;
+            document.getElementById('isBold').checked = settings.isBold;
+            document.getElementById('isItalic').checked = settings.isItalic;
+            document.getElementById('settingsModal').style.display = 'block';
+        }
+
+        // 설정 모달 닫기
+        function closeSettings() {
+            document.getElementById('settingsModal').style.display = 'none';
+        }
+
+        // 설정 저장
+        function saveSettings() {
+            clipboardData.settings = {
+                title: document.getElementById('titleText').value || '클립보드 매니저',
+                fontSize: parseInt(document.getElementById('fontSize').value),
+                color: document.getElementById('fontColor').value,
+                isBold: document.getElementById('isBold').checked,
+                isItalic: document.getElementById('isItalic').checked
+            };
+            
+            saveData();
+            applyTitleSettings();
+            closeSettings();
+            showToast('설정이 저장되었습니다!');
+        }
+
+        // 데이터 내보내기
+        function exportData() {
+            const dataStr = JSON.stringify(clipboardData, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `clipboard_data_${new Date().toISOString().slice(0, 10)}.json`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            
+            showToast('데이터가 내보내졌습니다!');
+        }
+
+        // 데이터 가져오기
+        function importData() {
+            document.getElementById('fileInput').click();
+        }
+
+        // 파일 입력 처리
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    try {
+                        const importedData = JSON.parse(event.target.result);
+                        if (importedData.settings && importedData.items) {
+                            clipboardData = importedData;
+                            saveData();
+                            renderItems();
+                            applyTitleSettings();
+                            showToast('데이터를 성공적으로 가져왔습니다!');
+                        } else {
+                            showToast('올바른 형식의 파일이 아닙니다.');
+                        }
+                    } catch (error) {
+                        showToast('파일을 읽는 중 오류가 발생했습니다.');
+                    }
+                };
+                reader.readAsText(file);
+            }
+            e.target.value = ''; // Reset file input
+        });
+
+        // 토스트 메시지 표시
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.style.display = 'block';
+            
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, 3000);
+        }
+
+        // 모달 외부 클릭 시 닫기
+        document.getElementById('settingsModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeSettings();
+            }
+        });
+    </script>
+</body>
+</html>
