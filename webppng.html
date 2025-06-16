@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>이미지 변환 및 메타데이터 제거기</title>
+    <!-- Pico.css for simple styling -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+    <!-- JSZip library for creating zip files -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        body {
+            padding: 2rem;
+        }
+        main.container {
+            max-width: 960px;
+        }
+        hgroup {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        details {
+            margin-bottom: 1rem;
+        }
+        .result-item {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem;
+            border: 1px solid var(--pico-muted-border-color);
+            border-radius: var(--pico-border-radius);
+            margin-bottom: 0.5rem;
+        }
+        .result-item-thumbnail {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: var(--pico-border-radius);
+            margin-right: 1rem;
+        }
+        .result-item-name {
+            flex-grow: 1;
+            word-break: break-all;
+            margin-right: 1rem;
+        }
+        progress {
+            margin-top: 1rem;
+            width: 100%;
+        }
+        #progress-text {
+            text-align: center;
+            margin-top: 0.5rem;
+            min-height: 1.2em;
+        }
+        #download-all-btn {
+            margin-top: 1rem;
+            width: 100%;
+        }
+        #preview-options fieldset {
+            padding-bottom: 0.5rem;
+        }
+        #hover-preview {
+            position: fixed;
+            display: none;
+            padding: 0.5rem;
+            background: var(--pico-card-background-color);
+            border: 1px solid var(--pico-muted-border-color);
+            border-radius: var(--pico-border-radius);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            z-index: 1000;
+            pointer-events: none; /* Make it non-interactive */
+        }
+        #hover-preview-img {
+            max-width: 200px;
+            max-height: 200px;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <main class="container">
+        <hgroup>
+            <h1>이미지 변환 & 메타데이터 제거</h1>
+            <p>PNG ↔ WebP 변환 또는 이미지 메타데이터 제거를 빠르고 안전하게 처리하세요.</p>
+        </hgroup>
+        
+        <article id="preview-options">
+            <fieldset>
+                <legend><strong>미리보기 옵션</strong></legend>
+                <label for="show-thumbnail-check">
+                    <input type="checkbox" id="show-thumbnail-check" name="show-thumbnail-check">
+                    결과물 썸네일 표시
+                </label>
+                <label for="show-hover-preview-check">
+                    <input type="checkbox" id="show-hover-preview-check" name="show-hover-preview-check" checked>
+                    마우스 호버 시 미리보기
+                </label>
+            </fieldset>
+        </article>
+
+        <details>
+            <summary><strong>1. PNG → WebP 변환</strong></summary>
+            <p>PNG 파일을 WebP 파일로 변환합니다. 메타데이터는 제거됩니다.</p>
+            <input type="file" id="png-to-webp-input" multiple accept=".png">
+        </details>
+
+        <details>
+            <summary><strong>2. WebP → PNG 변환</strong></summary>
+            <p>WebP 파일을 PNG 파일로 변환합니다. 메타데이터는 제거됩니다.</p>
+            <input type="file" id="webp-to-png-input" multiple accept=".webp">
+        </details>
+
+        <details>
+            <summary><strong>3. 메타데이터 제거</strong></summary>
+            <p>이미지 파일(JPG, PNG, WebP 등)에서 EXIF 등의 메타데이터를 제거합니다.</p>
+            <input type="file" id="metadata-remover-input" multiple accept="image/*">
+        </details>
+        
+        <div id="progress-container" style="display: none;">
+            <h3>처리 현황</h3>
+            <progress id="progress-bar" value="0" max="100"></progress>
+            <p id="progress-text"></p>
+        </div>
+
+        <div id="results-container" style="display: none;">
+            <h2>결과</h2>
+            <div id="result-list"></div>
+            <button id="download-all-btn" style="display: none;">모든 파일 ZIP으로 다운로드</button>
+        </div>
+    </main>
+
+    <!-- Hover preview element -->
+    <div id="hover-preview">
+        <img id="hover-preview-img" src="">
+    </div>
+
+    <script>
+        // Input elements
+        const pngToWebpInput = document.getElementById('png-to-webp-input');
+        const webpToPngInput = document.getElementById('webp-to-png-input');
+        const metadataRemoverInput = document.getElementById('metadata-remover-input');
+        
+        // Preview option checkboxes
+        const showThumbnailCheck = document.getElementById('show-thumbnail-check');
+        const showHoverPreviewCheck = document.getElementById('show-hover-preview-check');
+
+        // Progress elements
+        const progressContainer = document.getElementById('progress-container');
+        const progressBar = document.getElementById('progress-bar');
+        const progressText = document.getElementById('progress-text');
+        
+        // Results elements
+        const resultsContainer = document.getElementById('results-container');
+        const resultList = document.getElementById('result-list');
+        const downloadAllBtn = document.getElementById('download-all-btn');
+
+        // Hover preview elements
+        const hoverPreview = document.getElementById('hover-preview');
+        const hoverPreviewImg = document.getElementById('hover-preview-img');
+
+        let processedFiles = [];
+
+        pngToWebpInput.addEventListener('change', (e) => handleFiles(e.target.files, 'webp'));
+        webpToPngInput.addEventListener('change', (e) => handleFiles(e.target.files, 'png'));
+        metadataRemoverInput.addEventListener('change', (e) => handleFiles(e.target.files, 'metadata'));
+
+        async function handleFiles(files, mode) {
+            if (files.length === 0) return;
+
+            // --- Reset UI and free up memory from previous run ---
+            // Revoke old object URLs to prevent memory leaks
+            processedFiles.forEach(file => {
+                if(file.previewUrl) URL.revokeObjectURL(file.previewUrl);
+            });
+            processedFiles = [];
+            resultList.innerHTML = '';
+            resultsContainer.style.display = 'block';
+            progressContainer.style.display = 'block';
+            downloadAllBtn.style.display = 'none';
+            // --- End Reset ---
+            
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                progressBar.value = ((i + 1) / files.length) * 100;
+                progressText.textContent = `처리 중: ${file.name} (${i + 1}/${files.length})`;
+
+                try {
+                    const result = await processImage(file, mode);
+                    if (result) {
+                        processedFiles.push(result);
+                        displayResult(result);
+                    }
+                } catch (error) {
+                    console.error(`'${file.name}' 처리 중 오류 발생:`, error);
+                    const errorItem = document.createElement('div');
+                    errorItem.className = 'result-item';
+                    errorItem.innerHTML = `<span class="result-item-name">'${file.name}' 처리 실패</span><span style="color:red;">오류</span>`;
+                    resultList.appendChild(errorItem);
+                }
+            }
+            
+            progressText.textContent = '모든 파일 처리 완료!';
+            if (processedFiles.length > 1) {
+                downloadAllBtn.style.display = 'block';
+            }
+        }
+
+        function processImage(file, mode) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0);
+
+                        let targetMimeType, newExtension;
+                        const originalName = file.name.substring(0, file.name.lastIndexOf('.'));
+
+                        if (mode === 'webp') {
+                            targetMimeType = 'image/webp';
+                            newExtension = '.webp';
+                        } else if (mode === 'png') {
+                            targetMimeType = 'image/png';
+                            newExtension = '.png';
+                        } else if (mode === 'metadata') {
+                            targetMimeType = file.type;
+                            newExtension = `.${file.name.split('.').pop()}`;
+                        }
+
+                        canvas.toBlob(
+                            (blob) => {
+                                if (blob) {
+                                    const newFileName = `${originalName}_processed${newExtension}`;
+                                    // Create a temporary URL for previews
+                                    const previewUrl = URL.createObjectURL(blob);
+                                    resolve({ name: newFileName, blob, previewUrl });
+                                } else {
+                                    reject(new Error('Canvas toBlob failed.'));
+                                }
+                            },
+                            targetMimeType,
+                            0.9 // Quality for lossy formats like webp/jpeg
+                        );
+                    };
+                    img.onerror = reject;
+                    img.src = e.target.result;
+                };
+                reader.onerror = reject;
+            });
+        }
+
+        function displayResult(fileData) {
+            const { name, blob, previewUrl } = fileData;
+            
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'result-item';
+
+            // 1. Static thumbnail (if checked)
+            if (showThumbnailCheck.checked) {
+                const thumbnailImg = document.createElement('img');
+                thumbnailImg.src = previewUrl;
+                thumbnailImg.className = 'result-item-thumbnail';
+                itemDiv.appendChild(thumbnailImg);
+            }
+
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'result-item-name';
+            nameSpan.textContent = name;
+            itemDiv.appendChild(nameSpan);
+
+            const downloadBtn = document.createElement('button');
+            downloadBtn.textContent = '다운로드';
+            downloadBtn.className = 'secondary';
+            downloadBtn.onclick = () => {
+                const a = document.createElement('a');
+                a.href = previewUrl; // We can reuse the preview URL for download
+                a.download = name;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            };
+            itemDiv.appendChild(downloadBtn);
+
+            // 2. Hover preview (if checked)
+            if (showHoverPreviewCheck.checked) {
+                itemDiv.addEventListener('mouseenter', () => {
+                    hoverPreviewImg.src = previewUrl;
+                    hoverPreview.style.display = 'block';
+                });
+                itemDiv.addEventListener('mouseleave', () => {
+                    hoverPreview.style.display = 'none';
+                });
+                itemDiv.addEventListener('mousemove', (e) => {
+                    // Position the preview box next to the cursor
+                    hoverPreview.style.left = `${e.clientX + 15}px`;
+                    hoverPreview.style.top = `${e.clientY + 15}px`;
+                });
+            }
+
+            resultList.appendChild(itemDiv);
+        }
+
+        downloadAllBtn.addEventListener('click', async () => {
+            if (processedFiles.length === 0) return;
+
+            const zip = new JSZip();
+            processedFiles.forEach(file => {
+                zip.file(file.name, file.blob);
+            });
+
+            downloadAllBtn.textContent = 'ZIP 파일 생성 중...';
+            downloadAllBtn.setAttribute('aria-busy', 'true');
+
+            try {
+                const content = await zip.generateAsync({ type: 'blob' });
+                const url = URL.createObjectURL(content);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'converted_images.zip';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            } catch (error) {
+                console.error('ZIP 생성 오류:', error);
+                alert('ZIP 파일을 생성하는 데 실패했습니다.');
+            } finally {
+                downloadAllBtn.textContent = '모든 파일 ZIP으로 다운로드';
+                downloadAllBtn.removeAttribute('aria-busy');
+            }
+        });
+    </script>
+</body>
+</html>
