@@ -5,652 +5,799 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>일련번호 생성기</title>
     <style>
+        /* --- 기본 & 애플 감성 스타일 --- */
+        :root {
+            --bg-color: #f5f5f7;
+            --content-bg-color: #ffffff;
+            --primary-text-color: #1d1d1f;
+            --secondary-text-color: #6e6e73;
+            --border-color: #d2d2d7;
+            --accent-color: #007aff;
+            --accent-color-hover: #0071e3;
+            --danger-color: #d93636;
+            --danger-color-hover: #c22525;
+            --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
         * {
+            box-sizing: border-box;
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
         }
 
+        html {
+            scroll-behavior: smooth;
+        }
+        
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
+            font-family: var(--font-family);
+            background-color: var(--bg-color);
+            color: var(--primary-text-color);
+            display: flex;
+            justify-content: center;
+            padding: 40px 20px;
         }
 
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            overflow: hidden;
+        main {
+            width: 100%;
+            max-width: 800px;
+            background-color: var(--content-bg-color);
+            border-radius: 18px;
+            padding: 30px 40px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
         }
 
-        .header {
-            background: linear-gradient(45deg, #4f46e5, #7c3aed);
-            color: white;
-            padding: 30px;
-            text-align: center;
-        }
-
-        .header h1 {
-            font-size: 2.5rem;
+        h1 {
+            font-size: 28px;
+            font-weight: 600;
             margin-bottom: 10px;
         }
 
-        .header p {
-            opacity: 0.9;
-            font-size: 1.1rem;
+        h2 {
+            font-size: 22px;
+            font-weight: 600;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 25px;
+            margin-top: 40px;
+        }
+        h2:first-of-type {
+            margin-top: 0;
         }
 
-        .main-content {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 30px;
-            padding: 30px;
+        .section-description {
+            color: var(--secondary-text-color);
+            margin-bottom: 30px;
+            font-size: 15px;
         }
-
-        .section {
-            background: #f8fafc;
-            border-radius: 15px;
-            padding: 25px;
-            border: 2px solid #e2e8f0;
-        }
-
-        .section h2 {
-            color: #1e293b;
-            margin-bottom: 20px;
-            font-size: 1.5rem;
+        
+        .input-group {
             display: flex;
+            flex-wrap: wrap;
             align-items: center;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        
+        .button-group {
+            display: flex;
             gap: 10px;
         }
 
-        .form-group {
-            margin-bottom: 20px;
+        .input-group label {
+            font-weight: 500;
+            min-width: 120px;
+            font-size: 16px;
         }
 
-        label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-            color: #374151;
-        }
-
-        input, select, textarea {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #d1d5db;
+        input[type="number"], input[type="text"], select {
+            flex-grow: 1;
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
             border-radius: 8px;
             font-size: 16px;
-            transition: border-color 0.3s;
+            font-family: var(--font-family);
+            background-color: #fdfdfd;
         }
-
-        input:focus, select:focus, textarea:focus {
+        input:focus, select:focus {
             outline: none;
-            border-color: #4f46e5;
-            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.2);
+        }
+        
+        .date-inputs {
+            display: flex;
+            gap: 10px;
+            flex-grow: 1;
+        }
+        .date-inputs input {
+            width: 100%;
         }
 
-        button {
-            background: linear-gradient(45deg, #4f46e5, #7c3aed);
-            color: white;
-            border: none;
-            padding: 12px 24px;
+        button, .button-like {
+            padding: 10px 18px;
+            font-size: 15px;
+            font-weight: 500;
             border-radius: 8px;
+            border: none;
             cursor: pointer;
-            font-size: 16px;
-            font-weight: 600;
-            transition: transform 0.2s, box-shadow 0.2s;
-            margin-right: 10px;
-            margin-bottom: 10px;
+            transition: background-color 0.2s, transform 0.1s, opacity 0.2s;
+            background-color: var(--accent-color);
+            color: white;
+            white-space: nowrap;
         }
 
         button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(79, 70, 229, 0.3);
+            background-color: var(--accent-color-hover);
+        }
+        button:active {
+            transform: scale(0.98);
+        }
+        
+        button.secondary {
+            background-color: #e8e8ea;
+            color: var(--primary-text-color);
+        }
+        button.secondary:hover {
+            background-color: #dcdce0;
+        }
+        button.danger {
+            background-color: var(--danger-color);
+        }
+        button.danger:hover {
+            background-color: var(--danger-color-hover);
+        }
+        
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background-color: #e8e8ea;
         }
 
-        .btn-secondary {
-            background: linear-gradient(45deg, #6b7280, #9ca3af);
+        .result-area {
+            display: flex;
+            margin-top: 30px;
+            gap: 10px;
+        }
+        .result-area input {
+            font-family: "SF Mono", "Menlo", "Monaco", Consolas, "Liberation Mono", "Courier New", monospace;
+            font-size: 18px;
+            letter-spacing: 1px;
+            background-color: #eef0f2;
         }
 
-        .btn-danger {
-            background: linear-gradient(45deg, #ef4444, #dc2626);
-        }
-
-        .result-box {
-            background: #f0f9ff;
-            border: 2px solid #0ea5e9;
+        #lookup-result {
+            background-color: #f8f9fa;
+            border: 1px solid var(--border-color);
             border-radius: 8px;
             padding: 20px;
-            margin-top: 20px;
-            font-family: 'Courier New', monospace;
-            font-size: 18px;
-            font-weight: bold;
-            text-align: center;
-            color: #0369a1;
+            margin-top: 15px;
+            min-height: 100px;
+            color: var(--secondary-text-color);
+            line-height: 1.7;
         }
-
-        .code-item {
-            background: white;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 10px;
+        #lookup-result span {
+            font-weight: 500;
+            color: var(--primary-text-color);
+            margin-left: 8px;
+        }
+        #lookup-result div {
             display: flex;
-            justify-content: between;
-            align-items: center;
-            position: relative;
+            justify-content: space-between;
         }
 
-        .code-item:hover .tooltip {
-            opacity: 1;
-            transform: translateY(-5px);
-        }
-
-        .tooltip {
-            position: absolute;
-            bottom: 100%;
-            left: 50%;
-            transform: translateX(-50%) translateY(0);
-            background: #1f2937;
-            color: white;
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-size: 14px;
-            white-space: nowrap;
-            opacity: 0;
-            transition: opacity 0.3s, transform 0.3s;
-            z-index: 10;
-        }
-
-        .tooltip::after {
-            content: '';
-            position: absolute;
-            top: 100%;
-            left: 50%;
-            transform: translateX(-50%);
-            border: 5px solid transparent;
-            border-top-color: #1f2937;
-        }
-
-        .code-list {
-            max-height: 200px;
-            overflow-y: auto;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            padding: 10px;
-            background: white;
-        }
-
-        .modal {
-            display: none;
+        /* --- 모달 스타일 --- */
+        .modal-overlay {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.5);
+            background-color: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
             z-index: 1000;
         }
-
         .modal-content {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: white;
+            background: var(--content-bg-color);
             padding: 30px;
-            border-radius: 15px;
+            border-radius: 18px;
             width: 90%;
             max-width: 500px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            max-height: 80vh;
+            overflow-y: auto;
         }
-
-        .close {
-            position: absolute;
-            top: 15px;
-            right: 20px;
-            font-size: 28px;
-            cursor: pointer;
-            color: #6b7280;
+        .modal-content h3 {
+            font-size: 20px;
+            margin-bottom: 25px;
         }
-
-        .info-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin-top: 20px;
+        .modal-input-group {
+            margin-bottom: 20px;
         }
-
-        .info-item {
-            background: #f8fafc;
-            padding: 15px;
+        .modal-input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--secondary-text-color);
+        }
+        .modal-input-group input, .modal-input-group textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
             border-radius: 8px;
-            border-left: 4px solid #4f46e5;
-        }
-
-        .info-label {
-            font-size: 12px;
-            color: #6b7280;
-            text-transform: uppercase;
-            font-weight: 600;
-            margin-bottom: 5px;
-        }
-
-        .info-value {
             font-size: 16px;
-            color: #1f2937;
-            font-weight: 600;
+        }
+        .modal-input-group textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+        .modal-code-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 30px;
         }
 
+        /* --- 데이터 삭제 모달 --- */
+        #delete-data-list {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            padding: 10px;
+            border-radius: 8px;
+        }
+        #delete-data-list label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        #delete-data-list label:hover {
+            background-color: #f0f0f0;
+        }
+        #delete-data-list input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+        }
+        #delete-tabs {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 15px;
+        }
+        #delete-tabs button {
+            flex-grow: 1;
+        }
+        #delete-tabs button.active {
+            background-color: var(--accent-color);
+            color: white;
+        }
+
+        /* ▼▼▼▼▼ 불필요한 툴팁 스타일 제거 ▼▼▼▼▼ */
         @media (max-width: 768px) {
-            .main-content {
-                grid-template-columns: 1fr;
-            }
-            
-            .header h1 {
-                font-size: 2rem;
-            }
+            body { padding: 20px 10px; }
+            main { padding: 20px; }
+            .input-group { flex-direction: column; align-items: stretch; }
+            .input-group label { min-width: auto; margin-bottom: 5px; }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🔢 일련번호 생성기</h1>
-            <p>16자리 일련번호 생성 및 조회 시스템</p>
-        </div>
 
-        <div class="main-content">
-            <!-- 일련번호 생성 섹션 -->
-            <div class="section">
-                <h2>📝 일련번호 만들기</h2>
-                
-                <div class="form-group">
-                    <label for="dateInput">날짜 (YYYYMMDD)</label>
-                    <input type="date" id="dateInput">
+    <main>
+        <h1>일련번호 생성기</h1>
+        <p class="section-description">날짜와 코드 정보를 선택하여 18자리 고유 일련번호를 생성합니다.</p>
+
+        <!-- 섹션: 일련번호 만들기 -->
+        <section id="generator">
+            <h2>일련번호 만들기</h2>
+            <div class="input-group">
+                <label for="year">날짜</label>
+                <div class="date-inputs">
+                    <input type="number" id="year" placeholder="YYYY">
+                    <input type="number" id="month" placeholder="MM">
+                    <input type="number" id="day" placeholder="DD">
                 </div>
-
-                <div class="form-group">
-                    <label for="characterSelect">캐릭터</label>
-                    <select id="characterSelect">
-                        <option value="">캐릭터를 선택하세요</option>
-                    </select>
-                    <button onclick="openModal('character')">+ 캐릭터 추가</button>
-                </div>
-
-                <div class="form-group">
-                    <label for="personaSelect">페르소나</label>
-                    <select id="personaSelect">
-                        <option value="">페르소나를 선택하세요</option>
-                    </select>
-                    <button onclick="openModal('persona')">+ 페르소나 추가</button>
-                </div>
-
-                <div class="form-group">
-                    <label for="modelSelect">모델</label>
-                    <select id="modelSelect">
-                        <option value="">모델을 선택하세요</option>
-                    </select>
-                    <button onclick="openModal('model')">+ 모델 추가</button>
-                </div>
-
-                <div class="form-group">
-                    <label for="presetSelect">프롬프트 프리셋</label>
-                    <select id="presetSelect">
-                        <option value="">프리셋을 선택하세요</option>
-                    </select>
-                    <button onclick="openModal('preset')">+ 프리셋 추가</button>
-                </div>
-
-                <button onclick="generateSerial()">🎯 일련번호 생성</button>
-                <button class="btn-secondary" onclick="exportData()">📤 데이터 내보내기</button>
-                <button class="btn-secondary" onclick="importData()">📥 데이터 가져오기</button>
-                <input type="file" id="importFile" style="display: none;" accept=".json" onchange="handleFileImport(event)">
-
-                <div id="generatedSerial" class="result-box" style="display: none;">
-                    <div id="serialNumber"></div>
-                    <button onclick="copySerial()" style="margin-top: 15px; background: linear-gradient(45deg, #10b981, #059669);">
-                        📋 복사하기
-                    </button>
+            </div>
+            
+            <div class="input-group">
+                <label for="character-select">캐릭터</label>
+                <select id="character-select"></select>
+                <div class="button-group">
+                    <button class="secondary" onclick="openModal('character')">추가</button>
+                    <button class="secondary" id="manage-character-button" onclick="manageSelectedItem('character')" disabled>관리</button>
                 </div>
             </div>
 
-            <!-- 일련번호 조회 섹션 -->
-            <div class="section">
-                <h2>🔍 일련번호 조회하기</h2>
-                
-                <div class="form-group">
-                    <label for="serialInput">16자리 일련번호</label>
-                    <input type="text" id="serialInput" placeholder="예: 2025062501010101" maxlength="16">
-                </div>
-
-                <button onclick="parseSerial()">🔎 일련번호 분석</button>
-
-                <div id="parsedResult" style="display: none;">
-                    <div class="info-grid">
-                        <div class="info-item">
-                            <div class="info-label">날짜</div>
-                            <div class="info-value" id="parsedDate"></div>
-                        </div>
-                        <div class="info-item">
-                            <div class="info-label">캐릭터</div>
-                            <div class="info-value" id="parsedCharacter"></div>
-                        </div>
-                        <div class="info-item">
-                            <div class="info-label">페르소나</div>
-                            <div class="info-value" id="parsedPersona"></div>
-                        </div>
-                        <div class="info-item">
-                            <div class="info-label">모델</div>
-                            <div class="info-value" id="parsedModel"></div>
-                        </div>
-                        <div class="info-item">
-                            <div class="info-label">프리셋</div>
-                            <div class="info-value" id="parsedPreset"></div>
-                        </div>
-                    </div>
+            <div class="input-group">
+                <label for="persona-select">페르소나</label>
+                <select id="persona-select"></select>
+                <div class="button-group">
+                    <button class="secondary" onclick="openModal('persona')">추가</button>
+                    <button class="secondary" id="manage-persona-button" onclick="manageSelectedItem('persona')" disabled>관리</button>
                 </div>
             </div>
-        </div>
-    </div>
 
-    <!-- 모달 -->
-    <div id="modal" class="modal">
+            <div class="input-group">
+                <label for="model-select">모델</label>
+                <select id="model-select"></select>
+                <div class="button-group">
+                    <button class="secondary" onclick="openModal('model')">추가</button>
+                    <button class="secondary" id="manage-model-button" onclick="manageSelectedItem('model')" disabled>관리</button>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label for="promptPreset-select">프롬프트 프리셋</label>
+                <select id="promptPreset-select"></select>
+                <div class="button-group">
+                    <button class="secondary" onclick="openModal('promptPreset')">추가</button>
+                    <button class="secondary" id="manage-promptPreset-button" onclick="manageSelectedItem('promptPreset')" disabled>관리</button>
+                </div>
+            </div>
+            
+            <div class="input-group">
+                <label for="sequence-input">순번</label>
+                <input type="number" id="sequence-input" value="1" min="1" max="255">
+            </div>
+            
+            <div class="result-area">
+                <input type="text" id="serial-result" readonly placeholder="생성된 일련번호가 여기에 표시됩니다.">
+                <button id="copy-button" onclick="copySerial()">복사</button>
+            </div>
+        </section>
+
+        <!-- 섹션: 일련번호 조회하기 -->
+        <section id="viewer">
+            <h2>일련번호 조회하기</h2>
+            <input type="text" id="lookup-input" placeholder="18자리 일련번호를 입력하세요..." oninput="lookupSerial(this.value)">
+            <div id="lookup-result">
+                <p>조회할 일련번호를 입력해주세요.</p>
+            </div>
+        </section>
+
+        <!-- 섹션: 데이터 관리 -->
+        <section id="data-management">
+            <h2>데이터 관리</h2>
+            <p class="section-description">
+                브라우저에 저장된 데이터를 JSON 파일로 내보내거나, 파일에서 가져올 수 있습니다.
+            </p>
+            <div class="input-group">
+                <button onclick="exportData()">데이터 내보내기 (.json)</button>
+                <label for="import-file" class="button-like secondary">데이터 가져오기 (.json)</label>
+                <input type="file" id="import-file" onchange="importData(event)" accept=".json" style="display: none;">
+                <button class="danger" onclick="openDeleteModal()">데이터 일괄 삭제</button>
+            </div>
+        </section>
+    </main>
+    
+    <!-- 추가/수정 모달 -->
+    <div id="add-modal" class="modal-overlay" onclick="closeModalOnClick(event)">
         <div class="modal-content">
-            <span class="close" onclick="closeModal()">&times;</span>
-            <h3 id="modalTitle"></h3>
-            <div class="form-group">
-                <label for="modalName">이름</label>
-                <input type="text" id="modalName">
+            <h3 id="modal-title"></h3>
+            <div class="modal-input-group">
+                <label for="modal-name">이름</label>
+                <input type="text" id="modal-name">
             </div>
-            <div class="form-group">
-                <label for="modalMemo">메모 (선택사항)</label>
-                <textarea id="modalMemo" rows="3"></textarea>
+            <div class="modal-input-group">
+                <label for="modal-memo">메모 (선택 사항)</label>
+                <textarea id="modal-memo" placeholder="마우스 호버 시 표시될 메모를 입력하세요."></textarea>
             </div>
-            <div class="form-group">
-                <label for="modalCode">코드 (10진수)</label>
-                <input type="number" id="modalCode" min="1" max="255">
+            <div class="modal-input-group">
+                <label for="modal-code">코드 (0-255, 10진수 입력)</label>
+                <div class="modal-code-group">
+                    <input type="number" id="modal-code" min="0" max="255">
+                    <button class="secondary" onclick="autoSetCode()">자동</button>
+                </div>
             </div>
-            <button onclick="saveItem()">저장</button>
-            <button class="btn-secondary" onclick="closeModal()">취소</button>
+            <div class="modal-buttons">
+                <button class="secondary" onclick="closeModal()">취소</button>
+                <button onclick="saveItem()">저장</button>
+            </div>
         </div>
     </div>
+
+    <!-- 일괄 삭제 모달 -->
+    <div id="delete-modal" class="modal-overlay" onclick="closeModalOnClick(event)">
+        <div class="modal-content">
+            <h3>데이터 일괄 삭제</h3>
+            <div id="delete-tabs"></div>
+            <div id="delete-data-list"></div>
+            <div class="modal-buttons">
+                <button class="secondary" onclick="closeModal()">취소</button>
+                <button class="danger" onclick="deleteSelectedItems()">선택 항목 삭제</button>
+            </div>
+        </div>
+    </div>
+
 
     <script>
-        let currentType = '';
-        let data = {
-            characters: [],
-            personas: [],
-            models: [],
-            presets: []
+        const DATA_TYPES = {
+            character: { name: '캐릭터', el: 'character-select', btn: 'manage-character-button' },
+            persona: { name: '페르소나', el: 'persona-select', btn: 'manage-persona-button' },
+            model: { name: '모델', el: 'model-select', btn: 'manage-model-button' },
+            promptPreset: { name: '프롬프트 프리셋', el: 'promptPreset-select', btn: 'manage-promptPreset-button' },
         };
+        
+        let db = { character: [], persona: [], model: [], promptPreset: [] };
+        let currentEditInfo = { type: null, index: null };
+        let currentDeleteTab = 'character';
 
-        // 페이지 로드 시 초기화
-        window.onload = function() {
-            // 오늘 날짜로 초기화
-            const today = new Date();
-            const dateString = today.getFullYear() + '-' + 
-                             String(today.getMonth() + 1).padStart(2, '0') + '-' + 
-                             String(today.getDate()).padStart(2, '0');
-            document.getElementById('dateInput').value = dateString;
-            
-            // 저장된 데이터 로드
-            loadData();
-            updateAllSelects();
-        };
-
-        function loadData() {
-            const saved = localStorage.getItem('serialGeneratorData');
-            if (saved) {
-                data = JSON.parse(saved);
-            }
-        }
+        const toHex = (num) => parseInt(num, 10).toString(16).toUpperCase().padStart(2, '0');
+        const fromHex = (hex) => parseInt(hex, 16);
 
         function saveData() {
-            localStorage.setItem('serialGeneratorData', JSON.stringify(data));
+            localStorage.setItem('serialNumberDB', JSON.stringify(db));
         }
 
-        function openModal(type) {
-            currentType = type;
-            document.getElementById('modal').style.display = 'block';
-            document.getElementById('modalTitle').textContent = getTypeTitle(type) + ' 추가';
-            document.getElementById('modalName').value = '';
-            document.getElementById('modalMemo').value = '';
-            document.getElementById('modalCode').value = '';
-        }
-
-        function closeModal() {
-            document.getElementById('modal').style.display = 'none';
-        }
-
-        function getTypeTitle(type) {
-            const titles = {
-                'character': '캐릭터',
-                'persona': '페르소나',
-                'model': '모델',
-                'preset': '프롬프트 프리셋'
-            };
-            return titles[type];
-        }
-
-        function saveItem() {
-            const name = document.getElementById('modalName').value.trim();
-            const memo = document.getElementById('modalMemo').value.trim();
-            const code = parseInt(document.getElementById('modalCode').value);
-
-            if (!name || !code || code < 1 || code > 255) {
-                alert('이름과 유효한 코드(1-255)를 입력해주세요.');
-                return;
+        function loadData() {
+            const storedData = localStorage.getItem('serialNumberDB');
+            if (storedData) {
+                try {
+                    db = JSON.parse(storedData);
+                } catch (e) { console.error("데이터 파싱 오류:", e); }
             }
-
-            // 중복 코드 체크
-            const typeData = data[currentType + 's'];
-            if (typeData.some(item => item.code === code)) {
-                alert('이미 사용 중인 코드입니다.');
-                return;
-            }
-
-            const item = {
-                name: name,
-                memo: memo,
-                code: code
-            };
-
-            data[currentType + 's'].push(item);
-            saveData();
-            updateAllSelects();
-            closeModal();
+            Object.keys(DATA_TYPES).forEach(type => {
+                if (!Array.isArray(db[type])) db[type] = [];
+                populateSelect(type);
+                updateManageButtonState(type);
+            });
+            generateSerial();
         }
+        
+        // ▼▼▼▼▼ 메모 중복 문제를 해결한 populateSelect 함수 ▼▼▼▼▼
+        function populateSelect(type) {
+            const selectEl = document.getElementById(DATA_TYPES[type].el);
+            const selectedValue = selectEl.value; // 현재 선택된 값 저장
+            selectEl.innerHTML = '<option value="">-- 선택 --</option>';
+            const sortedData = [...db[type]].sort((a, b) => a.name.localeCompare(b.name));
 
-        function updateAllSelects() {
-            updateSelect('characterSelect', data.characters);
-            updateSelect('personaSelect', data.personas);
-            updateSelect('modelSelect', data.models);
-            updateSelect('presetSelect', data.presets);
-        }
-
-        function updateSelect(selectId, items) {
-            const select = document.getElementById(selectId);
-            const currentValue = select.value;
-            
-            // 기본 옵션 제외하고 모든 옵션 제거
-            while (select.children.length > 1) {
-                select.removeChild(select.lastChild);
-            }
-
-            items.forEach(item => {
+            sortedData.forEach(item => {
                 const option = document.createElement('option');
                 option.value = item.code;
-                option.textContent = `${item.name} (${item.code.toString(16).toUpperCase().padStart(2, '0')})`;
-                option.title = item.memo;
-                select.appendChild(option);
+                
+                // 1. 화면에 표시될 텍스트를 만듭니다.
+                let displayText = `${item.name} (코드: ${item.code})`;
+                if (item.memo) {
+                    displayText += ` ${item.memo}`;
+                }
+                option.textContent = displayText;
+
+                // 2. 마우스 호버 시 보일 툴팁은 title 속성으로 간단하게 처리합니다.
+                if (item.memo) {
+                    option.title = item.memo;
+                }
+                
+                selectEl.appendChild(option);
             });
+            
+            selectEl.value = selectedValue; // 이전에 선택했던 값으로 복원
 
-            select.value = currentValue;
+            selectEl.onchange = () => {
+                generateSerial();
+                updateManageButtonState(type);
+            };
         }
 
+        function updateManageButtonState(type) {
+            const selectEl = document.getElementById(DATA_TYPES[type].el);
+            const manageBtn = document.getElementById(DATA_TYPES[type].btn);
+            manageBtn.disabled = !selectEl.value;
+        }
+        
         function generateSerial() {
-            const dateInput = document.getElementById('dateInput').value;
-            const characterCode = document.getElementById('characterSelect').value;
-            const personaCode = document.getElementById('personaSelect').value;
-            const modelCode = document.getElementById('modelSelect').value;
-            const presetCode = document.getElementById('presetSelect').value;
+            const year = document.getElementById('year').value;
+            const month = document.getElementById('month').value.padStart(2, '0');
+            const day = document.getElementById('day').value.padStart(2, '0');
+            const datePart = `${year}${month}${day}`;
 
-            if (!dateInput || !characterCode || !personaCode || !modelCode || !presetCode) {
-                alert('모든 필드를 선택해주세요.');
-                return;
+            const charCode = document.getElementById('character-select').value;
+            const personaCode = document.getElementById('persona-select').value;
+            const modelCode = document.getElementById('model-select').value;
+            const presetCode = document.getElementById('promptPreset-select').value;
+            const seqCode = document.getElementById('sequence-input').value;
+            
+            if (datePart.length !== 8 || !charCode || !personaCode || !modelCode || !presetCode || !seqCode) {
+                 document.getElementById('serial-result').value = "";
+                 return;
             }
 
-            // 날짜를 YYYYMMDD 형식으로 변환
-            const date = dateInput.replace(/-/g, '');
-            
-            // 각 코드를 16진수 2자리로 변환
-            const charHex = parseInt(characterCode).toString(16).toUpperCase().padStart(2, '0');
-            const personaHex = parseInt(personaCode).toString(16).toUpperCase().padStart(2, '0');
-            const modelHex = parseInt(modelCode).toString(16).toUpperCase().padStart(2, '0');
-            const presetHex = parseInt(presetCode).toString(16).toUpperCase().padStart(2, '0');
+            const serial = datePart +
+                toHex(charCode) + toHex(personaCode) +
+                toHex(modelCode) + toHex(presetCode) + toHex(seqCode);
 
-            const serial = date + charHex + personaHex + modelHex + presetHex;
-            
-            document.getElementById('serialNumber').textContent = serial;
-            document.getElementById('generatedSerial').style.display = 'block';
+            document.getElementById('serial-result').value = serial;
         }
 
-        function parseSerial() {
-            const serial = document.getElementById('serialInput').value.trim();
-            
-            if (serial.length !== 16 || !/^\d+$/.test(serial.substring(0, 8)) || !/^[0-9A-Fa-f]+$/.test(serial.substring(8))) {
-                alert('올바른 16자리 일련번호를 입력해주세요.');
+        function lookupSerial(serial) {
+            const resultEl = document.getElementById('lookup-result');
+            if (!/^\d{8}[a-fA-F0-9]{10}$/.test(serial)) {
+                resultEl.innerHTML = '<p>18자리 형식(날짜8 + 코드10)에 맞는 일련번호를 입력해주세요.</p>';
                 return;
             }
 
-            // 날짜 파싱 (YYYYMMDD)
-            const dateStr = serial.substring(0, 8);
-            const year = dateStr.substring(0, 4);
-            const month = dateStr.substring(4, 6);
-            const day = dateStr.substring(6, 8);
-            const formattedDate = `${year}-${month}-${day}`;
+            try {
+                const date = `${serial.substring(0, 4)}-${serial.substring(4, 6)}-${serial.substring(6, 8)}`;
+                const codes = {
+                    character: fromHex(serial.substring(8, 10)),
+                    persona: fromHex(serial.substring(10, 12)),
+                    model: fromHex(serial.substring(12, 14)),
+                    promptPreset: fromHex(serial.substring(14, 16)),
+                    sequence: fromHex(serial.substring(16, 18))
+                };
 
-            // 코드 파싱 (각각 2자리 16진수)
-            const charCode = parseInt(serial.substring(8, 10), 16);
-            const personaCode = parseInt(serial.substring(10, 12), 16);
-            const modelCode = parseInt(serial.substring(12, 14), 16);
-            const presetCode = parseInt(serial.substring(14, 16), 16);
+                const findName = (type, code) => {
+                    const item = db[type].find(d => d.code === code);
+                    // 조회 결과에서는 메모를 보여주지 않도록 수정
+                    return item ? item.name : `알 수 없음 (코드: ${code})`;
+                };
+                
+                resultEl.innerHTML = `
+                    <div><strong>날짜:</strong> <span>${date}</span></div>
+                    <div><strong>캐릭터:</strong> <span>${findName('character', codes.character)}</span></div>
+                    <div><strong>페르소나:</strong> <span>${findName('persona', codes.persona)}</span></div>
+                    <div><strong>모델:</strong> <span>${findName('model', codes.model)}</span></div>
+                    <div><strong>프리셋:</strong> <span>${findName('promptPreset', codes.promptPreset)}</span></div>
+                    <div><strong>순번:</strong> <span>${codes.sequence}</span></div>
+                `;
+            } catch (e) {
+                 resultEl.innerHTML = '<p>유효하지 않은 일련번호 형식입니다.</p>';
+            }
+        }
+        
+        function copySerial() {
+            const serialInput = document.getElementById('serial-result');
+            if (!serialInput.value) return;
+            navigator.clipboard.writeText(serialInput.value).then(() => {
+                const copyButton = document.getElementById('copy-button');
+                const originalText = copyButton.textContent;
+                copyButton.textContent = '복사 완료!';
+                setTimeout(() => { copyButton.textContent = originalText; }, 1500);
+            });
+        }
+        
+        function manageSelectedItem(type) {
+            const selectEl = document.getElementById(DATA_TYPES[type].el);
+            const selectedCode = parseInt(selectEl.value, 10);
+            
+            if (isNaN(selectedCode)) return;
 
-            // 이름 찾기
-            const character = data.characters.find(item => item.code === charCode);
-            const persona = data.personas.find(item => item.code === personaCode);
-            const model = data.models.find(item => item.code === modelCode);
-            const preset = data.presets.find(item => item.code === presetCode);
+            const itemIndex = db[type].findIndex(item => item.code === selectedCode);
 
-            document.getElementById('parsedDate').textContent = formattedDate;
-            document.getElementById('parsedCharacter').textContent = character ? 
-                `${character.name} (${charCode})` : `알 수 없음 (${charCode})`;
-            document.getElementById('parsedPersona').textContent = persona ? 
-                `${persona.name} (${personaCode})` : `알 수 없음 (${personaCode})`;
-            document.getElementById('parsedModel').textContent = model ? 
-                `${model.name} (${modelCode})` : `알 수 없음 (${modelCode})`;
-            document.getElementById('parsedPreset').textContent = preset ? 
-                `${preset.name} (${presetCode})` : `알 수 없음 (${presetCode})`;
+            if (itemIndex > -1) {
+                openModal(type, itemIndex);
+            }
+        }
+        
+        function openModal(type, index = null) {
+            currentEditInfo = { type, index };
+            const modal = document.getElementById('add-modal');
+            const title = document.getElementById('modal-title');
+            const nameInput = document.getElementById('modal-name');
+            const memoInput = document.getElementById('modal-memo');
+            const codeInput = document.getElementById('modal-code');
+            const autoButton = codeInput.nextElementSibling;
+            
+            const typeName = DATA_TYPES[type].name;
+            if (index !== null) {
+                const item = db[type][index];
+                title.textContent = `${typeName} 수정`;
+                nameInput.value = item.name;
+                memoInput.value = item.memo;
+                codeInput.value = item.code;
+                codeInput.readOnly = true;
+                autoButton.style.display = 'none';
+            } else {
+                title.textContent = `${typeName} 추가`;
+                nameInput.value = '';
+                memoInput.value = '';
+                codeInput.value = '';
+                codeInput.readOnly = false;
+                autoButton.style.display = 'block';
+            }
+            modal.style.display = 'flex';
+        }
+        
+        function closeModal() {
+            document.getElementById('add-modal').style.display = 'none';
+            document.getElementById('delete-modal').style.display = 'none';
+        }
 
-            document.getElementById('parsedResult').style.display = 'block';
+        function closeModalOnClick(event) {
+            if (event.target.classList.contains('modal-overlay')) {
+                closeModal();
+            }
+        }
+        
+        function saveItem() {
+            const { type, index } = currentEditInfo;
+            const name = document.getElementById('modal-name').value.trim();
+            const memo = document.getElementById('modal-memo').value.trim();
+            const code = parseInt(document.getElementById('modal-code').value, 10);
+
+            if (!name) {
+                alert('이름을 입력해주세요.');
+                return;
+            }
+            
+            if (index === null) { // 추가일 때만 코드 유효성 및 중복 검사
+                 if (isNaN(code) || code < 0 || code > 255) {
+                    alert('코드(0-255)를 올바르게 입력해주세요.');
+                    return;
+                }
+                if (db[type].some(item => item.code === code)) {
+                    alert('이미 사용 중인 코드입니다. 다른 코드를 입력해주세요.');
+                    return;
+                }
+                db[type].push({ name, memo, code });
+            } else { // 수정
+                db[type][index].name = name;
+                db[type][index].memo = memo;
+            }
+            
+            saveData();
+            populateSelect(type);
+            updateManageButtonState(type);
+            generateSerial();
+            closeModal();
+        }
+        
+        function autoSetCode() {
+            const { type } = currentEditInfo;
+            if (!type) return;
+
+            const usedCodes = new Set(db[type].map(item => item.code));
+            let nextCode = 0;
+            while (usedCodes.has(nextCode)) {
+                nextCode++;
+            }
+
+            if (nextCode > 255) {
+                alert('사용 가능한 코드가 없습니다 (0-255).');
+                return;
+            }
+
+            document.getElementById('modal-code').value = nextCode;
+        }
+
+        function openDeleteModal() {
+            const modal = document.getElementById('delete-modal');
+            setupDeleteTabs();
+            populateDeleteList(currentDeleteTab);
+            modal.style.display = 'flex';
+        }
+
+        function setupDeleteTabs() {
+            const tabsContainer = document.getElementById('delete-tabs');
+            tabsContainer.innerHTML = '';
+            Object.keys(DATA_TYPES).forEach(type => {
+                const button = document.createElement('button');
+                button.textContent = DATA_TYPES[type].name;
+                button.className = 'secondary';
+                if(type === currentDeleteTab) button.classList.add('active');
+                button.onclick = () => {
+                    currentDeleteTab = type;
+                    setupDeleteTabs();
+                    populateDeleteList(type);
+                };
+                tabsContainer.appendChild(button);
+            });
+        }
+        
+        function populateDeleteList(type) {
+            const listContainer = document.getElementById('delete-data-list');
+            listContainer.innerHTML = '';
+
+            if (db[type].length === 0) {
+                listContainer.innerHTML = '<p>삭제할 데이터가 없습니다.</p>';
+                return;
+            }
+            const sortedData = [...db[type]].sort((a,b) => a.name.localeCompare(b.name));
+
+            sortedData.forEach((item, index) => {
+                const label = document.createElement('label');
+                label.innerHTML = `
+                    <input type="checkbox" value="${item.code}">
+                    <span>${item.name} (코드: ${item.code})</span>
+                `;
+                listContainer.appendChild(label);
+            });
+        }
+        
+        function deleteSelectedItems() {
+            const checkboxes = document.querySelectorAll('#delete-data-list input[type="checkbox"]:checked');
+            if (checkboxes.length === 0) {
+                alert('삭제할 항목을 선택해주세요.');
+                return;
+            }
+            
+            if (!confirm(`선택한 ${checkboxes.length}개의 항목을 정말 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`)) {
+                return;
+            }
+            
+            const codesToDelete = Array.from(checkboxes).map(cb => parseInt(cb.value, 10));
+            db[currentDeleteTab] = db[currentDeleteTab].filter(item => !codesToDelete.includes(item.code));
+
+            saveData();
+            populateSelect(currentDeleteTab);
+            updateManageButtonState(currentDeleteTab);
+            populateDeleteList(currentDeleteTab);
+            generateSerial();
         }
 
         function exportData() {
-            const dataStr = JSON.stringify(data, null, 2);
-            const dataBlob = new Blob([dataStr], {type: 'application/json'});
-            const url = URL.createObjectURL(dataBlob);
-            
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = 'serial_generator_data.json';
-            link.click();
-            
+            const dataStr = JSON.stringify(db, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            const a_date = new Date();
+            const a_YYYY = a_date.getFullYear();
+            const a_MM = String(a_date.getMonth() + 1).padStart(2,'0');
+            const a_DD = String(a_date.getDate()).padStart(2,'0');
+            const a_hh = String(a_date.getHours()).padStart(2,'0');
+            const a_mm = String(a_date.getMinutes()).padStart(2,'0');
+            const a_ss = String(a_date.getSeconds()).padStart(2,'0');
+            a.download = `serial-number-data-${a_YYYY}${a_MM}${a_DD}_${a_hh}${a_mm}${a_ss}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
             URL.revokeObjectURL(url);
         }
 
-        function importData() {
-            document.getElementById('importFile').click();
-        }
-
-        function handleFileImport(event) {
+        function importData(event) {
             const file = event.target.files[0];
             if (!file) return;
-
+            
             const reader = new FileReader();
             reader.onload = function(e) {
                 try {
-                    const importedData = JSON.parse(e.target.result);
-                    if (confirm('기존 데이터를 덮어쓰시겠습니까?')) {
-                        data = importedData;
-                        saveData();
-                        updateAllSelects();
-                        alert('데이터를 성공적으로 가져왔습니다.');
+                    const importedDb = JSON.parse(e.target.result);
+                    if (Object.keys(DATA_TYPES).every(type => Array.isArray(importedDb[type]))) {
+                        if (confirm('현재 데이터를 덮어쓰고 가져온 데이터로 교체하시겠습니까?')) {
+                            db = importedDb;
+                            saveData();
+                            loadData();
+                            alert('데이터를 성공적으로 가져왔습니다.');
+                        }
+                    } else {
+                        alert('파일 형식이 올바르지 않습니다.');
                     }
                 } catch (error) {
-                    alert('유효하지 않은 JSON 파일입니다.');
+                    alert('파일을 읽는 중 오류가 발생했습니다.');
+                } finally {
+                    event.target.value = '';
                 }
             };
             reader.readAsText(file);
         }
 
-        function copySerial() {
-            const serialNumber = document.getElementById('serialNumber').textContent;
+        document.addEventListener('DOMContentLoaded', () => {
+            const today = new Date();
+            document.getElementById('year').value = today.getFullYear();
+            document.getElementById('month').value = String(today.getMonth() + 1).padStart(2, '0');
+            document.getElementById('day').value = String(today.getDate()).padStart(2, '0');
             
-            // 클립보드 API 사용
-            if (navigator.clipboard) {
-                navigator.clipboard.writeText(serialNumber).then(() => {
-                    showCopyFeedback();
-                }).catch(() => {
-                    // 클립보드 API 실패 시 fallback
-                    fallbackCopyText(serialNumber);
-                });
-            } else {
-                // 클립보드 API를 지원하지 않는 경우 fallback
-                fallbackCopyText(serialNumber);
-            }
-        }
-
-        function fallbackCopyText(text) {
-            const textArea = document.createElement('textarea');
-            textArea.value = text;
-            textArea.style.position = 'fixed';
-            textArea.style.left = '-999999px';
-            textArea.style.top = '-999999px';
-            document.body.appendChild(textArea);
-            textArea.focus();
-            textArea.select();
+            document.getElementById('year').oninput = generateSerial;
+            document.getElementById('month').oninput = generateSerial;
+            document.getElementById('day').oninput = generateSerial;
+            document.getElementById('sequence-input').oninput = generateSerial;
             
-            try {
-                document.execCommand('copy');
-                showCopyFeedback();
-            } catch (err) {
-                alert('복사에 실패했습니다. 수동으로 복사해주세요.');
-            }
-            
-            document.body.removeChild(textArea);
-        }
-
-        function showCopyFeedback() {
-            const button = document.querySelector('#generatedSerial button');
-            const originalText = button.textContent;
-            button.textContent = '✅ 복사됨!';
-            button.style.background = 'linear-gradient(45deg, #10b981, #059669)';
-            
-            setTimeout(() => {
-                button.textContent = originalText;
-                button.style.background = 'linear-gradient(45deg, #10b981, #059669)';
-            }, 2000);
-        }
-        window.onclick = function(event) {
-            const modal = document.getElementById('modal');
-            if (event.target === modal) {
-                closeModal();
-            }
-        };
+            loadData();
+        });
     </script>
+
 </body>
 </html>
