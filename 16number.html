@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>일련번호 생성기</title>
+    <title>AI 페르소나 채팅 로그 생성기</title>
     <style>
         /* --- 기본 & 애플 감성 스타일 --- */
         :root {
@@ -82,7 +82,7 @@
         .button-group {
             display: flex;
             gap: 10px;
-            margin-left: auto; /* 버튼 그룹을 오른쪽으로 정렬 */
+            margin-left: auto;
         }
 
         .input-group label {
@@ -91,8 +91,7 @@
             font-size: 16px;
         }
 
-        input[type="number"], input[type="text"], select {
-            flex-grow: 1;
+        input[type="number"], input[type="text"], input[type="color"], select, textarea {
             padding: 10px 12px;
             border: 1px solid var(--border-color);
             border-radius: 8px;
@@ -100,7 +99,10 @@
             font-family: var(--font-family);
             background-color: #fdfdfd;
         }
-        input:focus, select:focus {
+        input:not([type="color"]), select, textarea {
+             flex-grow: 1;
+        }
+        input:focus, select:focus, textarea:focus {
             outline: none;
             border-color: var(--accent-color);
             box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.2);
@@ -146,7 +148,7 @@
             background-color: var(--danger-color);
         }
         button.danger:hover {
-            background-color: var(--danger-color-hover);
+            background-color: var(--c22525);
         }
         
         button:disabled {
@@ -167,30 +169,38 @@
             background-color: #eef0f2;
         }
 
-        #serial-title-area {
+        #serial-extra-actions {
             display: none; 
             margin-top: 10px;
             gap: 10px;
         }
         
         #lookup-result {
-            background-color: #f8f9fa;
             border: 1px solid var(--border-color);
             border-radius: 8px;
             padding: 20px;
             margin-top: 15px;
             min-height: 100px;
-            color: var(--secondary-text-color);
             line-height: 1.7;
         }
-        #lookup-result span {
+        #lookup-result-info {
+            color: var(--secondary-text-color);
+        }
+        #lookup-result-info span {
             font-weight: 500;
             color: var(--primary-text-color);
             margin-left: 8px;
         }
-        #lookup-result div {
+        #lookup-result-info div {
             display: flex;
             justify-content: space-between;
+        }
+        /* ▼▼▼▼▼ 신규 기능 CSS ▼▼▼▼▼ */
+        #lookup-actions {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
+            text-align: center;
         }
 
         /* --- 모달 스타일 --- */
@@ -205,6 +215,7 @@
             justify-content: center;
             align-items: center;
             z-index: 1000;
+            padding: 20px;
         }
         .modal-content {
             background: var(--content-bg-color);
@@ -213,7 +224,7 @@
             width: 90%;
             max-width: 600px; 
             box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            max-height: 80vh;
+            max-height: 90vh;
             overflow-y: auto;
             display: flex;
             flex-direction: column;
@@ -234,12 +245,8 @@
         }
         .modal-input-group input, .modal-input-group textarea {
             width: 100%;
-            padding: 10px 12px;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            font-size: 16px;
         }
-        .modal-input-group textarea {
+        textarea {
             min-height: 80px;
             resize: vertical;
         }
@@ -256,100 +263,224 @@
             flex-shrink: 0;
         }
 
-        /* --- 데이터 삭제 모달 --- */
-        #delete-data-list {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-            max-height: 300px;
-            overflow-y: auto;
-            border: 1px solid var(--border-color);
-            padding: 10px;
-            border-radius: 8px;
-        }
-        #delete-data-list label {
+        /* --- 이미지 업로드 스타일 --- */
+        .profile-pic-group {
             display: flex;
             align-items: center;
-            gap: 10px;
-            padding: 8px;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: background-color 0.2s;
+            gap: 15px;
         }
-        #delete-data-list label:hover {
-            background-color: #f0f0f0;
-        }
-        #delete-data-list input[type="checkbox"] {
-            width: 18px;
-            height: 18px;
-        }
-        #delete-tabs {
-            display: flex;
-            gap: 5px;
-            margin-bottom: 15px;
-        }
-        #delete-tabs button {
-            flex-grow: 1;
-        }
-        #delete-tabs button.active {
-            background-color: var(--accent-color);
-            color: white;
+        .profile-pic-preview {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background-color: #e0e0e0;
+            object-fit: cover;
+            border: 1px solid var(--border-color);
         }
         
-        /* --- 제목 관리 모달 스타일 --- */
-        #title-manager-list {
-            flex-grow: 1;
-            overflow-y: auto;
+        /* --- 채팅 로그 관련 스타일 --- */
+        #chat-log-viewer {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 12px;
             display: flex;
             flex-direction: column;
-            gap: 10px;
-            margin: -10px;
-            padding: 10px;
+            gap: 15px;
         }
-        .title-manager-item {
+        .chat-message-group {
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             gap: 10px;
-            padding: 10px;
+            max-width: 85%;
+        }
+        .chat-message-group.character {
+            align-self: flex-start;
+        }
+        .chat-message-group.persona {
+            align-self: flex-end;
+            flex-direction: row-reverse;
+        }
+        .chat-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #ccc;
+            object-fit: cover;
+            flex-shrink: 0;
+        }
+        .bubbles-container {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .chat-message-group.character .bubbles-container {
+            align-items: flex-start;
+        }
+        .chat-message-group.persona .bubbles-container {
+            align-items: flex-end;
+        }
+        .chat-bubble {
+            padding: 10px 15px;
+            border-radius: 18px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .chat-bubble .chat-text-normal {
+             white-space: pre-wrap;
+        }
+        
+        /* 채팅 로그 에디터 */
+        #chat-log-editor {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            max-height: 45vh;
+            overflow-y: auto;
+            padding: 5px;
+        }
+        .chat-log-entry {
+            display: flex;
+            gap: 10px;
+            padding: 15px;
             border-radius: 8px;
             background-color: #f8f9fa;
             border: 1px solid var(--border-color);
+            cursor: grab;
         }
-        .title-manager-item-content {
-            flex-grow: 1;
-            /* ▼▼▼▼▼ 수정됨: 편집 시 input 너비가 넘치지 않도록 설정 ▼▼▼▼▼ */
-            min-width: 0; 
+        .chat-log-entry.dragging {
+            opacity: 0.5;
+            background: #e0eaf1;
+            cursor: grabbing;
         }
-        .title-manager-item-content input {
-            width: 100%;
+        .chat-log-entry .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
         }
-        .title-manager-item-content .title-text {
-            font-weight: 500;
-            display: block; /* 줄바꿈을 위해 block으로 변경 */
-            word-break: break-all; /* 긴 제목이 넘치지 않도록 */
+        .chat-log-entry textarea {
+            min-height: 60px;
         }
-        .title-manager-item-content .serial-text {
-            font-size: 13px;
-            color: var(--secondary-text-color);
-            font-family: "SF Mono", monospace;
-            margin-top: 4px;
+        #regex-replace-section {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
         }
 
+        /* 스타일 설정 모달 */
+        #style-settings-modal .modal-content,
+        #serial-manager-modal .modal-content {
+            max-width: 750px;
+        }
+        .style-section {
+            padding: 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+        .style-section h4 {
+            font-size: 16px;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        .style-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+        .style-control {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .style-control label {
+            font-weight: 500;
+        }
+        .style-control-inline {
+            flex-direction: row;
+            align-items: center;
+            gap: 10px;
+        }
+        .style-control-inline label {
+            margin-bottom: 0;
+        }
+        .style-control input[type="color"] {
+            width: 50px;
+            height: 30px;
+            padding: 2px;
+            border-radius: 6px;
+        }
+        #custom-fonts-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .custom-font-entry {
+            display: flex;
+            gap: 10px;
+            align-items: flex-start;
+        }
+
+        /* 일련번호 관리 모달 */
+        #serial-manager-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-height: 60vh;
+            overflow-y: auto;
+            padding: 5px;
+            margin: 0 -5px;
+        }
+        .serial-manager-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 12px;
+            border-radius: 8px;
+            background: #f8f9fa;
+        }
+        .serial-manager-item-content {
+            flex-grow: 1;
+            min-width: 0;
+        }
+        .serial-manager-item-content .serial-text {
+            font-family: "SF Mono", monospace;
+            font-weight: 500;
+            word-break: break-all;
+        }
+        .serial-manager-item-content .title-text {
+            color: var(--secondary-text-color);
+            font-size: 14px;
+            margin-top: 4px;
+            word-break: break-all;
+        }
+        #serial-manager-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 15px;
+            border-top: 1px solid var(--border-color);
+            margin-top: 15px;
+        }
+        
         @media (max-width: 768px) {
             body { padding: 20px 10px; }
             main { padding: 20px; }
             .input-group { flex-direction: column; align-items: stretch; }
             .input-group label { min-width: auto; margin-bottom: 5px; }
-            .title-manager-item { flex-wrap: wrap; }
-            .title-manager-item-content { width: 100%; margin-bottom: 10px; }
+            .chat-message-group { max-width: 95%; }
+            .serial-manager-item { flex-wrap: wrap; }
+            .serial-manager-item .button-group { margin-left: 0; margin-top: 10px; width: 100%; }
         }
     </style>
+    <style id="dynamic-chat-styles"></style>
 </head>
 <body>
 
     <main>
-        <h1>일련번호 생성기</h1>
-        <p class="section-description">날짜와 코드 정보를 선택하여 18자리 고유 일련번호를 생성합니다.</p>
+        <h1>AI 페르소나 채팅 로그 생성기</h1>
+        <p class="section-description">날짜와 코드 정보를 선택하여 고유 일련번호를 생성하고, 채팅 로그를 기록/조회합니다.</p>
 
         <!-- 섹션: 일련번호 만들기 -->
         <section id="generator">
@@ -408,9 +539,10 @@
                 <input type="text" id="serial-result" readonly placeholder="생성된 일련번호가 여기에 표시됩니다.">
                 <button id="copy-button" onclick="copySerial()">복사</button>
             </div>
-            <div id="serial-title-area">
+            <div id="serial-extra-actions">
                 <input type="text" id="serial-title-input" placeholder="이 일련번호에 제목을 붙여보세요...">
-                <button id="save-title-button" onclick="saveSerialTitle()">저장</button>
+                <button id="save-title-button" onclick="saveSerialTitle()">제목 저장</button>
+                <button id="chat-log-button" class="secondary" onclick="openChatLogModal()">채팅 기록</button>
             </div>
         </section>
 
@@ -426,15 +558,13 @@
         <!-- 섹션: 데이터 관리 -->
         <section id="data-management">
             <h2>데이터 관리</h2>
-            <p class="section-description">
-                브라우저에 저장된 데이터를 JSON 파일로 내보내거나, 파일에서 가져올 수 있습니다.
-            </p>
             <div class="input-group">
                 <button onclick="exportData()">데이터 내보내기 (.json)</button>
                 <label for="import-file" class="button-like secondary">데이터 가져오기 (.json)</label>
                 <input type="file" id="import-file" onchange="importData(event)" accept=".json" style="display: none;">
-                <button class="secondary" onclick="openTitleManagerModal()">저장된 제목 관리</button>
-                <button class="danger" onclick="openDeleteModal()">데이터 일괄 삭제</button>
+                <button class="secondary" onclick="openStyleSettingsModal()">채팅 스타일 설정</button>
+                <button class="secondary" onclick="openSerialManagerModal()">저장된 일련번호 관리</button>
+                <button class="danger" onclick="openDeleteModal()">항목 데이터 삭제</button>
             </div>
         </section>
     </main>
@@ -443,13 +573,23 @@
     <div id="add-modal" class="modal-overlay" onclick="closeModalOnClick(event)">
         <div class="modal-content">
             <h3 id="modal-title"></h3>
+            <div class="modal-input-group" id="profile-pic-section" style="display: none;">
+                <label>프로필 사진</label>
+                <div class="profile-pic-group">
+                    <img id="modal-profile-pic-preview" class="profile-pic-preview">
+                    <div>
+                        <input type="file" id="modal-profile-pic-input" accept="image/*" onchange="handleImageUpload(event)">
+                        <button class="secondary" style="margin-top: 5px;" onclick="removeProfilePic()">사진 삭제</button>
+                    </div>
+                </div>
+            </div>
             <div class="modal-input-group">
                 <label for="modal-name">이름</label>
                 <input type="text" id="modal-name">
             </div>
             <div class="modal-input-group">
                 <label for="modal-memo">메모 (선택 사항)</label>
-                <textarea id="modal-memo" placeholder="마우스 호버 시 표시될 메모를 입력하세요."></textarea>
+                <textarea id="modal-memo" placeholder="선택 메뉴에 함께 표시될 간단한 메모를 입력하세요."></textarea>
             </div>
             <div class="modal-input-group">
                 <label for="modal-code">코드 (0-255, 10진수 입력)</label>
@@ -464,11 +604,68 @@
             </div>
         </div>
     </div>
+    
+    <!-- 채팅 기록 모달 -->
+    <div id="chat-log-modal" class="modal-overlay" onclick="closeModalOnClick(event)">
+        <div class="modal-content">
+            <h3 id="chat-log-modal-title">채팅 기록</h3>
+            <div id="chat-log-editor"></div>
+            <button class="secondary" style="margin-top: 15px;" onclick="addChatLogEntry()">+ 대화 추가</button>
+            
+            <div id="regex-replace-section">
+                <h4>정규식 일괄 수정</h4>
+                <div class="input-group" style="margin-bottom: 10px;">
+                    <label for="regex-in" style="min-width: 40px;">IN:</label>
+                    <input type="text" id="regex-in" placeholder="찾을 패턴 (정규식)">
+                </div>
+                 <div class="input-group">
+                    <label for="regex-out" style="min-width: 40px;">OUT:</label>
+                    <input type="text" id="regex-out" placeholder="바꿀 내용">
+                </div>
+                <button onclick="applyRegexReplace()">정규식 적용</button>
+            </div>
 
-    <!-- 일괄 삭제 모달 -->
+            <div class="modal-buttons">
+                <button class="secondary" onclick="closeModal()">취소</button>
+                <button onclick="saveChatLog()">저장</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 스타일 설정 모달 -->
+    <div id="style-settings-modal" class="modal-overlay" onclick="closeModalOnClick(event)">
+        <div class="modal-content">
+            <h3>채팅 스타일 설정</h3>
+            <div class="style-section">
+                <h4>말풍선 & 배경</h4>
+                <div class="style-grid">
+                    <div class="style-control"><label for="style-char-bubble-color">캐릭터 말풍선 색</label><input type="color" id="style-char-bubble-color"></div>
+                    <div class="style-control"><label for="style-persona-bubble-color">페르소나 말풍선 색</label><input type="color" id="style-persona-bubble-color"></div>
+                    <div class="style-control"><label for="style-bg-color">로그 배경 색</label><input type="color" id="style-bg-color"></div>
+                    <div class="style-control"><label for="style-bubble-radius">말풍선 둥글기 (px)</label><input type="number" id="style-bubble-radius" min="0" max="50"></div>
+                </div>
+            </div>
+            <div class="style-section">
+                <h4>텍스트 스타일</h4>
+                <div id="text-style-settings"></div>
+                <div class="style-control-inline" style="margin-top: 15px;"><input type="checkbox" id="style-hide-asterisks"><label for="style-hide-asterisks">*로 감싼 텍스트에서 * 기호 숨기기</label></div>
+            </div>
+            <div class="style-section">
+                <h4>외부 폰트 관리</h4>
+                <div id="custom-fonts-list"></div>
+                <button class="secondary" style="margin-top: 15px;" onclick="addCustomFontInput()">+ 폰트 추가</button>
+            </div>
+            <div class="modal-buttons">
+                <button class="secondary" onclick="closeModal()">취소</button>
+                <button onclick="saveChatStyles()">스타일 저장</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 항목 일괄 삭제 모달 -->
     <div id="delete-modal" class="modal-overlay" onclick="closeModalOnClick(event)">
         <div class="modal-content">
-            <h3>데이터 일괄 삭제</h3>
+            <h3>항목 데이터 일괄 삭제</h3>
             <div id="delete-tabs"></div>
             <div id="delete-data-list"></div>
             <div class="modal-buttons">
@@ -478,14 +675,19 @@
         </div>
     </div>
 
-    <!-- 제목 관리 모달 -->
-    <div id="title-manager-modal" class="modal-overlay" onclick="closeModalOnClick(event)">
+    <!-- 저장된 일련번호 관리 모달 -->
+    <div id="serial-manager-modal" class="modal-overlay" onclick="closeModalOnClick(event)">
         <div class="modal-content">
-            <h3>저장된 제목 관리</h3>
-            <div id="title-manager-list">
-                <!-- 자바스크립트로 목록 생성 -->
+            <h3>저장된 일련번호 관리</h3>
+            <div id="serial-manager-list"></div>
+            <div id="serial-manager-controls">
+                <div class="style-control-inline">
+                    <input type="checkbox" id="serial-manager-select-all" onclick="toggleSelectAllSerials(this)">
+                    <label for="serial-manager-select-all">전체 선택</label>
+                </div>
+                <button class="danger" onclick="deleteSelectedSerials()">선택 항목 삭제</button>
             </div>
-            <div class="modal-buttons">
+             <div class="modal-buttons">
                 <button class="secondary" onclick="closeModal()">닫기</button>
             </div>
         </div>
@@ -500,32 +702,48 @@
             promptPreset: { name: '프롬프트 프리셋', el: 'promptPreset-select', btn: 'manage-promptPreset-button' },
         };
         
-        let db = { character: [], persona: [], model: [], promptPreset: [], savedSerials: [] };
-        let currentEditInfo = { type: null, index: null };
+        let db = {};
+        const getNewDb = () => ({
+            character: [], persona: [], model: [], promptPreset: [], savedSerials: [],
+            chatStyles: {
+                characterBubbleColor: '#ECEFF1', personaBubbleColor: '#FEEFC3', backgroundColor: '#FFFFFF', bubbleRadius: 18, hideAsterisks: false,
+                textStyles: {
+                    normal: { font: 'inherit', size: 15, color: '#1d1d1f', italic: false, underline: false },
+                    doubleQuote: { font: 'inherit', size: 15, color: '#1d1d1f', italic: false, underline: false },
+                    singleQuote: { font: 'inherit', size: 15, color: '#1d1d1f', italic: false, underline: false },
+                    asterisk: { font: 'inherit', size: 15, color: '#1d1d1f', italic: true, underline: false }
+                },
+                customFonts: []
+            }
+        });
+
+        let currentEditInfo = { type: null, index: null, profilePic: null };
         let currentDeleteTab = 'character';
+        let currentChatLogSerial = null;
 
         const toHex = (num) => parseInt(num, 10).toString(16).toUpperCase().padStart(2, '0');
         const fromHex = (hex) => parseInt(hex, 16);
 
         function saveData() {
-            localStorage.setItem('serialNumberDB', JSON.stringify(db));
+            localStorage.setItem('serialNumberDB_v2', JSON.stringify(db));
         }
 
         function loadData() {
-            const storedData = localStorage.getItem('serialNumberDB');
+            const storedData = localStorage.getItem('serialNumberDB_v2');
+            const defaultDb = getNewDb();
             if (storedData) {
                 try {
-                    db = JSON.parse(storedData);
-                } catch (e) { console.error("데이터 파싱 오류:", e); }
-            }
-            if (!Array.isArray(db.savedSerials)) {
-                db.savedSerials = [];
-            }
-            Object.keys(DATA_TYPES).forEach(type => {
-                if (!Array.isArray(db[type])) db[type] = [];
-                populateSelect(type);
-                updateManageButtonState(type);
-            });
+                    const parsedData = JSON.parse(storedData);
+                    db = { ...defaultDb, ...parsedData };
+                    db.chatStyles = { ...defaultDb.chatStyles, ...parsedData.chatStyles };
+                    db.chatStyles.textStyles = { ...defaultDb.chatStyles.textStyles, ...(parsedData.chatStyles ? parsedData.chatStyles.textStyles : {}) };
+                } catch (e) { console.error("데이터 파싱 오류:", e); db = defaultDb; }
+            } else { db = defaultDb; }
+            
+            ['savedSerials', 'customFonts'].forEach(key => { if (!Array.isArray(db.chatStyles[key]) && !Array.isArray(db[key])) db[key] = defaultDb[key]; });
+            Object.keys(DATA_TYPES).forEach(type => { if (!Array.isArray(db[type])) db[type] = []; populateSelect(type); updateManageButtonState(type); });
+            
+            applyChatStyles();
             generateSerial();
         }
         
@@ -540,20 +758,17 @@
                 option.value = item.code;
                 
                 let displayText = `${item.name} (코드: ${item.code})`;
-                option.textContent = displayText;
-                if (item.memo) {
-                    option.title = item.memo;
+                if (item.memo && item.memo.trim()) {
+                    displayText += ` ${item.memo.trim()}`;
                 }
+                option.textContent = displayText;
+                if (item.memo) option.title = item.memo;
                 
                 selectEl.appendChild(option);
             });
             
             selectEl.value = selectedValue;
-
-            selectEl.onchange = () => {
-                generateSerial();
-                updateManageButtonState(type);
-            };
+            selectEl.onchange = () => { generateSerial(); updateManageButtonState(type); };
         }
 
         function updateManageButtonState(type) {
@@ -574,28 +789,28 @@
             const presetCode = document.getElementById('promptPreset-select').value;
             const seqCode = document.getElementById('sequence-input').value;
             
-            const titleArea = document.getElementById('serial-title-area');
+            const extraActions = document.getElementById('serial-extra-actions');
             const titleInput = document.getElementById('serial-title-input');
 
             if (datePart.length !== 8 || !charCode || !personaCode || !modelCode || !presetCode || !seqCode) {
                  document.getElementById('serial-result').value = "";
-                 titleArea.style.display = 'none';
+                 extraActions.style.display = 'none';
                  return;
             }
 
-            const serial = datePart +
-                toHex(charCode) + toHex(personaCode) +
-                toHex(modelCode) + toHex(presetCode) + toHex(seqCode);
-
+            const serial = datePart + toHex(charCode) + toHex(personaCode) + toHex(modelCode) + toHex(presetCode) + toHex(seqCode);
             document.getElementById('serial-result').value = serial;
             
             const saved = db.savedSerials.find(s => s.serial === serial);
             titleInput.value = saved ? saved.title : '';
-            titleArea.style.display = 'flex';
+            extraActions.style.display = 'flex';
         }
 
+        // ▼▼▼▼▼ 신규 기능: 조회 결과 창에 버튼 추가 로직 포함 ▼▼▼▼▼
         function lookupSerial(serial) {
             const resultEl = document.getElementById('lookup-result');
+            resultEl.innerHTML = '';
+
             if (!/^\d{8}[a-fA-F0-9]{10}$/.test(serial)) {
                 resultEl.innerHTML = '<p>18자리 형식(날짜8 + 코드10)에 맞는 일련번호를 입력해주세요.</p>';
                 return;
@@ -604,67 +819,138 @@
             try {
                 const date = `${serial.substring(0, 4)}-${serial.substring(4, 6)}-${serial.substring(6, 8)}`;
                 const codes = {
-                    character: fromHex(serial.substring(8, 10)),
-                    persona: fromHex(serial.substring(10, 12)),
-                    model: fromHex(serial.substring(12, 14)),
-                    promptPreset: fromHex(serial.substring(14, 16)),
+                    character: fromHex(serial.substring(8, 10)), persona: fromHex(serial.substring(10, 12)),
+                    model: fromHex(serial.substring(12, 14)), promptPreset: fromHex(serial.substring(14, 16)),
                     sequence: fromHex(serial.substring(16, 18))
                 };
+                const findItem = (type, code) => db[type].find(d => d.code === code) || { name: `알 수 없음 (코드: ${code})`, profilePic: null };
 
-                const findName = (type, code) => {
-                    const item = db[type].find(d => d.code === code);
-                    return item ? item.name : `알 수 없음 (코드: ${code})`;
-                };
+                const infoEl = document.createElement('div');
+                infoEl.id = 'lookup-result-info';
                 
                 const saved = db.savedSerials.find(s => s.serial === serial);
-                const titleHtml = saved ? `<div><strong>제목:</strong> <span>${saved.title}</span></div>` : '';
+                const titleHtml = saved?.title ? `<div><strong>제목:</strong> <span>${saved.title}</span></div>` : '';
                 
-                resultEl.innerHTML = `
+                infoEl.innerHTML = `
                     ${titleHtml}
                     <div><strong>날짜:</strong> <span>${date}</span></div>
-                    <div><strong>캐릭터:</strong> <span>${findName('character', codes.character)}</span></div>
-                    <div><strong>페르소나:</strong> <span>${findName('persona', codes.persona)}</span></div>
-                    <div><strong>모델:</strong> <span>${findName('model', codes.model)}</span></div>
-                    <div><strong>프리셋:</strong> <span>${findName('promptPreset', codes.promptPreset)}</span></div>
+                    <div><strong>캐릭터:</strong> <span>${findItem('character', codes.character).name}</span></div>
+                    <div><strong>페르소나:</strong> <span>${findItem('persona', codes.persona).name}</span></div>
+                    <div><strong>모델:</strong> <span>${findItem('model', codes.model).name}</span></div>
+                    <div><strong>프롬프트 프리셋:</strong> <span>${findItem('promptPreset', codes.promptPreset).name}</span></div>
                     <div><strong>순번:</strong> <span>${codes.sequence}</span></div>
                 `;
-            } catch (e) {
-                 resultEl.innerHTML = '<p>유효하지 않은 일련번호 형식입니다.</p>';
-            }
+                resultEl.appendChild(infoEl);
+
+                const hasLog = saved && saved.chatLog && saved.chatLog.length > 0;
+                
+                if (hasLog) {
+                    const viewerEl = document.createElement('div');
+                    viewerEl.id = 'chat-log-viewer';
+                    
+                    const charInfo = findItem('character', codes.character);
+                    const personaInfo = findItem('persona', codes.persona);
+
+                    const messageGroups = [];
+                    if (saved.chatLog.length > 0) {
+                        let currentGroup = { role: saved.chatLog[0].role, texts: [saved.chatLog[0].text] };
+                        for (let i = 1; i < saved.chatLog.length; i++) {
+                            const log = saved.chatLog[i];
+                            if (log.role === currentGroup.role) {
+                                currentGroup.texts.push(log.text);
+                            } else {
+                                messageGroups.push(currentGroup);
+                                currentGroup = { role: log.role, texts: [log.text] };
+                            }
+                        }
+                        messageGroups.push(currentGroup);
+                    }
+
+                    messageGroups.forEach(group => {
+                        const info = group.role === 'character' ? charInfo : personaInfo;
+                        const groupContainer = document.createElement('div');
+                        groupContainer.className = `chat-message-group ${group.role}`;
+
+                        const avatarHtml = `<img src="${info.profilePic || 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'}" class="chat-avatar">`;
+                        
+                        const bubblesContainer = document.createElement('div');
+                        bubblesContainer.className = 'bubbles-container';
+                        bubblesContainer.innerHTML = group.texts.map(text => 
+                            `<div class="chat-bubble">${formatChatMessage(text)}</div>`
+                        ).join('');
+
+                        groupContainer.innerHTML = avatarHtml;
+                        groupContainer.appendChild(bubblesContainer);
+                        viewerEl.appendChild(groupContainer);
+                    });
+                    resultEl.appendChild(viewerEl);
+                }
+
+                const lookupActionsEl = document.createElement('div');
+                lookupActionsEl.id = 'lookup-actions';
+                
+                const actionButton = document.createElement('button');
+                actionButton.textContent = hasLog ? '이 채팅 수정하기' : '이 채팅에 로그 저장하기';
+                actionButton.className = hasLog ? 'secondary' : 'button-like';
+                actionButton.onclick = () => openChatLogModal(serial);
+                
+                lookupActionsEl.appendChild(actionButton);
+                resultEl.appendChild(lookupActionsEl);
+
+            } catch (e) { resultEl.innerHTML = '<p>유효하지 않은 일련번호 형식입니다.</p>'; }
+        }
+
+        function formatChatMessage(text) {
+            if (!text) return '';
+            const { hideAsterisks } = db.chatStyles;
+            const escapedText = text.replace(/</g, "<").replace(/>/g, ">");
+            const fragments = escapedText.split(/(\*.*?\*|"[^"]*"|'[^']*')/g).filter(Boolean);
+            return fragments.map(frag => {
+                if (frag.startsWith('*') && frag.endsWith('*')) {
+                    return `<span class="chat-text-asterisk">${hideAsterisks ? frag.slice(1, -1) : frag}</span>`;
+                }
+                if (frag.startsWith('"') && frag.endsWith('"')) {
+                    return `<span class="chat-text-doubleQuote">${frag}</span>`;
+                }
+                if (frag.startsWith("'") && frag.endsWith("'")) {
+                    return `<span class="chat-text-singleQuote">${frag}</span>`;
+                }
+                return `<span class="chat-text-normal">${frag}</span>`;
+            }).join('');
         }
         
-        function copySerial() {
-            const serialInput = document.getElementById('serial-result');
-            if (!serialInput.value) return;
-            navigator.clipboard.writeText(serialInput.value).then(() => {
-                const copyButton = document.getElementById('copy-button');
-                const originalText = copyButton.textContent;
-                copyButton.textContent = '복사 완료!';
-                setTimeout(() => { copyButton.textContent = originalText; }, 1500);
+        function copySerial(serial, buttonElement) {
+            const serialToCopy = serial || document.getElementById('serial-result').value;
+            if (!serialToCopy) return;
+            navigator.clipboard.writeText(serialToCopy).then(() => {
+                const btn = buttonElement || document.getElementById('copy-button');
+                const originalText = btn.textContent;
+                btn.textContent = '복사 완료!';
+                btn.disabled = true;
+                setTimeout(() => { btn.textContent = originalText; btn.disabled = false; }, 1500);
             });
         }
         
         function manageSelectedItem(type) {
             const selectEl = document.getElementById(DATA_TYPES[type].el);
             const selectedCode = parseInt(selectEl.value, 10);
-            
             if (isNaN(selectedCode)) return;
-
             const itemIndex = db[type].findIndex(item => item.code === selectedCode);
-
-            if (itemIndex > -1) {
-                openModal(type, itemIndex);
-            }
+            if (itemIndex > -1) openModal(type, itemIndex);
         }
         
         function openModal(type, index = null) {
-            currentEditInfo = { type, index };
+            currentEditInfo = { type, index, profilePic: null };
             const modal = document.getElementById('add-modal');
             const title = document.getElementById('modal-title');
             const nameInput = document.getElementById('modal-name');
             const memoInput = document.getElementById('modal-memo');
             const codeInput = document.getElementById('modal-code');
             const autoButton = codeInput.nextElementSibling;
+            const profilePicSection = document.getElementById('profile-pic-section');
+            const picPreview = document.getElementById('modal-profile-pic-preview');
+
+            profilePicSection.style.display = (type === 'character' || type === 'persona') ? 'block' : 'none';
             
             const typeName = DATA_TYPES[type].name;
             if (index !== null) {
@@ -675,27 +961,25 @@
                 codeInput.value = item.code;
                 codeInput.readOnly = true;
                 autoButton.style.display = 'none';
+                currentEditInfo.profilePic = item.profilePic || null;
+                picPreview.src = item.profilePic || 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
             } else {
                 title.textContent = `${typeName} 추가`;
-                nameInput.value = '';
-                memoInput.value = '';
-                codeInput.value = '';
+                nameInput.value = ''; memoInput.value = ''; codeInput.value = '';
                 codeInput.readOnly = false;
                 autoButton.style.display = 'block';
+                picPreview.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
             }
+            document.getElementById('modal-profile-pic-input').value = '';
             modal.style.display = 'flex';
         }
         
         function closeModal() {
-            document.getElementById('add-modal').style.display = 'none';
-            document.getElementById('delete-modal').style.display = 'none';
-            document.getElementById('title-manager-modal').style.display = 'none';
+            document.querySelectorAll('.modal-overlay').forEach(m => m.style.display = 'none');
         }
 
         function closeModalOnClick(event) {
-            if (event.target.classList.contains('modal-overlay')) {
-                closeModal();
-            }
+            if (event.target.classList.contains('modal-overlay')) closeModal();
         }
         
         function saveItem() {
@@ -703,25 +987,20 @@
             const name = document.getElementById('modal-name').value.trim();
             const memo = document.getElementById('modal-memo').value.trim();
             const code = parseInt(document.getElementById('modal-code').value, 10);
+            const profilePic = currentEditInfo.profilePic;
 
-            if (!name) {
-                alert('이름을 입력해주세요.');
-                return;
-            }
+            if (!name) return alert('이름을 입력해주세요.');
             
+            const newItem = { name, memo, code, profilePic };
+
             if (index === null) { 
-                 if (isNaN(code) || code < 0 || code > 255) {
-                    alert('코드(0-255)를 올바르게 입력해주세요.');
-                    return;
-                }
-                if (db[type].some(item => item.code === code)) {
-                    alert('이미 사용 중인 코드입니다. 다른 코드를 입력해주세요.');
-                    return;
-                }
-                db[type].push({ name, memo, code });
+                 if (isNaN(code) || code < 0 || code > 255) return alert('코드(0-255)를 올바르게 입력해주세요.');
+                if (db[type].some(item => item.code === code)) return alert('이미 사용 중인 코드입니다.');
+                db[type].push(newItem);
             } else {
                 db[type][index].name = name;
                 db[type][index].memo = memo;
+                db[type][index].profilePic = profilePic;
             }
             
             saveData();
@@ -734,28 +1013,246 @@
         function autoSetCode() {
             const { type } = currentEditInfo;
             if (!type) return;
-
             const usedCodes = new Set(db[type].map(item => item.code));
             let nextCode = 0;
-            while (usedCodes.has(nextCode)) {
-                nextCode++;
-            }
-
-            if (nextCode > 255) {
-                alert('사용 가능한 코드가 없습니다 (0-255).');
-                return;
-            }
-
+            while (usedCodes.has(nextCode)) nextCode++;
+            if (nextCode > 255) return alert('사용 가능한 코드가 없습니다 (0-255).');
             document.getElementById('modal-code').value = nextCode;
         }
 
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = e => {
+                currentEditInfo.profilePic = e.target.result;
+                document.getElementById('modal-profile-pic-preview').src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function removeProfilePic() {
+            currentEditInfo.profilePic = null;
+            document.getElementById('modal-profile-pic-preview').src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+            document.getElementById('modal-profile-pic-input').value = '';
+        }
+
+        // --- 제목 및 채팅 로그 관련 기능 ---
+        function saveSerialTitle() {
+            const serial = document.getElementById('serial-result').value;
+            const title = document.getElementById('serial-title-input').value.trim();
+            if (!serial) return;
+            let saved = db.savedSerials.find(s => s.serial === serial);
+
+            if (title) {
+                if (saved) saved.title = title;
+                else db.savedSerials.push({ serial, title, chatLog: [] });
+            } else {
+                if (saved) {
+                    saved.title = '';
+                    if (!saved.chatLog || saved.chatLog.length === 0) {
+                        db.savedSerials = db.savedSerials.filter(s => s.serial !== serial);
+                    }
+                }
+            }
+            saveData();
+            const saveButton = document.getElementById('save-title-button');
+            const originalText = saveButton.textContent;
+            saveButton.textContent = '저장됨!';
+            setTimeout(() => { saveButton.textContent = originalText; }, 1500);
+            if (document.getElementById('lookup-input').value === serial) lookupSerial(serial);
+        }
+
+        function openChatLogModal(serial) {
+            const serialToEdit = serial || document.getElementById('serial-result').value;
+            if (!serialToEdit) return;
+            
+            closeModal();
+            currentChatLogSerial = serialToEdit;
+
+            document.getElementById('chat-log-modal-title').textContent = `채팅 기록 (${serialToEdit})`;
+            const editor = document.getElementById('chat-log-editor');
+            editor.innerHTML = '';
+            
+            const saved = db.savedSerials.find(s => s.serial === serialToEdit);
+            if(saved?.chatLog) {
+                saved.chatLog.forEach(log => addChatLogEntry(log.role, log.text));
+            }
+            document.getElementById('regex-in').value = '';
+            document.getElementById('regex-out').value = '';
+            
+            editor.addEventListener('dragover', handleDragOver);
+
+            document.getElementById('chat-log-modal').style.display = 'flex';
+        }
+
+        function addChatLogEntry(role = 'character', text = '') {
+            const editor = document.getElementById('chat-log-editor');
+            const entryEl = document.createElement('div');
+            entryEl.className = 'chat-log-entry';
+            entryEl.draggable = true;
+            entryEl.innerHTML = `
+                <div class="controls">
+                    <select class="chat-log-role">
+                        <option value="character" ${role === 'character' ? 'selected' : ''}>캐릭터</option>
+                        <option value="persona" ${role === 'persona' ? 'selected' : ''}>페르소나</option>
+                    </select>
+                    <button class="danger" onclick="this.parentElement.parentElement.remove()">삭제</button>
+                </div>
+                <textarea class="chat-log-text" placeholder="대화 내용을 입력하세요...">${text}</textarea>`;
+            
+            entryEl.addEventListener('dragstart', () => entryEl.classList.add('dragging'));
+            entryEl.addEventListener('dragend', () => entryEl.classList.remove('dragging'));
+
+            editor.appendChild(entryEl);
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            const editor = document.getElementById('chat-log-editor');
+            const draggingEl = editor.querySelector('.dragging');
+            if (!draggingEl) return;
+            const afterElement = getDragAfterElement(editor, e.clientY);
+            if (afterElement == null) {
+                editor.appendChild(draggingEl);
+            } else {
+                editor.insertBefore(draggingEl, afterElement);
+            }
+        }
+
+        function getDragAfterElement(container, y) {
+            const draggableElements = [...container.querySelectorAll('.chat-log-entry:not(.dragging)')];
+            return draggableElements.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = y - box.top - box.height / 2;
+                if (offset < 0 && offset > closest.offset) {
+                    return { offset: offset, element: child };
+                } else {
+                    return closest;
+                }
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
+        }
+
+        function applyRegexReplace() {
+            const pattern = document.getElementById('regex-in').value;
+            const replacement = document.getElementById('regex-out').value;
+            if (!pattern) return alert('IN 필드에 찾을 정규식 패턴을 입력하세요.');
+            try {
+                const regex = new RegExp(pattern, 'gm');
+                if (!confirm("현재 열려있는 모든 대화창에 정규식 수정을 적용하시겠습니까?\n이 작업은 되돌릴 수 없습니다.")) return;
+                document.querySelectorAll('#chat-log-editor .chat-log-text').forEach(ta => {
+                    ta.value = ta.value.replace(regex, replacement);
+                });
+            } catch (e) {
+                alert(`유효하지 않은 정규식입니다:\n${e.message}`);
+            }
+        }
+
+        function saveChatLog() {
+            if (!currentChatLogSerial) return;
+            const entries = document.querySelectorAll('.chat-log-entry');
+            const newChatLog = Array.from(entries).map(entry => ({
+                role: entry.querySelector('.chat-log-role').value,
+                text: entry.querySelector('.chat-log-text').value
+            }));
+
+            let saved = db.savedSerials.find(s => s.serial === currentChatLogSerial);
+            if (saved) {
+                saved.chatLog = newChatLog;
+                 if (!saved.title && (!newChatLog || newChatLog.length === 0)) {
+                    db.savedSerials = db.savedSerials.filter(s => s.serial !== currentChatLogSerial);
+                }
+            } else {
+                if(newChatLog.length > 0) {
+                     db.savedSerials.push({ serial: currentChatLogSerial, title: '', chatLog: newChatLog });
+                }
+            }
+            saveData();
+            closeModal();
+            if(document.getElementById('lookup-input').value === currentChatLogSerial) lookupSerial(currentChatLogSerial);
+            if(document.getElementById('serial-manager-modal').style.display === 'flex') populateSerialManagerList();
+        }
+        
+        // --- 스타일 설정 모달 관련 기능 ---
+        function openStyleSettingsModal() {
+            const styles = db.chatStyles;
+            document.getElementById('style-char-bubble-color').value = styles.characterBubbleColor;
+            document.getElementById('style-persona-bubble-color').value = styles.personaBubbleColor;
+            document.getElementById('style-bg-color').value = styles.backgroundColor;
+            document.getElementById('style-bubble-radius').value = styles.bubbleRadius;
+
+            const textStyleContainer = document.getElementById('text-style-settings');
+            textStyleContainer.innerHTML = '';
+            const textStyleTypes = { normal: '일반', doubleQuote: '큰따옴표("")', singleQuote: "작은따옴표('')", asterisk: '별표(*)' };
+            const availableFonts = ['inherit', 'serif', 'sans-serif', 'monospace', ...styles.customFonts.map(f => f.name)];
+
+            Object.entries(textStyleTypes).forEach(([key, name]) => {
+                const s = styles.textStyles[key];
+                const el = document.createElement('div');
+                el.className = 'style-section';
+                el.innerHTML = `<h4>${name}</h4><div class="style-grid"><div class="style-control"><label>폰트</label><select id="style-text-${key}-font">${availableFonts.map(f => `<option value="${f}" ${s.font === f ? 'selected' : ''}>${f}</option>`).join('')}</select></div><div class="style-control"><label>크기(px)</label><input type="number" id="style-text-${key}-size" value="${s.size}"></div><div class="style-control"><label>색상</label><input type="color" id="style-text-${key}-color" value="${s.color}"></div><div class="style-control"><label>옵션</label><div class="style-control-inline"><input type="checkbox" id="style-text-${key}-italic" ${s.italic ? 'checked' : ''}><label for="style-text-${key}-italic">기울임</label><input type="checkbox" id="style-text-${key}-underline" ${s.underline ? 'checked' : ''}><label for="style-text-${key}-underline">밑줄</label></div></div></div>`;
+                textStyleContainer.appendChild(el);
+            });
+            document.getElementById('style-hide-asterisks').checked = styles.hideAsterisks;
+
+            const fontList = document.getElementById('custom-fonts-list');
+            fontList.innerHTML = '';
+            styles.customFonts.forEach(font => addCustomFontInput(font.rule));
+            document.getElementById('style-settings-modal').style.display = 'flex';
+        }
+        function addCustomFontInput(rule = '') {
+            const list = document.getElementById('custom-fonts-list');
+            const entry = document.createElement('div');
+            entry.className = 'custom-font-entry';
+            entry.innerHTML = `<textarea class="custom-font-rule" placeholder="@font-face { ... }">${rule}</textarea><button class="danger" onclick="this.parentElement.remove()">X</button>`;
+            list.appendChild(entry);
+        }
+        function saveChatStyles() {
+            const styles = db.chatStyles;
+            styles.characterBubbleColor = document.getElementById('style-char-bubble-color').value;
+            styles.personaBubbleColor = document.getElementById('style-persona-bubble-color').value;
+            styles.backgroundColor = document.getElementById('style-bg-color').value;
+            styles.bubbleRadius = document.getElementById('style-bubble-radius').value;
+            Object.keys(styles.textStyles).forEach(key => {
+                styles.textStyles[key] = {
+                    font: document.getElementById(`style-text-${key}-font`).value, size: document.getElementById(`style-text-${key}-size`).value,
+                    color: document.getElementById(`style-text-${key}-color`).value, italic: document.getElementById(`style-text-${key}-italic`).checked,
+                    underline: document.getElementById(`style-text-${key}-underline`).checked,
+                };
+            });
+            styles.hideAsterisks = document.getElementById('style-hide-asterisks').checked;
+            styles.customFonts = [];
+            document.querySelectorAll('.custom-font-rule').forEach(ta => {
+                const rule = ta.value.trim();
+                if(rule) {
+                    const match = rule.match(/font-family:\s*['"]?(.*?)['"]?;/);
+                    styles.customFonts.push({ name: match ? match[1] : 'Unknown Font', rule });
+                }
+            });
+            saveData();
+            applyChatStyles();
+            closeModal();
+            const currentLookup = document.getElementById('lookup-input').value;
+            if(currentLookup) lookupSerial(currentLookup);
+        }
+        function applyChatStyles() {
+            const styles = db.chatStyles;
+            const styleEl = document.getElementById('dynamic-chat-styles');
+            let css = `${styles.customFonts.map(f => f.rule).join('\n')}\n`;
+            css += `#chat-log-viewer { background-color: ${styles.backgroundColor}; } .chat-message-group.character .chat-bubble { background-color: ${styles.characterBubbleColor}; } .chat-message-group.persona .chat-bubble { background-color: ${styles.personaBubbleColor}; } .chat-bubble { border-radius: ${styles.bubbleRadius}px; }`;
+            Object.entries(styles.textStyles).forEach(([key, s]) => {
+                css += `.chat-text-${key} { font-family: ${s.font}, var(--font-family); font-size: ${s.size}px; color: ${s.color}; font-style: ${s.italic ? 'italic' : 'normal'}; text-decoration: ${s.underline ? 'underline' : 'none'}; }`;
+            });
+            styleEl.textContent = css;
+        }
+
+        // --- 데이터 관리 기능들 ---
         function openDeleteModal() {
             const modal = document.getElementById('delete-modal');
             setupDeleteTabs();
             populateDeleteList(currentDeleteTab);
             modal.style.display = 'flex';
         }
-
         function setupDeleteTabs() {
             const tabsContainer = document.getElementById('delete-tabs');
             tabsContainer.innerHTML = '';
@@ -764,49 +1261,27 @@
                 button.textContent = DATA_TYPES[type].name;
                 button.className = 'secondary';
                 if(type === currentDeleteTab) button.classList.add('active');
-                button.onclick = () => {
-                    currentDeleteTab = type;
-                    setupDeleteTabs();
-                    populateDeleteList(type);
-                };
+                button.onclick = () => { currentDeleteTab = type; setupDeleteTabs(); populateDeleteList(type); };
                 tabsContainer.appendChild(button);
             });
         }
-        
         function populateDeleteList(type) {
             const listContainer = document.getElementById('delete-data-list');
-            listContainer.innerHTML = '';
-
-            if (db[type].length === 0) {
-                listContainer.innerHTML = '<p>삭제할 데이터가 없습니다.</p>';
-                return;
+            listContainer.innerHTML = db[type].length === 0 ? '<p>삭제할 데이터가 없습니다.</p>' : '';
+            if (db[type].length > 0) {
+                 [...db[type]].sort((a,b) => a.name.localeCompare(b.name)).forEach((item) => {
+                    const label = document.createElement('label');
+                    label.innerHTML = `<input type="checkbox" value="${item.code}"><span>${item.name} (코드: ${item.code})</span>`;
+                    listContainer.appendChild(label);
+                });
             }
-            const sortedData = [...db[type]].sort((a,b) => a.name.localeCompare(b.name));
-
-            sortedData.forEach((item, index) => {
-                const label = document.createElement('label');
-                label.innerHTML = `
-                    <input type="checkbox" value="${item.code}">
-                    <span>${item.name} (코드: ${item.code})</span>
-                `;
-                listContainer.appendChild(label);
-            });
         }
-        
         function deleteSelectedItems() {
             const checkboxes = document.querySelectorAll('#delete-data-list input[type="checkbox"]:checked');
-            if (checkboxes.length === 0) {
-                alert('삭제할 항목을 선택해주세요.');
-                return;
-            }
-            
-            if (!confirm(`선택한 ${checkboxes.length}개의 항목을 정말 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`)) {
-                return;
-            }
-            
+            if (checkboxes.length === 0) return alert('삭제할 항목을 선택해주세요.');
+            if (!confirm(`선택한 ${checkboxes.length}개의 항목을 정말 삭제하시겠습니까?`)) return;
             const codesToDelete = Array.from(checkboxes).map(cb => parseInt(cb.value, 10));
             db[currentDeleteTab] = db[currentDeleteTab].filter(item => !codesToDelete.includes(item.code));
-
             saveData();
             populateSelect(currentDeleteTab);
             updateManageButtonState(currentDeleteTab);
@@ -814,209 +1289,85 @@
             generateSerial();
         }
 
+        // --- 저장된 일련번호 관리 ---
+        function openSerialManagerModal() {
+            populateSerialManagerList();
+            document.getElementById('serial-manager-modal').style.display = 'flex';
+        }
+        function populateSerialManagerList() {
+            const listContainer = document.getElementById('serial-manager-list');
+            listContainer.innerHTML = '';
+            document.getElementById('serial-manager-select-all').checked = false;
+
+            if (db.savedSerials.length === 0) {
+                listContainer.innerHTML = '<p>저장된 일련번호가 없습니다.</p>';
+                return;
+            }
+            const sortedSerials = [...db.savedSerials].sort((a, b) => b.serial.localeCompare(a.serial));
+
+            sortedSerials.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'serial-manager-item';
+                const hasChatLog = item.chatLog && item.chatLog.length > 0;
+                div.innerHTML = `
+                    <input type="checkbox" value="${item.serial}" class="serial-manager-checkbox">
+                    <div class="serial-manager-item-content">
+                        <div class="serial-text">${item.serial}</div>
+                        ${item.title ? `<div class="title-text">${item.title}</div>` : ''}
+                    </div>
+                    <div class="button-group">
+                        <button class="secondary" onclick="copySerial('${item.serial}', this)">복사</button>
+                        ${hasChatLog ? `<button class="secondary" onclick="openChatLogModal('${item.serial}')">로그 수정</button>` : ''}
+                        <button class="danger" onclick="deleteSingleSavedSerial('${item.serial}')">삭제</button>
+                    </div>`;
+                listContainer.appendChild(div);
+            });
+        }
+        function deleteSingleSavedSerial(serial) {
+            if (!confirm(`'${serial}'에 대한 모든 데이터(제목, 채팅 로그)를 정말 삭제하시겠습니까?`)) return;
+            db.savedSerials = db.savedSerials.filter(s => s.serial !== serial);
+            saveData();
+            populateSerialManagerList();
+        }
+        function toggleSelectAllSerials(checkbox) {
+            document.querySelectorAll('.serial-manager-checkbox').forEach(cb => cb.checked = checkbox.checked);
+        }
+        function deleteSelectedSerials() {
+            const checkboxes = document.querySelectorAll('.serial-manager-checkbox:checked');
+            if (checkboxes.length === 0) return alert('삭제할 일련번호를 선택해주세요.');
+            if (!confirm(`선택한 ${checkboxes.length}개의 일련번호를 정말 삭제하시겠습니까?`)) return;
+            
+            const serialsToDelete = new Set(Array.from(checkboxes).map(cb => cb.value));
+            db.savedSerials = db.savedSerials.filter(s => !serialsToDelete.has(s.serial));
+            saveData();
+            populateSerialManagerList();
+        }
+
         function exportData() {
             const dataStr = JSON.stringify(db, null, 2);
             const blob = new Blob([dataStr], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
-            a.href = url;
-            const a_date = new Date();
-            const a_YYYY = a_date.getFullYear();
-            const a_MM = String(a_date.getMonth() + 1).padStart(2,'0');
-            const a_DD = String(a_date.getDate()).padStart(2,'0');
-            const a_hh = String(a_date.getHours()).padStart(2,'0');
-            const a_mm = String(a_date.getMinutes()).padStart(2,'0');
-            const a_ss = String(a_date.getSeconds()).padStart(2,'0');
-            a.download = `serial-number-data-${a_YYYY}${a_MM}${a_DD}_${a_hh}${a_mm}${a_ss}.json`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
+            const dt = new Date();
+            const filename = `serial-log-data-${dt.getFullYear()}${(dt.getMonth()+1).toString().padStart(2,'0')}${dt.getDate().toString().padStart(2,'0')}_${dt.getHours().toString().padStart(2,'0')}${dt.getMinutes().toString().padStart(2,'0')}${dt.getSeconds().toString().padStart(2,'0')}.json`;
+            a.href = url; a.download = filename; a.click(); URL.revokeObjectURL(url);
         }
-
         function importData(event) {
             const file = event.target.files[0];
             if (!file) return;
-            
             const reader = new FileReader();
             reader.onload = function(e) {
                 try {
-                    const importedDb = JSON.parse(e.target.result);
-                    const isValidFormat = Object.keys(DATA_TYPES).every(type => Array.isArray(importedDb[type])) && Array.isArray(importedDb.savedSerials);
-
-                    if (isValidFormat) {
-                        if (confirm('현재 데이터를 덮어쓰고 가져온 데이터로 교체하시겠습니까?')) {
-                            db = importedDb;
-                            saveData();
-                            loadData();
-                            alert('데이터를 성공적으로 가져왔습니다.');
-                        }
-                    } else {
-                        alert('파일 형식이 올바르지 않습니다.');
+                    if (confirm('현재 데이터를 덮어쓰고 가져온 데이터로 교체하시겠습니까?')) {
+                        localStorage.setItem('serialNumberDB_v2', e.target.result);
+                        loadData();
+                        alert('데이터를 성공적으로 가져왔습니다.');
                     }
-                } catch (error) {
-                    alert('파일을 읽는 중 오류가 발생했습니다.');
-                } finally {
-                    event.target.value = '';
-                }
+                } catch (error) { alert('파일을 읽는 중 오류가 발생했습니다.');
+                } finally { event.target.value = ''; }
             };
             reader.readAsText(file);
         }
-
-        // --- 제목 관련 기능들 ---
-        
-        function saveSerialTitle() {
-            const serial = document.getElementById('serial-result').value;
-            const title = document.getElementById('serial-title-input').value.trim();
-            const saveButton = document.getElementById('save-title-button');
-
-            if (!serial) return;
-
-            const existingIndex = db.savedSerials.findIndex(s => s.serial === serial);
-
-            if (title) {
-                if (existingIndex > -1) {
-                    db.savedSerials[existingIndex].title = title;
-                } else {
-                    db.savedSerials.push({ serial, title });
-                }
-            } else {
-                if (existingIndex > -1) {
-                    db.savedSerials.splice(existingIndex, 1);
-                }
-            }
-
-            saveData();
-            
-            const originalText = saveButton.textContent;
-            saveButton.textContent = '저장됨!';
-            setTimeout(() => { saveButton.textContent = originalText; }, 1500);
-            
-            if (document.getElementById('lookup-input').value === serial) {
-                lookupSerial(serial);
-            }
-        }
-
-        function openTitleManagerModal() {
-            document.getElementById('title-manager-modal').style.display = 'flex';
-            populateTitleManagerList();
-        }
-
-        // ▼▼▼▼▼ 수정됨: 복사 버튼 추가 ▼▼▼▼▼
-        function populateTitleManagerList() {
-            const listContainer = document.getElementById('title-manager-list');
-            listContainer.innerHTML = '';
-
-            if (db.savedSerials.length === 0) {
-                listContainer.innerHTML = '<p>저장된 제목이 없습니다.</p>';
-                return;
-            }
-
-            const sortedSerials = [...db.savedSerials].sort((a,b) => b.serial.localeCompare(a.serial));
-
-            sortedSerials.forEach(item => {
-                const div = document.createElement('div');
-                div.className = 'title-manager-item';
-                div.dataset.serial = item.serial;
-
-                div.innerHTML = `
-                    <div class="title-manager-item-content">
-                        <span class="title-text">${item.title}</span>
-                        <div class="serial-text">${item.serial}</div>
-                    </div>
-                    <div class="button-group">
-                        <button class="secondary" onclick="copySerialFromManager('${item.serial}', this)">복사</button>
-                        <button class="secondary" onclick="editSavedTitleEntry('${item.serial}')">수정</button>
-                        <button class="danger" onclick="deleteSavedTitleEntry('${item.serial}')">삭제</button>
-                    </div>
-                `;
-                listContainer.appendChild(div);
-            });
-        }
-        
-        // ▼▼▼▼▼ 신규 함수: 제목 관리창에서 일련번호 복사 ▼▼▼▼▼
-        function copySerialFromManager(serial, buttonElement) {
-            if (!serial || !buttonElement) return;
-            navigator.clipboard.writeText(serial).then(() => {
-                const originalText = buttonElement.textContent;
-                buttonElement.textContent = '복사됨!';
-                buttonElement.disabled = true;
-                setTimeout(() => {
-                    buttonElement.textContent = originalText;
-                    buttonElement.disabled = false;
-                }, 1500);
-            });
-        }
-        
-        function editSavedTitleEntry(serial) {
-            const itemEl = document.querySelector(`.title-manager-item[data-serial="${serial}"]`);
-            if (!itemEl) return;
-
-            const contentEl = itemEl.querySelector('.title-manager-item-content');
-            const titleTextEl = contentEl.querySelector('.title-text');
-            const currentTitle = titleTextEl.textContent;
-
-            contentEl.innerHTML = `
-                <input type="text" class="title-edit-input" value="${currentTitle}">
-                <div class="serial-text">${serial}</div>
-            `;
-            
-            const buttonGroup = itemEl.querySelector('.button-group');
-            // 편집 모드에서는 '저장', '취소' 버튼만 표시
-            buttonGroup.innerHTML = `
-                <button onclick="saveSavedTitleEntry('${serial}')">저장</button>
-                <button class="secondary" onclick="cancelEditSavedTitleEntry('${serial}', '${currentTitle}')">취소</button>
-            `;
-            
-            contentEl.querySelector('input').focus();
-        }
-
-        function saveSavedTitleEntry(serial) {
-             const itemEl = document.querySelector(`.title-manager-item[data-serial="${serial}"]`);
-             if (!itemEl) return;
-
-             const newTitle = itemEl.querySelector('.title-edit-input').value.trim();
-             const index = db.savedSerials.findIndex(s => s.serial === serial);
-
-             if (index > -1) {
-                 if(newTitle) {
-                    db.savedSerials[index].title = newTitle;
-                 } else {
-                    db.savedSerials.splice(index, 1);
-                 }
-                 saveData();
-             }
-             populateTitleManagerList();
-        }
-        
-        // ▼▼▼▼▼ 수정됨: 취소 시 복사 버튼도 다시 생성 ▼▼▼▼▼
-        function cancelEditSavedTitleEntry(serial, originalTitle) {
-            const itemEl = document.querySelector(`.title-manager-item[data-serial="${serial}"]`);
-            if (!itemEl) return;
-
-            const contentEl = itemEl.querySelector('.title-manager-item-content');
-            contentEl.innerHTML = `
-                <span class="title-text">${originalTitle}</span>
-                <div class="serial-text">${serial}</div>
-            `;
-
-            const buttonGroup = itemEl.querySelector('.button-group');
-            buttonGroup.innerHTML = `
-                <button class="secondary" onclick="copySerialFromManager('${serial}', this)">복사</button>
-                <button class="secondary" onclick="editSavedTitleEntry('${serial}')">수정</button>
-                <button class="danger" onclick="deleteSavedTitleEntry('${serial}')">삭제</button>
-            `;
-        }
-
-        function deleteSavedTitleEntry(serial) {
-            if (!confirm(`'${serial}'에 연결된 제목을 정말 삭제하시겠습니까?`)) {
-                return;
-            }
-            db.savedSerials = db.savedSerials.filter(s => s.serial !== serial);
-            saveData();
-            populateTitleManagerList();
-        }
-
 
         document.addEventListener('DOMContentLoaded', () => {
             const today = new Date();
@@ -1024,10 +1375,9 @@
             document.getElementById('month').value = String(today.getMonth() + 1).padStart(2, '0');
             document.getElementById('day').value = String(today.getDate()).padStart(2, '0');
             
-            document.getElementById('year').oninput = generateSerial;
-            document.getElementById('month').oninput = generateSerial;
-            document.getElementById('day').oninput = generateSerial;
-            document.getElementById('sequence-input').oninput = generateSerial;
+            ['year', 'month', 'day', 'sequence-input'].forEach(id => {
+                document.getElementById(id).oninput = generateSerial;
+            });
             
             loadData();
         });
