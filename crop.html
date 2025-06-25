@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>이미지 크롭 도구</title>
+    <style>
+        :root {
+            --primary-bg: #2d2d30;
+            --secondary-bg: #1e1e1e;
+            --text-color: #f1f1f1;
+            --accent-color: #007acc;
+            --border-color: #444;
+            --disabled-color: #555;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Malgun Gothic", "Segoe UI", Roboto, Oxygen,
+                Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+            background-color: var(--secondary-bg);
+            color: var(--text-color);
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .controls {
+            width: 320px;
+            background-color: var(--primary-bg);
+            padding: 20px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+            overflow-y: auto;
+        }
+
+        .controls-section {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px;
+            transition: opacity 0.3s ease;
+        }
+
+        .controls-section.disabled {
+            opacity: 0.4;
+            pointer-events: none;
+        }
+
+        h1, h2 {
+            margin-top: 0;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+
+        h1 { font-size: 1.5em; }
+        h2 { font-size: 1.1em; }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.9em;
+            color: #ccc;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .file-label {
+            display: block;
+            padding: 12px;
+            background-color: var(--accent-color);
+            color: white;
+            text-align: center;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .file-label:hover {
+            background-color: #005a9e;
+        }
+
+        .paste-info {
+            font-size: 0.8em;
+            text-align: center;
+            color: #aaa;
+            margin-top: 10px;
+        }
+
+        .coord-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        
+        input[type="number"], input[type="text"], select {
+            width: 100%;
+            padding: 8px;
+            background-color: var(--secondary-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #3e3e42;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: #5a5a5e;
+        }
+
+        .save-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .save-buttons button.primary {
+            background-color: #007a4a;
+        }
+        .save-buttons button.primary:hover {
+            background-color: #005c38;
+        }
+
+        .workspace {
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            position: relative;
+        }
+
+        #imageContainer {
+            position: relative;
+            max-width: 100%;
+            max-height: 100%;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+        }
+        
+        #imagePlaceholder {
+            width: 60vw;
+            height: 60vh;
+            border: 3px dashed var(--border-color);
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            color: #777;
+            font-size: 1.2em;
+        }
+
+        #sourceImage {
+            max-width: 100%;
+            max-height: calc(100vh - 40px);
+            display: block;
+            user-select: none;
+            -webkit-user-drag: none;
+        }
+
+        #cropBox {
+            position: absolute;
+            box-sizing: border-box;
+            border: 2px dashed rgba(255, 255, 255, 0.8);
+            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+            cursor: move;
+            display: none;
+        }
+
+        .resize-handle {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: rgba(255, 255, 255, 0.9);
+            border: 1px solid #333;
+            border-radius: 50%;
+        }
+
+        .tl { top: -5px; left: -5px; cursor: nwse-resize; }
+        .tm { top: -5px; left: 50%; transform: translateX(-50%); cursor: ns-resize; }
+        .tr { top: -5px; right: -5px; cursor: nesw-resize; }
+        .ml { top: 50%; left: -5px; transform: translateY(-50%); cursor: ew-resize; }
+        .mr { top: 50%; right: -5px; transform: translateY(-50%); cursor: ew-resize; }
+        .bl { bottom: -5px; left: -5px; cursor: nesw-resize; }
+        .bm { bottom: -5px; left: 50%; transform: translateX(-50%); cursor: ns-resize; }
+        .br { bottom: -5px; right: -5px; cursor: nwse-resize; }
+    </style>
+</head>
+<body>
+
+    <div class="controls">
+        <h1>이미지 크롭 도구</h1>
+
+        <div class="controls-section">
+            <h2>1. 이미지 불러오기</h2>
+            <div class="input-group">
+                <label for="imageLoader" class="file-label">파일 선택</label>
+                <input type="file" id="imageLoader" accept="image/*">
+                <p class="paste-info">또는, 이미지를 복사(Ctrl+C)한 후<br>이 페이지에 붙여넣기(Ctrl+V) 하세요.</p>
+            </div>
+        </div>
+
+        <div id="cropControlsSection" class="controls-section disabled">
+            <h2>2. 크롭 영역 설정</h2>
+            <div class="coord-inputs">
+                <div class="input-group">
+                    <label for="left">Left</label>
+                    <input type="number" id="left" min="0">
+                </div>
+                <div class="input-group">
+                    <label for="top">Top</label>
+                    <input type="number" id="top" min="0">
+                </div>
+                <div class="input-group">
+                    <label for="width">Width</label>
+                    <input type="number" id="width" min="1">
+                </div>
+                <div class="input-group">
+                    <label for="height">Height</label>
+                    <input type="number" id="height" min="1">
+                </div>
+            </div>
+        </div>
+
+        <div id="favoritesSection" class="controls-section disabled">
+            <h2>3. 즐겨찾기</h2>
+            <div class="input-group">
+                <label for="favoritesSelect">저장된 값 선택</label>
+                <select id="favoritesSelect"></select>
+            </div>
+            <div class="input-group">
+                <label for="favoriteName">현재 값 저장 이름</label>
+                <input type="text" id="favoriteName" placeholder="예: 썸네일용">
+            </div>
+            <button id="addFavoriteBtn">즐겨찾기에 추가</button>
+        </div>
+        
+        <div id="saveSection" class="controls-section disabled">
+            <h2>4. 저장하기</h2>
+            <div class="save-buttons">
+                <button id="savePngBtn" class="primary">PNG로 저장</button>
+                <button id="saveWebpBtn">WebP로 저장</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="workspace">
+        <div id="imagePlaceholder">
+            <p>
+                왼쪽 메뉴에서 이미지를 선택하거나,<br>
+                이미지를 복사하여 여기에 붙여넣으세요.
+            </p>
+        </div>
+        <div id="imageContainer" style="display: none;">
+            <img id="sourceImage" src="">
+            <div id="cropBox">
+                <div class="resize-handle tl"></div>
+                <div class="resize-handle tm"></div>
+                <div class="resize-handle tr"></div>
+                <div class="resize-handle ml"></div>
+                <div class="resize-handle mr"></div>
+                <div class="resize-handle bl"></div>
+                <div class="resize-handle bm"></div>
+                <div class="resize-handle br"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // DOM Elements
+            const imageLoader = document.getElementById('imageLoader');
+            const sourceImage = document.getElementById('sourceImage');
+            const imageContainer = document.getElementById('imageContainer');
+            const imagePlaceholder = document.getElementById('imagePlaceholder');
+            const cropBox = document.getElementById('cropBox');
+            
+            const leftInput = document.getElementById('left');
+            const topInput = document.getElementById('top');
+            const widthInput = document.getElementById('width');
+            const heightInput = document.getElementById('height');
+            
+            const addFavoriteBtn = document.getElementById('addFavoriteBtn');
+            const favoriteNameInput = document.getElementById('favoriteName');
+            const favoritesSelect = document.getElementById('favoritesSelect');
+            
+            const savePngBtn = document.getElementById('savePngBtn');
+            const saveWebpBtn = document.getElementById('saveWebpBtn');
+
+            const controlSections = document.querySelectorAll('.controls-section:not(:first-child)');
+
+            // State
+            let crop = { x: 0, y: 0, width: 0, height: 0 };
+            let isDragging = false;
+            let isResizing = false;
+            let dragStart = { x: 0, y: 0 };
+            let resizeHandle = null;
+            let imageLoaded = false;
+            let imageNaturalSize = { width: 0, height: 0 };
+
+            // --- Control Panel Enable/Disable ---
+            function setControlsEnabled(enabled) {
+                imageLoaded = enabled;
+                controlSections.forEach(section => {
+                    if (enabled) {
+                        section.classList.remove('disabled');
+                    } else {
+                        section.classList.add('disabled');
+                    }
+                });
+            }
+
+            // --- Image Loading ---
+            imageLoader.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    loadImage(file);
+                }
+            });
+
+            window.addEventListener('paste', (e) => {
+                const items = e.clipboardData.items;
+                for (let i = 0; i < items.length; i++) {
+                    if (items[i].type.indexOf('image') !== -1) {
+                        const file = items[i].getAsFile();
+                        loadImage(file);
+                        break;
+                    }
+                }
+            });
+
+            function loadImage(file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    sourceImage.src = e.target.result;
+                    sourceImage.onload = () => {
+                        imagePlaceholder.style.display = 'none';
+                        imageContainer.style.display = 'inline-block';
+                        imageNaturalSize = { width: sourceImage.naturalWidth, height: sourceImage.naturalHeight };
+                        resetCrop();
+                        setControlsEnabled(true);
+                    };
+                };
+                reader.readAsDataURL(file);
+            }
+
+            function resetCrop() {
+                const imgRect = sourceImage.getBoundingClientRect();
+                crop = {
+                    x: imgRect.width * 0.1,
+                    y: imgRect.height * 0.1,
+                    width: imgRect.width * 0.8,
+                    height: imgRect.height * 0.8,
+                };
+                updateCropVisuals();
+                updateCropInputs();
+                cropBox.style.display = 'block';
+            }
+
+            // --- Crop Box Interaction ---
+            cropBox.addEventListener('mousedown', (e) => {
+                if (e.target.classList.contains('resize-handle')) {
+                    isResizing = true;
+                    resizeHandle = e.target.className.split(' ')[1];
+                } else {
+                    isDragging = true;
+                }
+                dragStart.x = e.clientX;
+                dragStart.y = e.clientY;
+                crop.startX = crop.x;
+                crop.startY = crop.y;
+                crop.startWidth = crop.width;
+                crop.startHeight = crop.height;
+                e.preventDefault();
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging && !isResizing) return;
+                
+                const dx = e.clientX - dragStart.x;
+                const dy = e.clientY - dragStart.y;
+                const imgRect = sourceImage.getBoundingClientRect();
+
+                if (isDragging) {
+                    let newX = crop.startX + dx;
+                    let newY = crop.startY + dy;
+
+                    // Boundary checks
+                    newX = Math.max(0, Math.min(newX, imgRect.width - crop.width));
+                    newY = Math.max(0, Math.min(newY, imgRect.height - crop.height));
+                    
+                    crop.x = newX;
+                    crop.y = newY;
+                } else if (isResizing) {
+                    let newX = crop.startX;
+                    let newY = crop.startY;
+                    let newWidth = crop.startWidth;
+                    let newHeight = crop.startHeight;
+
+                    if (resizeHandle.includes('r')) {
+                        newWidth = Math.min(crop.startWidth + dx, imgRect.width - newX);
+                    }
+                    if (resizeHandle.includes('l')) {
+                        newWidth = crop.startWidth - dx;
+                        newX = crop.startX + dx;
+                        if (newX < 0) {
+                            newWidth += newX;
+                            newX = 0;
+                        }
+                    }
+                    if (resizeHandle.includes('b')) {
+                        newHeight = Math.min(crop.startHeight + dy, imgRect.height - newY);
+                    }
+                    if (resizeHandle.includes('t')) {
+                        newHeight = crop.startHeight - dy;
+                        newY = crop.startY + dy;
+                        if (newY < 0) {
+                            newHeight += newY;
+                            newY = 0;
+                        }
+                    }
+                    
+                    if (newWidth > 0 && newHeight > 0) {
+                        crop.x = newX;
+                        crop.y = newY;
+                        crop.width = newWidth;
+                        crop.height = newHeight;
+                    }
+                }
+                updateCropVisuals();
+                updateCropInputs();
+            });
+
+            document.addEventListener('mouseup', () => {
+                isDragging = false;
+                isResizing = false;
+            });
+
+            // --- UI Updates ---
+            function updateCropVisuals() {
+                cropBox.style.left = `${crop.x}px`;
+                cropBox.style.top = `${crop.y}px`;
+                cropBox.style.width = `${crop.width}px`;
+                cropBox.style.height = `${crop.height}px`;
+            }
+
+            function updateCropInputs() {
+                const scale = imageNaturalSize.width / sourceImage.getBoundingClientRect().width;
+                leftInput.value = Math.round(crop.x * scale);
+                topInput.value = Math.round(crop.y * scale);
+                widthInput.value = Math.round(crop.width * scale);
+                heightInput.value = Math.round(crop.height * scale);
+            }
+            
+            function updateFromInputs() {
+                if (!imageLoaded) return;
+                const scale = sourceImage.getBoundingClientRect().width / imageNaturalSize.width;
+                const newLeft = parseInt(leftInput.value, 10) * scale;
+                const newTop = parseInt(topInput.value, 10) * scale;
+                const newWidth = parseInt(widthInput.value, 10) * scale;
+                const newHeight = parseInt(heightInput.value, 10) * scale;
+
+                const imgRect = sourceImage.getBoundingClientRect();
+
+                crop.width = Math.min(newWidth, imgRect.width);
+                crop.height = Math.min(newHeight, imgRect.height);
+                crop.x = Math.min(newLeft, imgRect.width - crop.width);
+                crop.y = Math.min(newTop, imgRect.height - crop.height);
+                
+                updateCropVisuals();
+            }
+
+            [leftInput, topInput, widthInput, heightInput].forEach(input => {
+                input.addEventListener('change', updateFromInputs);
+            });
+
+            // --- Favorites ---
+            function loadFavorites() {
+                const favorites = JSON.parse(localStorage.getItem('cropFavorites')) || [];
+                favoritesSelect.innerHTML = '<option value="">-- 즐겨찾기 선택 --</option>';
+                favorites.forEach((fav, index) => {
+                    const option = document.createElement('option');
+                    option.value = index;
+                    option.textContent = fav.name;
+                    favoritesSelect.appendChild(option);
+                });
+            }
+
+            addFavoriteBtn.addEventListener('click', () => {
+                const name = favoriteNameInput.value.trim();
+                if (!name) {
+                    alert('저장할 이름을 입력하세요.');
+                    return;
+                }
+                const favorites = JSON.parse(localStorage.getItem('cropFavorites')) || [];
+                favorites.push({
+                    name: name,
+                    left: leftInput.value,
+                    top: topInput.value,
+                    width: widthInput.value,
+                    height: heightInput.value,
+                });
+                localStorage.setItem('cropFavorites', JSON.stringify(favorites));
+                favoriteNameInput.value = '';
+                loadFavorites();
+                alert(`'${name}'(이)가 즐겨찾기에 추가되었습니다.`);
+            });
+
+            favoritesSelect.addEventListener('change', (e) => {
+                if (e.target.value === "") return;
+                const favorites = JSON.parse(localStorage.getItem('cropFavorites')) || [];
+                const fav = favorites[parseInt(e.target.value, 10)];
+                if (fav) {
+                    leftInput.value = fav.left;
+                    topInput.value = fav.top;
+                    widthInput.value = fav.width;
+                    heightInput.value = fav.height;
+                    updateFromInputs();
+                }
+            });
+            
+            // --- Saving ---
+            function cropAndSave(format = 'image/png', quality = 1.0) {
+                if (!imageLoaded) {
+                    alert('먼저 이미지를 불러오세요.');
+                    return;
+                }
+
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                const scale = imageNaturalSize.width / sourceImage.getBoundingClientRect().width;
+                const sx = Math.round(crop.x * scale);
+                const sy = Math.round(crop.y * scale);
+                const sWidth = Math.round(crop.width * scale);
+                const sHeight = Math.round(crop.height * scale);
+
+                canvas.width = sWidth;
+                canvas.height = sHeight;
+
+                ctx.drawImage(sourceImage, sx, sy, sWidth, sHeight, 0, 0, sWidth, sHeight);
+
+                const link = document.createElement('a');
+                link.href = canvas.toDataURL(format, quality);
+                
+                const fileExtension = format.split('/')[1];
+                link.download = `cropped-image.${fileExtension}`;
+                link.click();
+            }
+
+            savePngBtn.addEventListener('click', () => cropAndSave('image/png'));
+            saveWebpBtn.addEventListener('click', () => cropAndSave('image/webp', 0.9));
+
+            // Initial load
+            setControlsEnabled(false);
+            loadFavorites();
+        });
+    </script>
+
+</body>
+</html>
