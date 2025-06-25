@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>일련번호 생성기</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(45deg, #4f46e5, #7c3aed);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            padding: 30px;
+        }
+
+        .section {
+            background: #f8fafc;
+            border-radius: 15px;
+            padding: 25px;
+            border: 2px solid #e2e8f0;
+        }
+
+        .section h2 {
+            color: #1e293b;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        button {
+            background: linear-gradient(45deg, #4f46e5, #7c3aed);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(79, 70, 229, 0.3);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(45deg, #6b7280, #9ca3af);
+        }
+
+        .btn-danger {
+            background: linear-gradient(45deg, #ef4444, #dc2626);
+        }
+
+        .result-box {
+            background: #f0f9ff;
+            border: 2px solid #0ea5e9;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 18px;
+            font-weight: bold;
+            text-align: center;
+            color: #0369a1;
+        }
+
+        .code-item {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            position: relative;
+        }
+
+        .code-item:hover .tooltip {
+            opacity: 1;
+            transform: translateY(-5px);
+        }
+
+        .tooltip {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%) translateY(0);
+            background: #1f2937;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            white-space: nowrap;
+            opacity: 0;
+            transition: opacity 0.3s, transform 0.3s;
+            z-index: 10;
+        }
+
+        .tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 5px solid transparent;
+            border-top-color: #1f2937;
+        }
+
+        .code-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 10px;
+            background: white;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 500px;
+        }
+
+        .close {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-size: 28px;
+            cursor: pointer;
+            color: #6b7280;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .info-item {
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #4f46e5;
+        }
+
+        .info-label {
+            font-size: 12px;
+            color: #6b7280;
+            text-transform: uppercase;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .info-value {
+            font-size: 16px;
+            color: #1f2937;
+            font-weight: 600;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔢 일련번호 생성기</h1>
+            <p>16자리 일련번호 생성 및 조회 시스템</p>
+        </div>
+
+        <div class="main-content">
+            <!-- 일련번호 생성 섹션 -->
+            <div class="section">
+                <h2>📝 일련번호 만들기</h2>
+                
+                <div class="form-group">
+                    <label for="dateInput">날짜 (YYYYMMDD)</label>
+                    <input type="date" id="dateInput">
+                </div>
+
+                <div class="form-group">
+                    <label for="characterSelect">캐릭터</label>
+                    <select id="characterSelect">
+                        <option value="">캐릭터를 선택하세요</option>
+                    </select>
+                    <button onclick="openModal('character')">+ 캐릭터 추가</button>
+                </div>
+
+                <div class="form-group">
+                    <label for="personaSelect">페르소나</label>
+                    <select id="personaSelect">
+                        <option value="">페르소나를 선택하세요</option>
+                    </select>
+                    <button onclick="openModal('persona')">+ 페르소나 추가</button>
+                </div>
+
+                <div class="form-group">
+                    <label for="modelSelect">모델</label>
+                    <select id="modelSelect">
+                        <option value="">모델을 선택하세요</option>
+                    </select>
+                    <button onclick="openModal('model')">+ 모델 추가</button>
+                </div>
+
+                <div class="form-group">
+                    <label for="presetSelect">프롬프트 프리셋</label>
+                    <select id="presetSelect">
+                        <option value="">프리셋을 선택하세요</option>
+                    </select>
+                    <button onclick="openModal('preset')">+ 프리셋 추가</button>
+                </div>
+
+                <button onclick="generateSerial()">🎯 일련번호 생성</button>
+                <button class="btn-secondary" onclick="exportData()">📤 데이터 내보내기</button>
+                <button class="btn-secondary" onclick="importData()">📥 데이터 가져오기</button>
+                <input type="file" id="importFile" style="display: none;" accept=".json" onchange="handleFileImport(event)">
+
+                <div id="generatedSerial" class="result-box" style="display: none;">
+                    <div id="serialNumber"></div>
+                    <button onclick="copySerial()" style="margin-top: 15px; background: linear-gradient(45deg, #10b981, #059669);">
+                        📋 복사하기
+                    </button>
+                </div>
+            </div>
+
+            <!-- 일련번호 조회 섹션 -->
+            <div class="section">
+                <h2>🔍 일련번호 조회하기</h2>
+                
+                <div class="form-group">
+                    <label for="serialInput">16자리 일련번호</label>
+                    <input type="text" id="serialInput" placeholder="예: 2025062501010101" maxlength="16">
+                </div>
+
+                <button onclick="parseSerial()">🔎 일련번호 분석</button>
+
+                <div id="parsedResult" style="display: none;">
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <div class="info-label">날짜</div>
+                            <div class="info-value" id="parsedDate"></div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">캐릭터</div>
+                            <div class="info-value" id="parsedCharacter"></div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">페르소나</div>
+                            <div class="info-value" id="parsedPersona"></div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">모델</div>
+                            <div class="info-value" id="parsedModel"></div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">프리셋</div>
+                            <div class="info-value" id="parsedPreset"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 모달 -->
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h3 id="modalTitle"></h3>
+            <div class="form-group">
+                <label for="modalName">이름</label>
+                <input type="text" id="modalName">
+            </div>
+            <div class="form-group">
+                <label for="modalMemo">메모 (선택사항)</label>
+                <textarea id="modalMemo" rows="3"></textarea>
+            </div>
+            <div class="form-group">
+                <label for="modalCode">코드 (10진수)</label>
+                <input type="number" id="modalCode" min="1" max="255">
+            </div>
+            <button onclick="saveItem()">저장</button>
+            <button class="btn-secondary" onclick="closeModal()">취소</button>
+        </div>
+    </div>
+
+    <script>
+        let currentType = '';
+        let data = {
+            characters: [],
+            personas: [],
+            models: [],
+            presets: []
+        };
+
+        // 페이지 로드 시 초기화
+        window.onload = function() {
+            // 오늘 날짜로 초기화
+            const today = new Date();
+            const dateString = today.getFullYear() + '-' + 
+                             String(today.getMonth() + 1).padStart(2, '0') + '-' + 
+                             String(today.getDate()).padStart(2, '0');
+            document.getElementById('dateInput').value = dateString;
+            
+            // 저장된 데이터 로드
+            loadData();
+            updateAllSelects();
+        };
+
+        function loadData() {
+            const saved = localStorage.getItem('serialGeneratorData');
+            if (saved) {
+                data = JSON.parse(saved);
+            }
+        }
+
+        function saveData() {
+            localStorage.setItem('serialGeneratorData', JSON.stringify(data));
+        }
+
+        function openModal(type) {
+            currentType = type;
+            document.getElementById('modal').style.display = 'block';
+            document.getElementById('modalTitle').textContent = getTypeTitle(type) + ' 추가';
+            document.getElementById('modalName').value = '';
+            document.getElementById('modalMemo').value = '';
+            document.getElementById('modalCode').value = '';
+        }
+
+        function closeModal() {
+            document.getElementById('modal').style.display = 'none';
+        }
+
+        function getTypeTitle(type) {
+            const titles = {
+                'character': '캐릭터',
+                'persona': '페르소나',
+                'model': '모델',
+                'preset': '프롬프트 프리셋'
+            };
+            return titles[type];
+        }
+
+        function saveItem() {
+            const name = document.getElementById('modalName').value.trim();
+            const memo = document.getElementById('modalMemo').value.trim();
+            const code = parseInt(document.getElementById('modalCode').value);
+
+            if (!name || !code || code < 1 || code > 255) {
+                alert('이름과 유효한 코드(1-255)를 입력해주세요.');
+                return;
+            }
+
+            // 중복 코드 체크
+            const typeData = data[currentType + 's'];
+            if (typeData.some(item => item.code === code)) {
+                alert('이미 사용 중인 코드입니다.');
+                return;
+            }
+
+            const item = {
+                name: name,
+                memo: memo,
+                code: code
+            };
+
+            data[currentType + 's'].push(item);
+            saveData();
+            updateAllSelects();
+            closeModal();
+        }
+
+        function updateAllSelects() {
+            updateSelect('characterSelect', data.characters);
+            updateSelect('personaSelect', data.personas);
+            updateSelect('modelSelect', data.models);
+            updateSelect('presetSelect', data.presets);
+        }
+
+        function updateSelect(selectId, items) {
+            const select = document.getElementById(selectId);
+            const currentValue = select.value;
+            
+            // 기본 옵션 제외하고 모든 옵션 제거
+            while (select.children.length > 1) {
+                select.removeChild(select.lastChild);
+            }
+
+            items.forEach(item => {
+                const option = document.createElement('option');
+                option.value = item.code;
+                option.textContent = `${item.name} (${item.code.toString(16).toUpperCase().padStart(2, '0')})`;
+                option.title = item.memo;
+                select.appendChild(option);
+            });
+
+            select.value = currentValue;
+        }
+
+        function generateSerial() {
+            const dateInput = document.getElementById('dateInput').value;
+            const characterCode = document.getElementById('characterSelect').value;
+            const personaCode = document.getElementById('personaSelect').value;
+            const modelCode = document.getElementById('modelSelect').value;
+            const presetCode = document.getElementById('presetSelect').value;
+
+            if (!dateInput || !characterCode || !personaCode || !modelCode || !presetCode) {
+                alert('모든 필드를 선택해주세요.');
+                return;
+            }
+
+            // 날짜를 YYYYMMDD 형식으로 변환
+            const date = dateInput.replace(/-/g, '');
+            
+            // 각 코드를 16진수 2자리로 변환
+            const charHex = parseInt(characterCode).toString(16).toUpperCase().padStart(2, '0');
+            const personaHex = parseInt(personaCode).toString(16).toUpperCase().padStart(2, '0');
+            const modelHex = parseInt(modelCode).toString(16).toUpperCase().padStart(2, '0');
+            const presetHex = parseInt(presetCode).toString(16).toUpperCase().padStart(2, '0');
+
+            const serial = date + charHex + personaHex + modelHex + presetHex;
+            
+            document.getElementById('serialNumber').textContent = serial;
+            document.getElementById('generatedSerial').style.display = 'block';
+        }
+
+        function parseSerial() {
+            const serial = document.getElementById('serialInput').value.trim();
+            
+            if (serial.length !== 16 || !/^\d+$/.test(serial.substring(0, 8)) || !/^[0-9A-Fa-f]+$/.test(serial.substring(8))) {
+                alert('올바른 16자리 일련번호를 입력해주세요.');
+                return;
+            }
+
+            // 날짜 파싱 (YYYYMMDD)
+            const dateStr = serial.substring(0, 8);
+            const year = dateStr.substring(0, 4);
+            const month = dateStr.substring(4, 6);
+            const day = dateStr.substring(6, 8);
+            const formattedDate = `${year}-${month}-${day}`;
+
+            // 코드 파싱 (각각 2자리 16진수)
+            const charCode = parseInt(serial.substring(8, 10), 16);
+            const personaCode = parseInt(serial.substring(10, 12), 16);
+            const modelCode = parseInt(serial.substring(12, 14), 16);
+            const presetCode = parseInt(serial.substring(14, 16), 16);
+
+            // 이름 찾기
+            const character = data.characters.find(item => item.code === charCode);
+            const persona = data.personas.find(item => item.code === personaCode);
+            const model = data.models.find(item => item.code === modelCode);
+            const preset = data.presets.find(item => item.code === presetCode);
+
+            document.getElementById('parsedDate').textContent = formattedDate;
+            document.getElementById('parsedCharacter').textContent = character ? 
+                `${character.name} (${charCode})` : `알 수 없음 (${charCode})`;
+            document.getElementById('parsedPersona').textContent = persona ? 
+                `${persona.name} (${personaCode})` : `알 수 없음 (${personaCode})`;
+            document.getElementById('parsedModel').textContent = model ? 
+                `${model.name} (${modelCode})` : `알 수 없음 (${modelCode})`;
+            document.getElementById('parsedPreset').textContent = preset ? 
+                `${preset.name} (${presetCode})` : `알 수 없음 (${presetCode})`;
+
+            document.getElementById('parsedResult').style.display = 'block';
+        }
+
+        function exportData() {
+            const dataStr = JSON.stringify(data, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(dataBlob);
+            
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'serial_generator_data.json';
+            link.click();
+            
+            URL.revokeObjectURL(url);
+        }
+
+        function importData() {
+            document.getElementById('importFile').click();
+        }
+
+        function handleFileImport(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    if (confirm('기존 데이터를 덮어쓰시겠습니까?')) {
+                        data = importedData;
+                        saveData();
+                        updateAllSelects();
+                        alert('데이터를 성공적으로 가져왔습니다.');
+                    }
+                } catch (error) {
+                    alert('유효하지 않은 JSON 파일입니다.');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function copySerial() {
+            const serialNumber = document.getElementById('serialNumber').textContent;
+            
+            // 클립보드 API 사용
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(serialNumber).then(() => {
+                    showCopyFeedback();
+                }).catch(() => {
+                    // 클립보드 API 실패 시 fallback
+                    fallbackCopyText(serialNumber);
+                });
+            } else {
+                // 클립보드 API를 지원하지 않는 경우 fallback
+                fallbackCopyText(serialNumber);
+            }
+        }
+
+        function fallbackCopyText(text) {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-999999px';
+            textArea.style.top = '-999999px';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            
+            try {
+                document.execCommand('copy');
+                showCopyFeedback();
+            } catch (err) {
+                alert('복사에 실패했습니다. 수동으로 복사해주세요.');
+            }
+            
+            document.body.removeChild(textArea);
+        }
+
+        function showCopyFeedback() {
+            const button = document.querySelector('#generatedSerial button');
+            const originalText = button.textContent;
+            button.textContent = '✅ 복사됨!';
+            button.style.background = 'linear-gradient(45deg, #10b981, #059669)';
+            
+            setTimeout(() => {
+                button.textContent = originalText;
+                button.style.background = 'linear-gradient(45deg, #10b981, #059669)';
+            }, 2000);
+        }
+        window.onclick = function(event) {
+            const modal = document.getElementById('modal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        };
+    </script>
+</body>
+</html>
