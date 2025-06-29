@@ -121,13 +121,24 @@
             transition: background-color 0.2s;
         }
 
-        button:hover {
+        button:hover:not(:disabled) {
             background-color: #5a5a5e;
         }
 
-        .save-buttons {
+        button:disabled {
+            background-color: var(--disabled-color);
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .save-buttons, .favorite-actions { /* [CSS 수정] */
             display: flex;
             gap: 10px;
+        }
+
+        /* [CSS 추가] */
+        .favorite-actions {
+            margin-top: 10px;
         }
 
         .save-buttons button.primary {
@@ -136,6 +147,15 @@
         .save-buttons button.primary:hover {
             background-color: #005c38;
         }
+        
+        /* [CSS 추가] */
+        .favorite-actions button.danger {
+            background-color: #c0392b;
+        }
+        .favorite-actions button.danger:hover:not(:disabled) {
+            background-color: #a93226;
+        }
+
 
         .workspace {
             flex-grow: 1;
@@ -244,6 +264,12 @@
                 <label for="favoritesSelect">저장된 값 선택</label>
                 <select id="favoritesSelect"></select>
             </div>
+            <!-- [HTML 추가] 이름 변경 및 삭제 버튼 -->
+            <div class="favorite-actions">
+                <button id="renameFavoriteBtn">이름 변경</button>
+                <button id="deleteFavoriteBtn" class="danger">삭제</button>
+            </div>
+            <hr style="border-color: var(--border-color); margin: 20px 0;">
             <div class="input-group">
                 <label for="favoriteName">현재 값 저장 이름</label>
                 <input type="text" id="favoriteName" placeholder="예: 썸네일용">
@@ -299,6 +325,8 @@
             const addFavoriteBtn = document.getElementById('addFavoriteBtn');
             const favoriteNameInput = document.getElementById('favoriteName');
             const favoritesSelect = document.getElementById('favoritesSelect');
+            const renameFavoriteBtn = document.getElementById('renameFavoriteBtn'); // [JS 추가]
+            const deleteFavoriteBtn = document.getElementById('deleteFavoriteBtn'); // [JS 추가]
             
             const savePngBtn = document.getElementById('savePngBtn');
             const saveWebpBtn = document.getElementById('saveWebpBtn');
@@ -491,8 +519,16 @@
             });
 
             // --- Favorites ---
+            // [JS 추가] 즐겨찾기 관리 버튼 활성화/비활성화 함수
+            function updateFavoriteActionButtonsState() {
+                const selected = favoritesSelect.value !== "";
+                renameFavoriteBtn.disabled = !selected;
+                deleteFavoriteBtn.disabled = !selected;
+            }
+
             function loadFavorites() {
                 const favorites = JSON.parse(localStorage.getItem('cropFavorites')) || [];
+                const selectedValue = favoritesSelect.value; // 현재 선택된 값 기억
                 favoritesSelect.innerHTML = '<option value="">-- 즐겨찾기 선택 --</option>';
                 favorites.forEach((fav, index) => {
                     const option = document.createElement('option');
@@ -500,6 +536,10 @@
                     option.textContent = fav.name;
                     favoritesSelect.appendChild(option);
                 });
+                favoritesSelect.value = selectedValue; // 기존 선택 유지 시도
+                if (favoritesSelect.value === "") { // 만약 삭제 등으로 선택이 초기화되었다면
+                    updateFavoriteActionButtonsState();
+                }
             }
 
             addFavoriteBtn.addEventListener('click', () => {
@@ -519,11 +559,16 @@
                 localStorage.setItem('cropFavorites', JSON.stringify(favorites));
                 favoriteNameInput.value = '';
                 loadFavorites();
+                // 새로 추가된 항목을 선택 상태로 만듦
+                favoritesSelect.value = favorites.length - 1;
+                updateFavoriteActionButtonsState();
                 alert(`'${name}'(이)가 즐겨찾기에 추가되었습니다.`);
             });
 
             favoritesSelect.addEventListener('change', (e) => {
+                updateFavoriteActionButtonsState(); // [JS 수정] 선택 변경 시 버튼 상태 업데이트
                 if (e.target.value === "") return;
+                
                 const favorites = JSON.parse(localStorage.getItem('cropFavorites')) || [];
                 const fav = favorites[parseInt(e.target.value, 10)];
                 if (fav) {
@@ -532,6 +577,39 @@
                     widthInput.value = fav.width;
                     heightInput.value = fav.height;
                     updateFromInputs();
+                }
+            });
+
+            // [JS 추가] 이름 변경 버튼 이벤트
+            renameFavoriteBtn.addEventListener('click', () => {
+                const selectedIndex = favoritesSelect.value;
+                if (selectedIndex === "") return;
+
+                const favorites = JSON.parse(localStorage.getItem('cropFavorites')) || [];
+                const fav = favorites[parseInt(selectedIndex, 10)];
+                
+                const newName = prompt('새로운 이름을 입력하세요:', fav.name);
+                if (newName && newName.trim() !== '') {
+                    favorites[selectedIndex].name = newName.trim();
+                    localStorage.setItem('cropFavorites', JSON.stringify(favorites));
+                    loadFavorites(); // 목록 새로고침
+                    favoritesSelect.value = selectedIndex; // 선택 유지
+                }
+            });
+
+            // [JS 추가] 삭제 버튼 이벤트
+            deleteFavoriteBtn.addEventListener('click', () => {
+                const selectedIndex = favoritesSelect.value;
+                if (selectedIndex === "") return;
+
+                const favorites = JSON.parse(localStorage.getItem('cropFavorites')) || [];
+                const fav = favorites[parseInt(selectedIndex, 10)];
+
+                if (confirm(`'${fav.name}' 즐겨찾기를 삭제하시겠습니까?`)) {
+                    favorites.splice(selectedIndex, 1);
+                    localStorage.setItem('cropFavorites', JSON.stringify(favorites));
+                    loadFavorites(); // 목록 새로고침
+                    updateFavoriteActionButtonsState(); // 버튼 비활성화
                 }
             });
             
@@ -570,6 +648,7 @@
             // Initial load
             setControlsEnabled(false);
             loadFavorites();
+            updateFavoriteActionButtonsState(); // [JS 추가] 초기 버튼 상태 설정
         });
     </script>
 
