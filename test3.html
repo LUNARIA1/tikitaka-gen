@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>채팅 로그 JSON 변환기</title>
+    <style>
+        :root {
+            --primary-color: #4a90e2;
+            --secondary-color: #f5f7fa;
+            --text-color: #333;
+            --border-color: #dce1e6;
+            --button-hover-bg: #357abd;
+        }
+        body {
+            font-family: 'Malgun Gothic', '맑은 고딕', sans-serif;
+            background-color: var(--secondary-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+        }
+        .container {
+            width: 100%;
+            max-width: 900px;
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+            color: var(--primary-color);
+            margin-bottom: 30px;
+        }
+        .section {
+            margin-bottom: 25px;
+        }
+        h2 {
+            font-size: 1.2em;
+            color: #555;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+        textarea, pre {
+            width: 100%;
+            padding: 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            font-size: 14px;
+            line-height: 1.6;
+            box-sizing: border-box;
+            min-height: 250px;
+        }
+        textarea {
+            resize: vertical;
+        }
+        pre {
+            background-color: #f9f9f9;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            color: #2d3748;
+        }
+        .button-container {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        button {
+            padding: 12px 25px;
+            font-size: 16px;
+            font-weight: bold;
+            color: white;
+            background-color: var(--primary-color);
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: var(--button-hover-bg);
+        }
+        button:disabled {
+            background-color: #a0c3e8;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>채팅 로그 to JSON 변환기</h1>
+
+        <div class="section">
+            <h2>1. 원본 텍스트 입력</h2>
+            <textarea id="inputText" rows="15" placeholder="여기에 '수정 전 예시' 형식의 텍스트를 붙여넣으세요.
+
+**character:** *그의 입가에 조소가 번진다...*
+**user:** *한숨* 내타입이 아니야
+..."></textarea>
+        </div>
+
+        <div class="button-container">
+            <button id="convertBtn">변환하기</button>
+            <button id="downloadBtn" disabled>JSON 파일로 다운로드</button>
+        </div>
+
+        <div class="section">
+            <h2>2. 변환된 JSON 결과</h2>
+            <pre><code id="outputJson"></code></pre>
+        </div>
+    </div>
+
+    <script>
+        const inputText = document.getElementById('inputText');
+        const convertBtn = document.getElementById('convertBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const outputJson = document.getElementById('outputJson');
+        
+        let jsonResult = null;
+
+        // 예시 텍스트를 placeholder 대신 넣어줌
+        inputText.value = `여기에 넣으십쇼`;
+
+        function formatDateTime() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = now.getMonth() + 1;
+            const day = now.getDate();
+            const hours = now.getHours();
+            const minutes = now.getMinutes();
+            const seconds = now.getSeconds();
+
+            const ampm = hours >= 12 ? '오후' : '오전';
+            const formattedHours = hours % 12 || 12;
+
+            const pad = (num) => String(num).padStart(2, '0');
+
+            return `${year}. ${month}. ${day}. ${ampm} ${formattedHours}:${pad(minutes)}:${pad(seconds)}`;
+        }
+
+        convertBtn.addEventListener('click', () => {
+            const text = inputText.value.trim();
+            if (!text) {
+                outputJson.textContent = '입력된 텍스트가 없습니다.';
+                downloadBtn.disabled = true;
+                jsonResult = null;
+                return;
+            }
+
+            const lines = text.split('\n');
+            const messages = [];
+            
+            for (const line of lines) {
+                const trimmedLine = line.trim();
+                if (!trimmedLine) continue;
+
+                if (trimmedLine.startsWith('**character:**')) {
+                    messages.push({
+                        role: 'char',
+                        data: trimmedLine.substring('**character:**'.length).trim()
+                    });
+                } else if (trimmedLine.startsWith('**user:**')) {
+                    messages.push({
+                        role: 'user',
+                        data: trimmedLine.substring('**user:**'.length).trim()
+                    });
+                } else {
+                    // role 태그가 없는 줄은 이전 메시지에 이어서 붙임
+                    if (messages.length > 0) {
+                        messages[messages.length - 1].data += '\n' + line.trimStart();
+                    }
+                }
+            }
+
+            const jsonData = {
+                type: "risuChat",
+                ver: 2,
+                data: {
+                    message: messages,
+                    note: "",
+                    name: `Chat Export ${formatDateTime()}`,
+                    localLore: [],
+                    fmIndex: -1,
+                    id: "unknown"
+                },
+                folders: []
+            };
+
+            jsonResult = JSON.stringify(jsonData, null, 2);
+            outputJson.textContent = jsonResult;
+            downloadBtn.disabled = false;
+        });
+
+        downloadBtn.addEventListener('click', () => {
+            if (!jsonResult) return;
+
+            const blob = new Blob([jsonResult], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'chat_export.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+    </script>
+
+</body>
+</html>
