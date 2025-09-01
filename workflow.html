@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ComfyUI 워크플로우 수정기</title>
+    <style>
+        :root {
+            --bg-color: #1a1a2e;
+            --panel-bg-color: #16213e;
+            --text-color: #e0e0e0;
+            --primary-color: #0f3460;
+            --accent-color: #e94560;
+            --border-color: #5372f0;
+            --input-bg-color: #0c1a3e;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: auto;
+            padding: 20px;
+            background-color: var(--panel-bg-color);
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+        }
+
+        h1, h2 {
+            color: var(--accent-color);
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+
+        .settings-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        .settings-panel, .output-panel {
+            background: rgba(15, 52, 96, 0.3);
+            padding: 20px;
+            border-radius: 8px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+
+        select, textarea, input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid var(--border-color);
+            background-color: var(--input-bg-color);
+            color: var(--text-color);
+            box-sizing: border-box;
+        }
+
+        textarea {
+            resize: vertical;
+        }
+
+        .btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary {
+            background-color: var(--accent-color);
+            width: 100%;
+            padding: 12px;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+        }
+
+        .inline-group {
+            display: flex;
+            gap: 20px;
+        }
+        .inline-group > .form-group {
+            flex: 1;
+        }
+
+        #add-lora-btn {
+            background-color: #5372f0;
+        }
+
+        .lora-item {
+            display: grid;
+            grid-template-columns: 2fr 1fr 50px;
+            gap: 10px;
+            align-items: center;
+            border: 1px solid var(--primary-color);
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+
+        .lora-item .weight-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .lora-item input[type="range"] {
+            flex-grow: 1;
+        }
+        .lora-item input[type="number"] {
+            width: 65px;
+        }
+
+        .remove-lora-btn {
+            background-color: #c0392b;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        .output-header {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 10px;
+        }
+
+        #output-workflow {
+            height: calc(100% - 120px);
+        }
+
+        @media (max-width: 900px) {
+            .settings-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>ComfyUI API 워크플로우 수정기</h1>
+
+        <div class="settings-grid">
+            <!-- 설정 섹션 -->
+            <div class="settings-panel">
+                <h2>설정</h2>
+
+                <div class="form-group">
+                    <label for="checkpoint-select">체크포인트 모델 선택:</label>
+                    <select id="checkpoint-select"></select>
+                </div>
+
+                <div class="inline-group">
+                    <div class="form-group">
+                        <label for="steps-input">Steps:</label>
+                        <input type="number" id="steps-input" value="28" min="1" max="100">
+                    </div>
+                    <div class="form-group">
+                        <label for="cfg-input">CFG:</label>
+                        <input type="number" id="cfg-input" value="5" min="1" max="20" step="0.1">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="sampler-select">Sampler:</label>
+                    <select id="sampler-select"></select>
+                </div>
+
+                <div class="form-group">
+                    <label for="scheduler-select">Scheduler:</label>
+                    <select id="scheduler-select"></select>
+                </div>
+
+                <!-- ### 추가된 부분 ### -->
+                <div class="form-group">
+                    <label for="resolution-select">해상도 (SDXL):</label>
+                    <select id="resolution-select"></select>
+                </div>
+                <!-- ############### -->
+
+                <div class="form-group">
+                    <label>LoRA 설정 (최대 3개):</label>
+                    <div id="lora-container">
+                        <!-- LoRA 선택기는 JavaScript로 동적 추가됩니다. -->
+                    </div>
+                    <button id="add-lora-btn" class="btn">LoRA 추가</button>
+                </div>
+                
+                <button id="generate-workflow-btn" class="btn btn-primary">워크플로우 생성</button>
+            </div>
+
+            <!-- 결과 섹션 -->
+            <div class="output-panel">
+                <h2>생성된 API 워크플로우 (JSON)</h2>
+                <div class="output-header">
+                    <button id="copy-btn" class="btn">클립보드에 복사</button>
+                </div>
+                <textarea id="output-workflow" readonly rows="20"></textarea>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // 모델 및 설정 목록
+            const modelData = {
+                "checkpoints": [
+                    "waiNSFWIllustriousSDXL_v140.safetensors",
+                    "Borschtmix_GOLD.safetensors",
+                    "NTR_MIX_Xiii.safetensors",
+                    "KiwiMix-XL_V3 .safetensors",
+                    "animemix_v7-5.safetensors",
+                    "CorpusDeus_Illustrious_Yaoi_v1.safetensors",
+                    "DREAMBOX_V4.safetensors",
+                    "EchoDream_8steps_v1.safetensors",
+                    "In-Joy_Illustrious-XL_v2.safetensors",
+                    "SakuraSakuma_Mix_IL_4_Final.safetensors"
+                ],
+                "loras": [
+                    "None",
+                    "[Yue]Nijistyle①.safetensors",
+                    "Aida_Iro (2).safetensors",
+                    "anime_screencap-IL v-pred.safetensors",
+                    "bikabaka.safetensors",
+                    "Cartoony_Illustrious_Style.safetensors",
+                    "flatline_v2_-_Illus_x_Niji.safetensors",
+                    "haiz_ai_illu.safetensors",
+                    "ma1ma1helmes_b-000014.safetensors",
+                    "USNR_STYLE_ILL_V1_lokr3-000024.safetensors"
+                ]
+            };
+            
+            // Sampler와 Scheduler 목록
+            const samplerNames = [
+                "euler", "euler_ancestral", "heun", "dpm_2", "dpm_2_ancestral", "lms", "dpm_fast", "dpm_adaptive", "dpmpp_2s_ancestral", "dpmpp_sde",
+                "dpmpp_sde_gpu", "dpmpp_2m", "dpmpp_2m_cfg_pp", "dpmpp_2m_sde", "dpmpp_2m_sde_gpu", "dpmpp_2m_sde_heun", "dpmpp_2m_sde_heun_gpu", "dpmpp_3m_sde",
+                "dpmpp_3m_sde_gpu", "ddpm", "lcm", "ipndm", "ipndm_v", "deis", "ddim", "uni_pc", "uni_pc_bh2"
+            ];
+            const schedulerNames = [ "simple", "sgm_uniform", "karras", "exponential", "ddim_uniform", "beta", "normal", "linear_quadratic", "kl_optimal", "AYS SD1", "AYS SDXL", "AYS SVD", "GITS"];
+
+            // 해상도 목록
+            const resolutionOptions = [
+                "square - 1024x1024 (1:1)", "landscape - 1152x896 (4:3)", "landscape - 1216x832 (3:2)", "landscape - 1344x768 (16:9)",
+                "landscape - 1536x640 (21:9)", "portrait - 896x1152 (3:4)", "portrait - 832x1216 (2:3)", "portrait - 768x1344 (9:16)", "portrait - 640x1536 (9:21)"
+            ];
+
+            // LoRA Stacker의 모든 필드를 기본값으로 미리 채움 (API 오류 방지)
+            const loraStackerInputs = { "input_mode": "simple", "lora_count": 3 };
+            for (let i = 1; i <= 50; i++) {
+                loraStackerInputs[`lora_name_${i}`] = "None";
+                loraStackerInputs[`lora_wt_${i}`] = 1.0;
+                loraStackerInputs[`model_str_${i}`] = 1.0;
+                loraStackerInputs[`clip_str_${i}`] = 1.0;
+            }
+
+            // 기본 워크플로우 템플릿
+            const baseWorkflow = {
+                "2": { "inputs": { "text": "{{risu_prompt}}" }, "class_type": "Text Prompt (JPS)", "_meta": { "title": "긍정 프롬프트" } },
+                "4": { "inputs": { "text": "{{risu_neg}}" }, "class_type": "Text Prompt (JPS)", "_meta": { "title": "부정 프롬프트" } },
+                "5": { "inputs": { "ckpt_name": "waiNSFWIllustriousSDXL_v140.safetensors", "vae_name": "Baked VAE", "clip_skip": -2, "lora_name": "None", "lora_model_strength": 1, "lora_clip_strength": 1, "positive": ["2", 0], "negative": ["4", 0], "token_normalization": "none", "weight_interpretation": "comfy", "empty_latent_width": ["9", 0], "empty_latent_height": ["9", 1], "batch_size": 1, "lora_stack": ["8", 0] }, "class_type": "Efficient Loader", "_meta": { "title": "Efficient Loader" } },
+                "6": { "inputs": { "seed": Math.floor(Math.random() * 1e16), "steps": 28, "cfg": 5, "sampler_name": "dpmpp_2m", "scheduler": "karras", "denoise": 1, "preview_method": "auto", "vae_decode": "true", "model": ["5", 0], "positive": ["5", 1], "negative": ["5", 2], "latent_image": ["5", 3], "optional_vae": ["5", 4] }, "class_type": "KSampler (Efficient)", "_meta": { "title": "KSampler (Efficient)" } },
+                "7": { "inputs": { "filename_prefix": "ComfyUI_API_Gen", "images": ["6", 5] }, "class_type": "SaveImage", "_meta": { "title": "이미지 저장" } },
+                "8": { "inputs": loraStackerInputs, "class_type": "LoRA Stacker", "_meta": { "title": "LoRA Stacker" } },
+                "9": { "inputs": { "resolution": "square - 1024x1024 (1:1)" }, "class_type": "SDXL Resolutions (JPS)", "_meta": { "title": "SDXL Resolutions (JPS)" } }
+            };
+
+            // DOM 요소 가져오기
+            const checkpointSelect = document.getElementById('checkpoint-select');
+            const stepsInput = document.getElementById('steps-input');
+            const cfgInput = document.getElementById('cfg-input');
+            const samplerSelect = document.getElementById('sampler-select');
+            const schedulerSelect = document.getElementById('scheduler-select');
+            const resolutionSelect = document.getElementById('resolution-select');
+            const loraContainer = document.getElementById('lora-container');
+            const addLoraBtn = document.getElementById('add-lora-btn');
+            const generateBtn = document.getElementById('generate-workflow-btn');
+            const outputTextarea = document.getElementById('output-workflow');
+            const copyBtn = document.getElementById('copy-btn');
+            
+            let loraModels = [];
+
+            // UI 초기화 함수
+            function initializeUI() {
+                const populateSelect = (selectElement, items, defaultValue) => {
+                    items.forEach(name => {
+                        const option = document.createElement('option');
+                        option.value = name;
+                        option.textContent = name;
+                        if (name === defaultValue) option.selected = true;
+                        selectElement.appendChild(option);
+                    });
+                };
+
+                populateSelect(checkpointSelect, modelData.checkpoints, baseWorkflow['5'].inputs.ckpt_name);
+                populateSelect(samplerSelect, samplerNames, baseWorkflow['6'].inputs.sampler_name);
+                populateSelect(schedulerSelect, schedulerNames, baseWorkflow['6'].inputs.scheduler);
+                populateSelect(resolutionSelect, resolutionOptions, baseWorkflow['9'].inputs.resolution);
+                
+                loraModels = modelData.loras;
+            }
+
+            // LoRA 선택기 추가 함수
+            const addLoraSelector = () => {
+                if (loraContainer.children.length >= 3) {
+                    alert('LoRA는 최대 3개까지 추가할 수 있습니다.');
+                    return;
+                }
+                const loraItem = document.createElement('div');
+                loraItem.className = 'lora-item';
+                const loraSelect = document.createElement('select');
+                loraModels.forEach(name => {
+                    const option = document.createElement('option');
+                    option.value = name;
+                    option.textContent = name;
+                    loraSelect.appendChild(option);
+                });
+                const weightControl = document.createElement('div');
+                weightControl.className = 'weight-control';
+                const weightSlider = document.createElement('input');
+                weightSlider.type = 'range'; weightSlider.min = 0.01; weightSlider.max = 2.5; weightSlider.step = 0.01; weightSlider.value = 1.0;
+                const weightNumber = document.createElement('input');
+                weightNumber.type = 'number'; weightNumber.min = 0.01; weightNumber.max = 2.5; weightNumber.step = 0.01; weightNumber.value = 1.0;
+                weightSlider.addEventListener('input', () => weightNumber.value = weightSlider.value);
+                weightNumber.addEventListener('input', () => weightSlider.value = weightNumber.value);
+                weightControl.appendChild(weightSlider);
+                weightControl.appendChild(weightNumber);
+                const removeBtn = document.createElement('button');
+                removeBtn.textContent = 'X';
+                removeBtn.className = 'remove-lora-btn';
+                removeBtn.addEventListener('click', () => {
+                    loraContainer.removeChild(loraItem);
+                });
+                loraItem.appendChild(loraSelect);
+                loraItem.appendChild(weightControl);
+                loraItem.appendChild(removeBtn);
+                loraContainer.appendChild(loraItem);
+            };
+
+            // 워크플로우 생성 함수
+            const generateWorkflow = () => {
+                const newWorkflow = JSON.parse(JSON.stringify(baseWorkflow));
+                
+                // 체크포인트 업데이트
+                newWorkflow['5'].inputs.ckpt_name = checkpointSelect.value;
+
+                // KSampler(6번 노드) 설정 업데이트
+                newWorkflow['6'].inputs.steps = parseInt(stepsInput.value, 10);
+                newWorkflow['6'].inputs.cfg = parseFloat(cfgInput.value);
+                newWorkflow['6'].inputs.sampler_name = samplerSelect.value;
+                newWorkflow['6'].inputs.scheduler = schedulerSelect.value;
+                newWorkflow['6'].inputs.seed = Math.floor(Math.random() * 1e16); // 생성 시마다 시드값 변경
+
+                // 해상도(9번 노드) 설정 업데이트
+                newWorkflow['9'].inputs.resolution = resolutionSelect.value;
+
+                // LoRA 정보 업데이트
+                const loraItems = loraContainer.querySelectorAll('.lora-item');
+                // 먼저 1~3번 슬롯을 'None'으로 초기화
+                for (let i = 1; i <= 3; i++) {
+                    newWorkflow['8'].inputs[`lora_name_${i}`] = 'None';
+                    newWorkflow['8'].inputs[`lora_wt_${i}`] = 1.0;
+                }
+                // 선택된 LoRA로 1~3번 슬롯 덮어쓰기
+                loraItems.forEach((item, index) => {
+                    const loraSelect = item.querySelector('select');
+                    const weightInput = item.querySelector('input[type="number"]');
+                    const loraIndex = index + 1;
+                    if (loraSelect.value !== 'None') {
+                        newWorkflow['8'].inputs[`lora_name_${loraIndex}`] = loraSelect.value;
+                        newWorkflow['8'].inputs[`lora_wt_${loraIndex}`] = parseFloat(weightInput.value);
+                    }
+                });
+
+                outputTextarea.value = JSON.stringify(newWorkflow, null, 2);
+            };
+
+            // 클립보드 복사 함수
+            const copyToClipboard = () => {
+                if (!outputTextarea.value) {
+                    alert('생성된 워크플로우가 없습니다.');
+                    return;
+                }
+                navigator.clipboard.writeText(outputTextarea.value)
+                    .then(() => alert('워크플로우가 클립보드에 복사되었습니다.'))
+                    .catch(err => console.error('복사 실패:', err));
+            };
+
+            // 이벤트 리스너 연결
+            addLoraBtn.addEventListener('click', addLoraSelector);
+            generateBtn.addEventListener('click', generateWorkflow);
+            copyBtn.addEventListener('click', copyToClipboard);
+
+            // 페이지 로드 시 UI 초기화 및 기본 워크플로우 생성
+            initializeUI();
+            generateWorkflow();
+        });
+    </script>
+</body>
+</html>
