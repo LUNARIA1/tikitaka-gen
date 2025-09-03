@@ -21,7 +21,7 @@ sleep 4
 # 2. 시스템 패키지 업데이트 및 필수 도구 설치
 echo "[1/8] 시스템을 업데이트하고 필수 패키지를 설치합니다..."
 sudo apt-get update
-sudo apt-get install -y git nodejs npm screen wget
+sudo apt-get install -y git nodejs npm screen wget jq curl
 echo "패키지 설치 완료."
 echo "-----------------------------------------------------"
 sleep 1
@@ -33,13 +33,32 @@ echo "기존 zrok 제거 완료."
 echo "-----------------------------------------------------"
 sleep 1
 
-# 4. zrok 설치 (v0.4.23 버전으로 고정하여 설치)
-echo "[3/8] zrok 호환 버전(v0.4.23)을 설치합니다..."
+# 4. zrok 최신 버전 자동 설치
+echo "[3/8] zrok 최신 버전을 설치합니다..."
 cd /tmp # 임시 폴더에서 작업
-wget -q https://github.com/openziti/zrok/releases/download/v0.4.23/zrok_0.4.23_linux_amd64.tar.gz
-tar -xf zrok_0.4.23_linux_amd64.tar.gz
-sudo mv zrok /usr/local/bin/
-rm zrok_0.4.23_linux_amd64.tar.gz
+
+# 최신 버전 자동 감지 및 다운로드
+ZROK_VERSION=$(curl -sSf https://api.github.com/repos/openziti/zrok/releases/latest | jq -r '.tag_name')
+echo "감지된 최신 버전: $ZROK_VERSION"
+
+# 아키텍처 감지
+case $(uname -m) in
+  x86_64) GOXARCH=amd64 ;;
+  aarch64|arm64) GOXARCH=arm64 ;;
+  arm*) GOXARCH=armv7 ;;
+  *) echo "ERROR: unknown arch '$(uname -m)'" >&2; exit 1 ;;
+esac
+
+# 다운로드 및 설치
+wget -q "https://github.com/openziti/zrok/releases/download/${ZROK_VERSION}/zrok_${ZROK_VERSION#v}_linux_${GOXARCH}.tar.gz"
+if [ $? -ne 0 ]; then
+    echo "[오류] zrok 다운로드에 실패했습니다."
+    exit 1
+fi
+
+tar -xf "zrok_${ZROK_VERSION#v}_linux_${GOXARCH}.tar.gz"
+sudo install -o root -g root ./zrok /usr/local/bin/
+rm "zrok_${ZROK_VERSION#v}_linux_${GOXARCH}.tar.gz"
 echo "zrok 설치 완료."
 echo "-----------------------------------------------------"
 sleep 1
@@ -48,23 +67,28 @@ sleep 1
 echo "[4/8] 설치된 zrok 버전을 확인합니다..."
 INSTALLED_VERSION=$(zrok version)
 echo "설치된 버전: $INSTALLED_VERSION"
-if [[ "$INSTALLED_VERSION" != *"0.4.23"* ]]; then
-    echo "[치명적 오류] zrok v0.4.23 설치에 실패했습니다. 스크립트를 중단합니다."
-    exit 1
-fi
 echo "버전 확인 완료."
 echo "-----------------------------------------------------"
 sleep 1
 
 # 6. zrok 활성화 (인자로 받은 토큰 사용)
 echo "[5/8] zrok 계정을 활성화합니다..."
-# <<< 여기가 핵심 수정 부분입니다! "좀비 설정 파일"을 제거하여 완벽하게 초기화합니다. >>>
+# 기존 zrok 설정 파일 제거하여 완벽하게 초기화
 rm -rf ~/.zrok
 zrok enable $ZROK_TOKEN
-if [ `zrok status | grep -c "Enabled"` -eq 0 ]; then
+if [ $? -ne 0 ]; then
     echo "[오류] zrok 활성화에 실패했습니다. 토큰이 정확한지, zrok 서비스가 정상인지 확인해주세요."
+    echo "또는 zrok 서비스 엔드포인트를 확인해 보세요:"
+    echo "  zrok config set apiEndpoint https://api.zrok.io"
     exit 1
 fi
+
+# 활성화 상태 확인
+if ! zrok status | grep -q "Enabled"; then
+    echo "[오류] zrok 활성화 확인에 실패했습니다."
+    exit 1
+fi
+
 echo "zrok 활성화가 완료되었습니다."
 echo "-----------------------------------------------------"
 sleep 1
