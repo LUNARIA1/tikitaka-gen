@@ -10,7 +10,7 @@ sleep 3
 # 1. 시스템 패키지 업데이트 및 필수 도구 설치
 echo "[1/6] 시스템을 업데이트하고 필수 패키지(git, nodejs, npm, screen)를 설치합니다..."
 sudo apt-get update
-sudo apt-get install -y git nodejs npm screen wget tar
+sudo apt-get install -y git nodejs npm screen curl
 echo "패키지 설치 완료."
 echo "-----------------------------------------------------"
 sleep 1
@@ -28,22 +28,23 @@ echo "SillyTavern 설치 완료."
 echo "-----------------------------------------------------"
 sleep 1
 
-# 3. zrok 설치
-echo "[3/6] zrok 터널링 프로그램을 설치합니다..."
-cd ~
-wget https://github.com/openziti/zrok/releases/download/v0.4.23/zrok_0.4.23_linux_amd64.tar.gz
-tar -xvf zrok_0.4.23_linux_amd64.tar.gz
-sudo mv zrok /usr/local/bin/
-rm zrok_0.4.23_linux_amd64.tar.gz
+# 3. zrok 설치 (공식 스크립트로 항상 최신 버전 설치)
+echo "[3/6] 최신 버전의 zrok을 자동으로 설치합니다..."
+# <<< 여기가 수정된 부분입니다! >>>
+curl -sSf https://get.openziti.io/install.bash | sudo bash -s zrok
 echo "zrok 설치 완료."
 echo "-----------------------------------------------------"
 sleep 1
 
 # 4. zrok 활성화 (사용자 입력 필요)
 echo "[4/6] zrok 계정을 활성화합니다."
-# <<< 여기가 수정된 부분입니다! >>>
 read -p "zrok.io에서 복사한 토큰을 여기에 붙여넣고 Enter 키를 누르세요: " ZROK_TOKEN < /dev/tty
 zrok enable $ZROK_TOKEN
+# 에러가 발생하면 스크립트를 중지하도록 처리
+if [ $? -ne 0 ]; then
+    echo "[오류] zrok 활성화에 실패했습니다. 토큰이 정확한지 확인해주세요."
+    exit 1
+fi
 echo "zrok 활성화가 완료되었습니다."
 echo "-----------------------------------------------------"
 sleep 1
