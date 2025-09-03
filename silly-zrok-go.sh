@@ -130,32 +130,30 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-# SillyTavern 설정 파일 생성 (외부 접속 허용)
-echo "SillyTavern 설정을 외부 접속 허용으로 변경합니다..."
-cat << 'CONFIGEOF' > config.yaml
-# SillyTavern Configuration - zrok 터널링 호환 설정
-listen: true
-whitelistMode: false
-whitelist: []
-basicAuthMode: false
-enableCorsProxy: true
-enableExtensions: true
-securityOverride: false
-avoidFfmpegForAv1: false
-enableThumbnails: true
-thumbnailsQuality: 95
-thumbnailsType: "webp"
-multiUserMode: false
-users: []
-enableUserWAUploads: false
-enableWelcomeMessage: false
-speechSynthesis:
-  enabled: false
-requestProxyEnabled: false
-requestProxyBypass: []
-classificationService: false
-CONFIGEOF
-echo "SillyTavern 외부 접속 설정 완료."
+# ================================================================== #
+# ======================== ✨ 수정된 부분 시작 ✨ ======================= #
+# ================================================================== #
+# Whitelist 문제를 해결하기 위해 기본 config.yaml을 삭제하고,
+# whitelistMode가 false로 설정된 커스텀 config.yaml 파일로 교체합니다.
+
+echo "[*] 기본 config.yaml을 whitelist가 비활성화된 버전으로 교체합니다..."
+CONFIG_URL="https://raw.githubusercontent.com/LUNARIA1/tikitaka-gen/main/config.yaml"
+
+# 기존 파일이 있다면 삭제
+rm -f config.yaml
+
+# 새 설정 파일 다운로드
+wget -q -O config.yaml "$CONFIG_URL"
+if [ $? -ne 0 ]; then
+    echo "[오류] 커스텀 config.yaml 다운로드에 실패했습니다. URL을 확인해주세요: $CONFIG_URL"
+    exit 1
+fi
+echo "Whitelist 비활성화 설정이 적용되었습니다."
+
+# ================================================================== #
+# ======================== ✨ 수정된 부분 끝 ✨ ========================= #
+# ================================================================== #
+
 
 # 향상된 실행 스크립트 생성
 cat << 'EOF' > ~/run_silly.sh
