@@ -130,6 +130,33 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
+# SillyTavern 설정 파일 생성 (외부 접속 허용)
+echo "SillyTavern 설정을 외부 접속 허용으로 변경합니다..."
+cat << 'CONFIGEOF' > config.yaml
+# SillyTavern Configuration - zrok 터널링 호환 설정
+listen: true
+whitelistMode: false
+whitelist: []
+basicAuthMode: false
+enableCorsProxy: true
+enableExtensions: true
+securityOverride: false
+avoidFfmpegForAv1: false
+enableThumbnails: true
+thumbnailsQuality: 95
+thumbnailsType: "webp"
+multiUserMode: false
+users: []
+enableUserWAUploads: false
+enableWelcomeMessage: false
+speechSynthesis:
+  enabled: false
+requestProxyEnabled: false
+requestProxyBypass: []
+classificationService: false
+CONFIGEOF
+echo "SillyTavern 외부 접속 설정 완료."
+
 # 향상된 실행 스크립트 생성
 cat << 'EOF' > ~/run_silly.sh
 #!/bin/bash
