@@ -8,9 +8,9 @@ echo "-----------------------------------------------------"
 sleep 3
 
 # 1. 시스템 패키지 업데이트 및 필수 도구 설치
-echo "[1/6] 시스템을 업데이트하고 필수 패키지(git, nodejs, npm, screen)를 설치합니다..."
+echo "[1/6] 시스템을 업데이트하고 필수 패키지(git, nodejs, npm, screen, wget)를 설치합니다..."
 sudo apt-get update
-sudo apt-get install -y git nodejs npm screen curl
+sudo apt-get install -y git nodejs npm screen wget
 echo "패키지 설치 완료."
 echo "-----------------------------------------------------"
 sleep 1
@@ -28,10 +28,14 @@ echo "SillyTavern 설치 완료."
 echo "-----------------------------------------------------"
 sleep 1
 
-# 3. zrok 설치 (공식 스크립트로 항상 최신 버전 설치)
-echo "[3/6] 최신 버전의 zrok을 자동으로 설치합니다..."
-# <<< 여기가 수정된 부분입니다! >>>
-curl -sSf https://get.openziti.io/install.bash | sudo bash -s zrok
+# 3. zrok 설치 (v0.4.23 버전으로 고정하여 설치)
+# <<< 여기가 다시 수정된 부분입니다! 호환성 문제를 해결하기 위해 특정 버전으로 고정합니다. >>>
+echo "[3/6] zrok 호환 버전(v0.4.23)을 설치합니다..."
+cd ~
+wget https://github.com/openziti/zrok/releases/download/v0.4.23/zrok_0.4.23_linux_amd64.tar.gz
+tar -xvf zrok_0.4.23_linux_amd64.tar.gz
+sudo mv zrok /usr/local/bin/
+rm zrok_0.4.23_linux_amd64.tar.gz
 echo "zrok 설치 완료."
 echo "-----------------------------------------------------"
 sleep 1
