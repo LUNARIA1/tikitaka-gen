@@ -41,10 +41,8 @@ sleep 1
 
 # 4. zrok 활성화 (사용자 입력 필요)
 echo "[4/6] zrok 계정을 활성화합니다."
-echo "zrok.io 홈페이지에서 가입 후 받은 'enable token'을 준비해주세요."
-echo "예시: H0gAbbR5g3jG"
-echo -n "복사한 토큰을 여기에 붙여넣고 Enter 키를 누르세요: "
-read ZROK_TOKEN
+# <<< 여기가 수정된 부분입니다! >>>
+read -p "zrok.io에서 복사한 토큰을 여기에 붙여넣고 Enter 키를 누르세요: " ZROK_TOKEN < /dev/tty
 zrok enable $ZROK_TOKEN
 echo "zrok 활성화가 완료되었습니다."
 echo "-----------------------------------------------------"
