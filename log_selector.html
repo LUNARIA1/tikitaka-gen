@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RisuChat Viewer</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        :root {
+            --char-bubble-bg: #f1f0f0;
+            --user-bubble-bg: #fef01b;
+
+            --char-font-family: 'Malgun Gothic', sans-serif;
+            --char-font-size: 14px;
+            --char-font-color: #000000;
+            --char-font-weight: normal;
+            --char-italic-font-family: 'Malgun Gothic', sans-serif;
+            --char-italic-font-size: 14px;
+            --char-italic-font-color: #555555;
+            --char-italic-font-weight: normal;
+            --char-double-quote-font-family: 'Malgun Gothic', sans-serif;
+            --char-double-quote-font-size: 14px;
+            --char-double-quote-font-color: #000000;
+            --char-double-quote-font-weight: normal;
+            --char-single-quote-font-family: 'Malgun Gothic', sans-serif;
+            --char-single-quote-font-size: 14px;
+            --char-single-quote-font-color: #000000;
+            --char-single-quote-font-weight: normal;
+
+            --user-font-family: 'Malgun Gothic', sans-serif;
+            --user-font-size: 14px;
+            --user-font-color: #000000;
+            --user-font-weight: normal;
+            --user-italic-font-family: 'Malgun Gothic', sans-serif;
+            --user-italic-font-size: 14px;
+            --user-italic-font-color: #555555;
+            --user-italic-font-weight: normal;
+            --user-double-quote-font-family: 'Malgun Gothic', sans-serif;
+            --user-double-quote-font-size: 14px;
+            --user-double-quote-font-color: #000000;
+            --user-double-quote-font-weight: normal;
+            --user-single-quote-font-family: 'Malgun Gothic', sans-serif;
+            --user-single-quote-font-size: 14px;
+            --user-single-quote-font-color: #000000;
+            --user-single-quote-font-weight: normal;
+        }
+
+        body {
+            font-family: 'Malgun Gothic', sans-serif;
+            background-color: #b2c7d9;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            gap: 20px;
+        }
+
+        #controls {
+            width: 400px;
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            height: fit-content;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        #controls h2, #controls h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 5px;
+        }
+
+        .control-group {
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        
+        .control-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        .control-group input, .control-group select {
+            width: calc(100% - 10px);
+            padding: 5px;
+            margin-bottom: 5px;
+        }
+
+        .font-style-controls fieldset {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-top: 10px;
+        }
+        .font-style-controls legend {
+            font-weight: bold;
+        }
+        .font-style-controls .style-row {
+            display: grid;
+            grid-template-columns: 80px 1fr 50px;
+            gap: 5px;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+
+        button {
+            padding: 10px;
+            border: none;
+            background-color: #007bff;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        button:hover { background-color: #0056b3; }
+        
+        #chat-wrapper {
+            flex: 1;
+        }
+        
+        #chat-container {
+            width: 100%;
+            background-color: #b2c7d9;
+            padding: 20px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .message-container {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            max-width: 70%;
+            transition: background-color 0.2s;
+        }
+
+        .message-container.char {
+            align-self: flex-start;
+        }
+
+        .message-container.user {
+            align-self: flex-end;
+        }
+
+        .profile-pic {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #e0e0e0;
+            flex-shrink: 0;
+            object-fit: cover;
+        }
+        
+        .message-container.consecutive .profile-pic {
+            visibility: hidden;
+        }
+
+        .message-bubble {
+            padding: 10px 15px;
+            border-radius: 18px;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        
+        .message-bubble em { font-style: italic; }
+
+        .message-container.char .message-bubble {
+            background-color: var(--char-bubble-bg);
+            border-top-left-radius: 0;
+            font-family: var(--char-font-family);
+            font-size: var(--char-font-size);
+            color: var(--char-font-color);
+            font-weight: var(--char-font-weight);
+        }
+        .message-container.char em {
+            font-family: var(--char-italic-font-family);
+            font-size: var(--char-italic-font-size);
+            color: var(--char-italic-font-color);
+            font-weight: var(--char-italic-font-weight);
+        }
+        .message-container.char .double-quoted-text {
+            font-family: var(--char-double-quote-font-family);
+            font-size: var(--char-double-quote-font-size);
+            color: var(--char-double-quote-font-color);
+            font-weight: var(--char-double-quote-font-weight);
+        }
+        .message-container.char .single-quoted-text {
+            font-family: var(--char-single-quote-font-family);
+            font-size: var(--char-single-quote-font-size);
+            color: var(--char-single-quote-font-color);
+            font-weight: var(--char-single-quote-font-weight);
+        }
+
+        .message-container.user .message-bubble {
+            background-color: var(--user-bubble-bg);
+            border-top-right-radius: 0;
+            font-family: var(--user-font-family);
+            font-size: var(--user-font-size);
+            color: var(--user-font-color);
+            font-weight: var(--user-font-weight);
+        }
+        .message-container.user em {
+            font-family: var(--user-italic-font-family);
+            font-size: var(--user-italic-font-size);
+            color: var(--user-italic-font-color);
+            font-weight: var(--user-italic-font-weight);
+        }
+        .message-container.user .double-quoted-text {
+            font-family: var(--user-double-quote-font-family);
+            font-size: var(--user-double-quote-font-size);
+            color: var(--user-double-quote-font-color);
+            font-weight: var(--user-double-quote-font-weight);
+        }
+        .message-container.user .single-quoted-text {
+            font-family: var(--user-single-quote-font-family);
+            font-size: var(--user-single-quote-font-size);
+            color: var(--user-single-quote-font-color);
+            font-weight: var(--user-single-quote-font-weight);
+        }
+
+        /* Capture Mode Styles */
+        body.capture-mode #chat-container .message-container {
+            cursor: pointer;
+            border: 2px dashed transparent;
+        }
+        body.capture-mode #chat-container .message-container:hover {
+            background-color: rgba(0, 123, 255, 0.1);
+            border-color: #007bff;
+        }
+        #chat-container .message-container.selected-for-capture {
+            background-color: rgba(40, 167, 69, 0.2);
+            border-color: #28a745;
+        }
+        #chat-container .message-container.capture-start {
+             background-color: rgba(255, 193, 7, 0.3);
+             border-color: #ffc107;
+        }
+        #capture-status {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: #dc3545;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+            display: none;
+            z-index: 1001;
+        }
+        body.capture-mode #capture-status {
+            display: block;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 600px;
+            border-radius: 10px;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+        .close-button {
+            color: #aaa;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .regex-rule {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+        .regex-rule input, .regex-rule textarea {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-family: inherit;
+        }
+        .regex-rule textarea {
+            resize: vertical;
+        }
+        .regex-rule button {
+            padding: 5px 10px;
+            background-color: #dc3545;
+        }
+        #add-regex-btn {
+            width: 100%;
+            margin-top: 10px;
+            background-color: #28a745;
+        }
+        #save-regex-btn {
+            float: right;
+            margin-top: 15px;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="controls">
+        <h2>Control Panel</h2>
+
+        <div class="control-group">
+            <label for="json-upload">1. 채팅 파일 업로드 (.json)</label>
+            <input type="file" id="json-upload" accept=".json">
+        </div>
+
+        <div class="control-group">
+            <h3>프로필 사진</h3>
+            <label for="char-pfp-upload">캐릭터 프로필</label>
+            <input type="file" id="char-pfp-upload" accept="image/*">
+            <label for="user-pfp-upload">사용자 프로필</label>
+            <input type="file" id="user-pfp-upload" accept="image/*">
+        </div>
+        
+        <div class="control-group">
+            <h3>말풍선 색상</h3>
+            <label for="char-bubble-color">캐릭터 말풍선</label>
+            <input type="color" id="char-bubble-color" value="#f1f0f0">
+            <label for="user-bubble-color">사용자 말풍선</label>
+            <input type="color" id="user-bubble-color" value="#fef01b">
+        </div>
+
+        <div class="control-group font-style-controls">
+            <h3>텍스트 스타일</h3>
+            <div id="style-accordion">
+                <!-- Style controls will be generated here -->
+            </div>
+        </div>
+        
+        <button id="open-regex-modal">정규식 치환 관리</button>
+
+        <div class="control-group">
+            <h3>PNG로 저장</h3>
+            <button id="toggle-capture-mode">구간 캡쳐 모드 시작/종료</button>
+            <button id="save-capture" style="margin-top: 5px; background-color: #28a745;">선택 영역 저장</button>
+        </div>
+    </div>
+
+    <div id="chat-wrapper">
+        <div id="chat-container">
+            <!-- Chat messages will be dynamically inserted here -->
+        </div>
+    </div>
+
+    <div id="capture-status">캡쳐 모드 활성 중: 시작 블록을 선택하세요.</div>
+
+    <!-- Regex Modal -->
+    <div id="regex-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>정규식 관리</h2>
+                <span class="close-button">&times;</span>
+            </div>
+            <div id="regex-rules-container">
+                <!-- Regex rules will be added here -->
+            </div>
+            <button id="add-regex-btn">+</button>
+            <button id="save-regex-btn">저장 및 적용</button>
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Global state
+        let chatData = null;
+        let charPfpSrc = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">C</text></svg>';
+        let userPfpSrc = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">U</text></svg>';
+        // 2. 기본 정규식 제거
+        let regexRules = [];
+        let isCaptureMode = false;
+        let captureStartElement = null;
+
+        // Element references
+        const jsonUpload = document.getElementById('json-upload');
+        const chatContainer = document.getElementById('chat-container');
+        const charPfpUpload = document.getElementById('char-pfp-upload');
+        const userPfpUpload = document.getElementById('user-pfp-upload');
+        const root = document.documentElement;
+        
+        const regexModal = document.getElementById('regex-modal');
+        const openRegexModalBtn = document.getElementById('open-regex-modal');
+        const closeBtn = document.querySelector('.close-button');
+        const addRegexBtn = document.getElementById('add-regex-btn');
+        const saveRegexBtn = document.getElementById('save-regex-btn');
+        const regexRulesContainer = document.getElementById('regex-rules-container');
+
+        const toggleCaptureBtn = document.getElementById('toggle-capture-mode');
+        const saveCaptureBtn = document.getElementById('save-capture');
+        const captureStatus = document.getElementById('capture-status');
+
+        // Initial setup
+        // 1. 예시 대화 제거 (빈 데이터로 시작)
+        loadChat({"type":"risuChat","ver":2,"data":{"message":[]}});
+        createStyleControls();
+        updateRegexModal();
+
+        // --- Event Listeners ---
+        
+        jsonUpload.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const json = JSON.parse(e.target.result);
+                    loadChat(json);
+                } catch (error) {
+                    alert('유효하지 않은 JSON 파일입니다.');
+                    console.error(error);
+                }
+            };
+            reader.readAsText(file);
+        });
+
+        charPfpUpload.addEventListener('change', (e) => handlePfpUpload(e, 'char'));
+        userPfpUpload.addEventListener('change', (e) => handlePfpUpload(e, 'user'));
+
+        document.getElementById('char-bubble-color').addEventListener('input', (e) => {
+            root.style.setProperty('--char-bubble-bg', e.target.value);
+        });
+        document.getElementById('user-bubble-color').addEventListener('input', (e) => {
+            root.style.setProperty('--user-bubble-bg', e.target.value);
+        });
+        
+        openRegexModalBtn.onclick = () => { regexModal.style.display = 'flex'; };
+        closeBtn.onclick = () => { regexModal.style.display = 'none'; };
+        window.onclick = (event) => { if (event.target == regexModal) { regexModal.style.display = 'none'; } };
+        addRegexBtn.onclick = () => addRegexRule();
+        saveRegexBtn.onclick = () => {
+            saveRegexRules();
+            regexModal.style.display = 'none';
+            renderChat();
+        };
+
+        toggleCaptureBtn.addEventListener('click', () => {
+            isCaptureMode = !isCaptureMode;
+            document.body.classList.toggle('capture-mode', isCaptureMode);
+            clearAllSelections();
+            if (!isCaptureMode) {
+                captureStartElement = null;
+            }
+        });
+
+        saveCaptureBtn.addEventListener('click', exportToPng);
+
+        chatContainer.addEventListener('click', (e) => {
+            if (!isCaptureMode) return;
+            const clickedMessage = e.target.closest('.message-container');
+            if (!clickedMessage) return;
+
+            if (!captureStartElement) {
+                captureStartElement = clickedMessage;
+                clearAllSelections();
+                captureStartElement.classList.add('capture-start');
+                captureStatus.textContent = "캡쳐 모드 활성 중: 끝 블록을 선택하세요.";
+            } else {
+                const allMessages = Array.from(chatContainer.querySelectorAll('.message-container'));
+                const startIndex = allMessages.indexOf(captureStartElement);
+                const endIndex = allMessages.indexOf(clickedMessage);
+                clearAllSelections();
+                const start = Math.min(startIndex, endIndex);
+                const end = Math.max(startIndex, endIndex);
+                for (let i = start; i <= end; i++) {
+                    allMessages[i].classList.add('selected-for-capture');
+                }
+                captureStartElement = null;
+                captureStatus.textContent = "캡쳐 모드 활성 중: 시작 블록을 선택하세요.";
+            }
+        });
+
+
+        // --- Core Functions ---
+
+        function loadChat(json) {
+            if (json.type === 'risuChat' && json.data && Array.isArray(json.data.message)) {
+                chatData = json.data.message;
+                renderChat();
+            } else {
+                alert('지원하지 않는 형식의 파일입니다.');
+                chatData = [];
+                renderChat();
+            }
+        }
+        
+        function handlePfpUpload(event, role) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                if (role === 'char') charPfpSrc = e.target.result;
+                else userPfpSrc = e.target.result;
+                renderChat();
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        function processText(text) {
+            let processedText = text;
+            regexRules.forEach(rule => {
+                try {
+                    const regex = new RegExp(rule.in, 'g');
+                    processedText = processedText.replace(regex, rule.out);
+                } catch (e) { console.error("Invalid Regex:", rule.in, e); }
+            });
+            processedText = processedText.trim();
+            const tempDiv = document.createElement('div');
+            tempDiv.textContent = processedText;
+            processedText = tempDiv.innerHTML;
+            processedText = processedText.replace(/\*(.*?)\*/g, '<em>$1</em>');
+            processedText = processedText.replace(/"(.*?)"/g, '<span class="double-quoted-text">"$1"</span>');
+            processedText = processedText.replace(/'(.*?)'/g, "<span class='single-quoted-text'>'$1'</span>");
+            return processedText;
+        }
+
+        function renderChat() {
+            chatContainer.innerHTML = '';
+            if (!chatData || chatData.length === 0) {
+                chatContainer.innerHTML = '<p style="text-align: center; color: #555;">왼쪽 컨트롤 패널에서 채팅 파일(.json)을 업로드해주세요.</p>';
+                return;
+            }
+
+            let lastRole = null;
+            chatData.forEach((msg) => {
+                const isConsecutive = msg.role === lastRole;
+                const container = document.createElement('div');
+                container.classList.add('message-container', msg.role);
+                if (isConsecutive) container.classList.add('consecutive');
+                const pfp = document.createElement('img');
+                pfp.classList.add('profile-pic');
+                pfp.src = msg.role === 'char' ? charPfpSrc : userPfpSrc;
+                const bubble = document.createElement('div');
+                bubble.classList.add('message-bubble');
+                bubble.innerHTML = processText(msg.data);
+                
+                if (msg.role === 'user') {
+                    container.appendChild(bubble);
+                    container.appendChild(pfp);
+                } else {
+                    container.appendChild(pfp);
+                    container.appendChild(bubble);
+                }
+                
+                chatContainer.appendChild(container);
+                lastRole = msg.role;
+            });
+        }
+        
+        function createStyleControls() {
+            const container = document.getElementById('style-accordion');
+            const roles = [{ id: 'char', name: '캐릭터' }, { id: 'user', name: '사용자' }];
+            const textTypes = [{ id: '', name: '일반' }, { id: 'italic', name: '기울임 (*)' }, { id: 'double-quote', name: '큰따옴표 ("")' }, { id: 'single-quote', name: "작은따옴표 ('')" }, ];
+            roles.forEach(role => {
+                const fieldset = document.createElement('fieldset');
+                const legend = document.createElement('legend');
+                legend.textContent = role.name;
+                fieldset.appendChild(legend);
+                textTypes.forEach(type => {
+                    const row = document.createElement('div'); row.className = 'style-row';
+                    const typeLabel = document.createElement('span'); typeLabel.textContent = type.name;
+                    const controlsWrapper = document.createElement('div');
+                    const prefix = `--${role.id}${type.id ? '-' + type.id : ''}-`;
+                    const fontSelect = document.createElement('select');
+                    fontSelect.innerHTML = `<option>Malgun Gothic</option><option>Gulim</option><option>Dotum</option><option>Arial</option><option>Verdana</option>`;
+                    fontSelect.onchange = (e) => root.style.setProperty(prefix + 'font-family', e.target.value);
+                    const sizeInput = document.createElement('input'); sizeInput.type = 'number'; sizeInput.min = 8; sizeInput.max = 32; sizeInput.value = 14;
+                    sizeInput.oninput = (e) => root.style.setProperty(prefix + 'font-size', e.target.value + 'px');
+                    const colorInput = document.createElement('input'); colorInput.type = 'color'; colorInput.value = type.id === 'italic' ? '#555555' : '#000000';
+                    colorInput.oninput = (e) => root.style.setProperty(prefix + 'font-color', e.target.value);
+                    const boldCheckbox = document.createElement('input'); boldCheckbox.type = 'checkbox';
+                    const boldLabel = document.createElement('label'); boldLabel.textContent = 'B'; boldLabel.style.fontWeight = 'bold'; boldLabel.prepend(boldCheckbox);
+                    boldCheckbox.onchange = (e) => root.style.setProperty(prefix + 'font-weight', e.target.checked ? 'bold' : 'normal');
+                    controlsWrapper.append(fontSelect, sizeInput, colorInput, boldLabel);
+                    row.append(typeLabel, controlsWrapper);
+                    fieldset.appendChild(row);
+                }); container.appendChild(fieldset);
+            });
+        }
+        
+        function addRegexRule(inVal = '', outVal = '') {
+            const ruleDiv = document.createElement('div');
+            ruleDiv.className = 'regex-rule';
+            const inInput = document.createElement('input');
+            inInput.type = 'text';
+            inInput.placeholder = 'IN (찾을 패턴)';
+            inInput.value = inVal;
+            inInput.className = 'regex-in';
+            const outInput = document.createElement('textarea');
+            outInput.placeholder = 'OUT (바꿀 내용)';
+            outInput.value = outVal;
+            outInput.className = 'regex-out';
+            outInput.rows = 1;
+            const removeBtn = document.createElement('button');
+            removeBtn.innerHTML = '&times;';
+            removeBtn.onclick = () => ruleDiv.remove();
+            ruleDiv.append(inInput, '→', outInput, removeBtn);
+            regexRulesContainer.appendChild(ruleDiv);
+        }
+
+        function updateRegexModal() {
+            regexRulesContainer.innerHTML = '';
+            regexRules.forEach(rule => addRegexRule(rule.in.source, rule.out));
+        }
+
+        function saveRegexRules() {
+            regexRules = [];
+            document.querySelectorAll('.regex-rule').forEach(el => {
+                const inVal = el.querySelector('.regex-in').value;
+                const outVal = el.querySelector('.regex-out').value;
+                if (inVal) {
+                    try {
+                        regexRules.push({ in: new RegExp(inVal, 'g'), out: outVal });
+                    } catch (e) { alert(`잘못된 정규식입니다: ${inVal}`); }
+                }
+            });
+        }
+        
+        function clearAllSelections() {
+            document.querySelectorAll('.message-container').forEach(el => {
+                el.classList.remove('selected-for-capture', 'capture-start');
+            });
+        }
+
+        async function exportToPng() {
+            const messagesToCapture = document.querySelectorAll('.selected-for-capture');
+            if (messagesToCapture.length === 0) {
+                alert('저장할 채팅 블록을 먼저 선택해주세요.');
+                return;
+            }
+
+            const captureWrapper = document.createElement('div');
+            const captureContent = document.createElement('div');
+            Object.assign(captureContent.style, {
+                width: chatContainer.offsetWidth + 'px',
+                padding: '20px',
+                backgroundColor: '#b2c7d9',
+                boxSizing: 'border-box',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '15px',
+            });
+            
+            messagesToCapture.forEach(node => {
+                const clone = node.cloneNode(true);
+                clone.classList.remove('selected-for-capture', 'capture-start');
+                captureContent.appendChild(clone);
+            });
+            
+            Object.assign(captureWrapper.style, {
+                position: 'absolute',
+                left: '-9999px',
+                top: '0px',
+            });
+
+            captureWrapper.appendChild(captureContent);
+            document.body.appendChild(captureWrapper);
+            
+            try {
+                const canvas = await html2canvas(captureContent, {
+                    backgroundColor: null,
+                    useCORS: true,
+                });
+                const link = document.createElement('a');
+                link.download = 'chat-capture.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            } catch (error) {
+                console.error('이미지 저장 중 오류 발생:', error);
+                alert('이미지 저장에 실패했습니다.');
+            } finally {
+                document.body.removeChild(captureWrapper);
+            }
+        }
+    });
+    </script>
+
+</body>
+</html>
