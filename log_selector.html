@@ -65,6 +65,7 @@
             display: flex;
             flex-direction: column;
             gap: 15px;
+            box-sizing: border-box;
         }
 
         #controls h2, #controls h3 {
@@ -148,205 +149,113 @@
             transition: background-color 0.2s;
         }
 
-        .message-container.char {
-            align-self: flex-start;
-        }
-
-        .message-container.user {
-            align-self: flex-end;
-        }
+        .message-container.char { align-self: flex-start; }
+        .message-container.user { align-self: flex-end; }
 
         .profile-pic {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background-color: #e0e0e0;
-            flex-shrink: 0;
-            object-fit: cover;
+            width: 40px; height: 40px; border-radius: 50%;
+            background-color: #e0e0e0; flex-shrink: 0; object-fit: cover;
         }
-        
-        .message-container.consecutive .profile-pic {
-            visibility: hidden;
-        }
+        .message-container.consecutive .profile-pic { visibility: hidden; }
 
         .message-bubble {
-            padding: 10px 15px;
-            border-radius: 18px;
-            white-space: pre-wrap;
-            word-break: break-word;
+            padding: 10px 15px; border-radius: 18px;
+            white-space: pre-wrap; word-break: break-word;
         }
-        
         .message-bubble em { font-style: italic; }
 
-        .message-container.char .message-bubble {
-            background-color: var(--char-bubble-bg);
-            border-top-left-radius: 0;
-            font-family: var(--char-font-family);
-            font-size: var(--char-font-size);
-            color: var(--char-font-color);
-            font-weight: var(--char-font-weight);
-        }
-        .message-container.char em {
-            font-family: var(--char-italic-font-family);
-            font-size: var(--char-italic-font-size);
-            color: var(--char-italic-font-color);
-            font-weight: var(--char-italic-font-weight);
-        }
-        .message-container.char .double-quoted-text {
-            font-family: var(--char-double-quote-font-family);
-            font-size: var(--char-double-quote-font-size);
-            color: var(--char-double-quote-font-color);
-            font-weight: var(--char-double-quote-font-weight);
-        }
-        .message-container.char .single-quoted-text {
-            font-family: var(--char-single-quote-font-family);
-            font-size: var(--char-single-quote-font-size);
-            color: var(--char-single-quote-font-color);
-            font-weight: var(--char-single-quote-font-weight);
-        }
+        .message-container.char .message-bubble { background-color: var(--char-bubble-bg); border-top-left-radius: 0; font-family: var(--char-font-family); font-size: var(--char-font-size); color: var(--char-font-color); font-weight: var(--char-font-weight); }
+        .message-container.char em { font-family: var(--char-italic-font-family); font-size: var(--char-italic-font-size); color: var(--char-italic-font-color); font-weight: var(--char-italic-font-weight); }
+        .message-container.char .double-quoted-text { font-family: var(--char-double-quote-font-family); font-size: var(--char-double-quote-font-size); color: var(--char-double-quote-font-color); font-weight: var(--char-double-quote-font-weight); }
+        .message-container.char .single-quoted-text { font-family: var(--char-single-quote-font-family); font-size: var(--char-single-quote-font-size); color: var(--char-single-quote-font-color); font-weight: var(--char-single-quote-font-weight); }
+        .message-container.user .message-bubble { background-color: var(--user-bubble-bg); border-top-right-radius: 0; font-family: var(--user-font-family); font-size: var(--user-font-size); color: var(--user-font-color); font-weight: var(--user-font-weight); }
+        .message-container.user em { font-family: var(--user-italic-font-family); font-size: var(--user-italic-font-size); color: var(--user-italic-font-color); font-weight: var(--user-italic-font-weight); }
+        .message-container.user .double-quoted-text { font-family: var(--user-double-quote-font-family); font-size: var(--user-double-quote-font-size); color: var(--user-double-quote-font-color); font-weight: var(--user-double-quote-font-weight); }
+        .message-container.user .single-quoted-text { font-family: var(--user-single-quote-font-family); font-size: var(--user-single-quote-font-size); color: var(--user-single-quote-font-color); font-weight: var(--user-single-quote-font-weight); }
 
-        .message-container.user .message-bubble {
-            background-color: var(--user-bubble-bg);
-            border-top-right-radius: 0;
-            font-family: var(--user-font-family);
-            font-size: var(--user-font-size);
-            color: var(--user-font-color);
-            font-weight: var(--user-font-weight);
-        }
-        .message-container.user em {
-            font-family: var(--user-italic-font-family);
-            font-size: var(--user-italic-font-size);
-            color: var(--user-italic-font-color);
-            font-weight: var(--user-italic-font-weight);
-        }
-        .message-container.user .double-quoted-text {
-            font-family: var(--user-double-quote-font-family);
-            font-size: var(--user-double-quote-font-size);
-            color: var(--user-double-quote-font-color);
-            font-weight: var(--user-double-quote-font-weight);
-        }
-        .message-container.user .single-quoted-text {
-            font-family: var(--user-single-quote-font-family);
-            font-size: var(--user-single-quote-font-size);
-            color: var(--user-single-quote-font-color);
-            font-weight: var(--user-single-quote-font-weight);
-        }
+        body.capture-mode #chat-container .message-container { cursor: pointer; border: 2px dashed transparent; }
+        body.capture-mode #chat-container .message-container:hover { background-color: rgba(0, 123, 255, 0.1); border-color: #007bff; }
+        #chat-container .message-container.selected-for-capture { background-color: rgba(40, 167, 69, 0.2); border-color: #28a745; }
+        #chat-container .message-container.capture-start { background-color: rgba(255, 193, 7, 0.3); border-color: #ffc107; }
+        #capture-status { position: fixed; bottom: 20px; right: 20px; background-color: #dc3545; color: white; padding: 10px 20px; border-radius: 20px; font-weight: bold; display: none; z-index: 1001; align-items: center; gap: 15px; }
+        body.capture-mode #capture-status { display: flex; }
+        #capture-status-save-btn { padding: 5px 12px; background-color: #28a745; font-size: 13px; }
 
-        /* Capture Mode Styles */
-        body.capture-mode #chat-container .message-container {
-            cursor: pointer;
-            border: 2px dashed transparent;
-        }
-        body.capture-mode #chat-container .message-container:hover {
-            background-color: rgba(0, 123, 255, 0.1);
-            border-color: #007bff;
-        }
-        #chat-container .message-container.selected-for-capture {
-            background-color: rgba(40, 167, 69, 0.2);
-            border-color: #28a745;
-        }
-        #chat-container .message-container.capture-start {
-             background-color: rgba(255, 193, 7, 0.3);
-             border-color: #ffc107;
-        }
-        #capture-status {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background-color: #dc3545;
-            color: white;
-            padding: 10px 20px;
-            border-radius: 20px;
-            font-weight: bold;
-            display: none;
-            z-index: 1001;
-            align-items: center;
-            gap: 15px;
-        }
-        body.capture-mode #capture-status {
-            display: flex;
-        }
-        #capture-status-save-btn {
-            padding: 5px 12px;
-            background-color: #28a745;
-            font-size: 13px;
-        }
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4); justify-content: center; align-items: center; }
+        .modal-content { background-color: #fefefe; padding: 20px; border: 1px solid #888; width: 80%; max-width: 600px; border-radius: 10px; display: flex; flex-direction: column; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 15px; }
+        .close-button { color: #aaa; font-size: 28px; font-weight: bold; cursor: pointer; }
+        .regex-rule { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; }
+        .regex-rule input, .regex-rule textarea, #font-css-input { flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-family: inherit; }
+        .regex-rule textarea, #font-css-input { resize: vertical; }
+        #font-css-input { min-height: 200px; font-family: monospace; }
+        .regex-rule button { padding: 5px 10px; background-color: #dc3545; }
+        #add-regex-btn { width: 100%; margin-top: 10px; background-color: #28a745; }
+        .modal-footer { margin-top: 15px; align-self: flex-end; }
 
-        /* Modal Styles */
-        .modal {
+        /* 모바일 토글 버튼 및 오버레이 스타일 */
+        #mobile-toggle-btn {
             display: none;
             position: fixed;
-            z-index: 1000;
+            top: 20px;
             left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-            background-color: rgba(0,0,0,0.4);
-            justify-content: center;
-            align-items: center;
-        }
-        .modal-content {
-            background-color: #fefefe;
-            padding: 20px;
-            border: 1px solid #888;
-            width: 80%;
-            max-width: 600px;
-            border-radius: 10px;
-            display: flex;
-            flex-direction: column;
-        }
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 10px;
-            margin-bottom: 15px;
-        }
-        .close-button {
-            color: #aaa;
-            font-size: 28px;
-            font-weight: bold;
+            z-index: 1002;
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
+            border: none;
+            padding: 10px;
+            border-top-right-radius: 8px;
+            border-bottom-right-radius: 8px;
+            border-top-left-radius: 0px;
+            border-bottom-left-radius: 0px;
             cursor: pointer;
+            font-size: 24px;
+            line-height: 1;
         }
-        .regex-rule {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 10px;
-            align-items: center;
-        }
-        .regex-rule input, .regex-rule textarea, #font-css-input {
-            flex: 1;
-            padding: 8px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            font-family: inherit;
-        }
-        .regex-rule textarea, #font-css-input {
-            resize: vertical;
-        }
-        #font-css-input {
-            min-height: 200px;
-            font-family: monospace;
-        }
-        .regex-rule button {
-            padding: 5px 10px;
-            background-color: #dc3545;
-        }
-        #add-regex-btn {
-            width: 100%;
-            margin-top: 10px;
-            background-color: #28a745;
-        }
-        .modal-footer {
-            margin-top: 15px;
-            align-self: flex-end;
+        #mobile-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.4);
+            z-index: 1001;
         }
 
+        /* 모바일 환경 스타일 (가로 768px 이하) */
+        @media (max-width: 768px) {
+            body {
+                flex-direction: column;
+                padding: 10px;
+            }
+            #controls {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 80%;
+                max-width: 320px;
+                height: 100vh;
+                z-index: 1003;
+                overflow-y: auto;
+                transform: translateX(-100%);
+                transition: transform 0.3s ease-in-out;
+                border-radius: 0;
+                box-shadow: 2px 0 10px rgba(0,0,0,0.2);
+            }
+            body.controls-visible #controls {
+                transform: translateX(0);
+            }
+            #mobile-toggle-btn {
+                display: block;
+            }
+            body.controls-visible #mobile-overlay {
+                display: block;
+            }
+        }
     </style>
 </head>
 <body>
+
+    <button id="mobile-toggle-btn">→</button>
+    <div id="mobile-overlay"></div>
 
     <div id="controls">
         <h2>Control Panel</h2>
@@ -451,6 +360,7 @@
         let captureStartElement = null;
 
         // Element references
+        const body = document.body;
         const jsonUpload = document.getElementById('json-upload');
         const chatContainer = document.getElementById('chat-container');
         const charPfpUpload = document.getElementById('char-pfp-upload');
@@ -475,6 +385,9 @@
         
         const customWidthToggle = document.getElementById('custom-width-toggle');
         const customWidthInput = document.getElementById('custom-width-input');
+        
+        const mobileToggleBtn = document.getElementById('mobile-toggle-btn');
+        const mobileOverlay = document.getElementById('mobile-overlay');
 
         // Initial setup
         loadChat({"type":"risuChat","ver":2,"data":{"message":[]}});
@@ -533,7 +446,7 @@
 
         toggleCaptureBtn.addEventListener('click', () => {
             isCaptureMode = !isCaptureMode;
-            document.body.classList.toggle('capture-mode', isCaptureMode);
+            body.classList.toggle('capture-mode', isCaptureMode);
             clearAllSelections();
             if(isCaptureMode){
                  captureStatusText.textContent = "캡쳐 모드 활성 중: 시작 블록을 선택하세요.";
@@ -542,8 +455,16 @@
         });
 
         saveCaptureBtn.addEventListener('click', exportToPng);
-        captureStatusSaveBtn.addEventListener('click', exportToPng); // 상태바 버튼에도 동일 기능 연결
+        captureStatusSaveBtn.addEventListener('click', exportToPng);
         customWidthToggle.addEventListener('change', () => { customWidthInput.disabled = !customWidthToggle.checked; });
+
+        // Mobile Panel Toggle Logic
+        function toggleMobileControls() {
+            body.classList.toggle('controls-visible');
+            mobileToggleBtn.innerHTML = body.classList.contains('controls-visible') ? '←' : '→';
+        }
+        mobileToggleBtn.addEventListener('click', toggleMobileControls);
+        mobileOverlay.addEventListener('click', toggleMobileControls);
 
         chatContainer.addEventListener('click', (e) => {
             if (!isCaptureMode) return;
@@ -561,7 +482,6 @@
                 const startIndex = allMessages.indexOf(captureStartElement);
                 const endIndex = allMessages.indexOf(clickedMessage);
                 
-                // 기존 선택 초기화 (시작 블록 표시만 제거)
                 document.querySelectorAll('.capture-start').forEach(el => el.classList.remove('capture-start'));
                 
                 const start = Math.min(startIndex, endIndex);
@@ -575,19 +495,15 @@
                 
                 captureStatusText.textContent = `${selectedCount}개 블록 선택됨`;
                 captureStatusSaveBtn.style.display = 'inline-block';
-                captureStartElement = null; // 선택 완료, 다음 클릭은 새 선택 시작
+                captureStartElement = null;
             }
         });
 
         // --- Core Functions ---
 
         function loadChat(json) {
-            if (json.type === 'risuChat' && json.data && Array.isArray(json.data.message)) {
-                chatData = json.data.message;
-            } else {
-                alert('지원하지 않는 형식의 파일입니다.');
-                chatData = [];
-            }
+            if (json.type === 'risuChat' && json.data && Array.isArray(json.data.message)) { chatData = json.data.message; } 
+            else { alert('지원하지 않는 형식의 파일입니다.'); chatData = []; }
             renderChat();
         }
         
@@ -606,9 +522,8 @@
         function processText(text) {
             let processedText = text;
             regexRules.forEach(rule => {
-                try {
-                    processedText = processedText.replace(new RegExp(rule.in, 'g'), rule.out);
-                } catch (e) { console.error("Invalid Regex:", rule.in, e); }
+                try { processedText = processedText.replace(new RegExp(rule.in, 'g'), rule.out); } 
+                catch (e) { console.error("Invalid Regex:", rule.in, e); }
             });
             processedText = processedText.trim();
             const tempDiv = document.createElement('div');
@@ -650,13 +565,9 @@
             const customFonts = new Set();
             const fontRegex = /font-family:\s*['"]([^'"]+)['"]/g;
             let match;
-            while ((match = fontRegex.exec(customFontCss)) !== null) {
-                customFonts.add(match[1]);
-            }
-            
+            while ((match = fontRegex.exec(customFontCss)) !== null) { customFonts.add(match[1]); }
             const allFonts = [...baseFonts, ...Array.from(customFonts)];
             const allSelects = document.querySelectorAll('#style-accordion select');
-            
             allSelects.forEach(select => {
                 const currentValue = select.value;
                 select.innerHTML = '';
@@ -721,10 +632,8 @@
                 const inVal = el.querySelector('.regex-in').value;
                 const outVal = el.querySelector('.regex-out').value;
                 if (inVal) {
-                    try {
-                        new RegExp(inVal, 'g');
-                        regexRules.push({ in: inVal, out: outVal });
-                    } catch (e) { alert(`잘못된 정규식입니다: ${inVal}`); }
+                    try { new RegExp(inVal, 'g'); regexRules.push({ in: inVal, out: outVal }); } 
+                    catch (e) { alert(`잘못된 정규식입니다: ${inVal}`); }
                 }
             });
         }
