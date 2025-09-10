@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RisuChat Viewer</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style id="custom-font-styles"></style>
     <style>
         :root {
             --char-bubble-bg: #f1f0f0;
@@ -125,7 +126,7 @@
         
         #chat-wrapper {
             flex: 1;
-            min-width: 0; /* Prevents flexbox from overflowing */
+            min-width: 0;
         }
         
         #chat-container {
@@ -143,7 +144,7 @@
             display: flex;
             align-items: flex-start;
             gap: 10px;
-            max-width: 85%; /* Slightly increased for better look on wider screens */
+            max-width: 85%;
             transition: background-color 0.2s;
         }
 
@@ -259,9 +260,16 @@
             font-weight: bold;
             display: none;
             z-index: 1001;
+            align-items: center;
+            gap: 15px;
         }
         body.capture-mode #capture-status {
-            display: block;
+            display: flex;
+        }
+        #capture-status-save-btn {
+            padding: 5px 12px;
+            background-color: #28a745;
+            font-size: 13px;
         }
 
         /* Modal Styles */
@@ -285,6 +293,8 @@
             width: 80%;
             max-width: 600px;
             border-radius: 10px;
+            display: flex;
+            flex-direction: column;
         }
         .modal-header {
             display: flex;
@@ -306,15 +316,19 @@
             margin-bottom: 10px;
             align-items: center;
         }
-        .regex-rule input, .regex-rule textarea {
+        .regex-rule input, .regex-rule textarea, #font-css-input {
             flex: 1;
             padding: 8px;
             border: 1px solid #ccc;
             border-radius: 4px;
             font-family: inherit;
         }
-        .regex-rule textarea {
+        .regex-rule textarea, #font-css-input {
             resize: vertical;
+        }
+        #font-css-input {
+            min-height: 200px;
+            font-family: monospace;
         }
         .regex-rule button {
             padding: 5px 10px;
@@ -325,9 +339,9 @@
             margin-top: 10px;
             background-color: #28a745;
         }
-        #save-regex-btn {
-            float: right;
+        .modal-footer {
             margin-top: 15px;
+            align-self: flex-end;
         }
 
     </style>
@@ -368,12 +382,12 @@
         </div>
         
         <button id="open-regex-modal">정규식 치환 관리</button>
+        <button id="open-font-modal">커스텀 폰트 관리</button>
 
         <div class="control-group">
             <h3>PNG로 저장</h3>
             <button id="toggle-capture-mode">구간 캡쳐 모드 시작/종료</button>
             <button id="save-capture" style="margin-top: 5px; background-color: #28a745;">선택 영역 저장</button>
-            <!-- 가로 사이즈 커스텀 UI 추가 -->
             <div class="custom-width-controls" style="margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px;">
                 <label style="display: inline-block; font-weight: normal;">
                     <input type="checkbox" id="custom-width-toggle" style="width: auto;">
@@ -390,7 +404,10 @@
         </div>
     </div>
 
-    <div id="capture-status">캡쳐 모드 활성 중: 시작 블록을 선택하세요.</div>
+    <div id="capture-status">
+        <span id="capture-status-text">캡쳐 모드 활성 중: 시작 블록을 선택하세요.</span>
+        <button id="capture-status-save-btn" style="display: none;">선택 영역 저장</button>
+    </div>
 
     <!-- Regex Modal -->
     <div id="regex-modal" class="modal">
@@ -399,11 +416,26 @@
                 <h2>정규식 관리</h2>
                 <span class="close-button">&times;</span>
             </div>
-            <div id="regex-rules-container">
-                <!-- Regex rules will be added here -->
-            </div>
+            <div id="regex-rules-container"></div>
             <button id="add-regex-btn">+</button>
-            <button id="save-regex-btn">저장 및 적용</button>
+            <div class="modal-footer">
+                <button id="save-regex-btn">저장 및 적용</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Font Modal -->
+    <div id="font-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>커스텀 폰트 관리</h2>
+                <span class="close-button">&times;</span>
+            </div>
+            <p style="font-size: 13px; color: #555; margin-top:0;">아래에 <code>@font-face</code> CSS 규칙을 붙여넣으세요.</p>
+            <textarea id="font-css-input"></textarea>
+            <div class="modal-footer">
+                <button id="save-font-btn">저장 및 적용</button>
+            </div>
         </div>
     </div>
 
@@ -414,6 +446,7 @@
         let charPfpSrc = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">C</text></svg>';
         let userPfpSrc = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">U</text></svg>';
         let regexRules = [];
+        let customFontCss = '';
         let isCaptureMode = false;
         let captureStartElement = null;
 
@@ -426,17 +459,20 @@
         
         const regexModal = document.getElementById('regex-modal');
         const openRegexModalBtn = document.getElementById('open-regex-modal');
-        const closeBtn = document.querySelector('.close-button');
-        const addRegexBtn = document.getElementById('add-regex-btn');
         const saveRegexBtn = document.getElementById('save-regex-btn');
         const regexRulesContainer = document.getElementById('regex-rules-container');
 
+        const fontModal = document.getElementById('font-modal');
+        const openFontModalBtn = document.getElementById('open-font-modal');
+        const fontCssInput = document.getElementById('font-css-input');
+        const saveFontBtn = document.getElementById('save-font-btn');
+
         const toggleCaptureBtn = document.getElementById('toggle-capture-mode');
         const saveCaptureBtn = document.getElementById('save-capture');
-        const captureStatus = document.getElementById('capture-status');
+        const captureStatusText = document.getElementById('capture-status-text');
+        const captureStatusSaveBtn = document.getElementById('capture-status-save-btn');
         const chatBgColorInput = document.getElementById('chat-bg-color');
         
-        // 가로 사이즈 커스텀 UI 요소 추가
         const customWidthToggle = document.getElementById('custom-width-toggle');
         const customWidthInput = document.getElementById('custom-width-input');
 
@@ -455,10 +491,7 @@
                 try {
                     const json = JSON.parse(e.target.result);
                     loadChat(json);
-                } catch (error) {
-                    alert('유효하지 않은 JSON 파일입니다.');
-                    console.error(error);
-                }
+                } catch (error) { alert('유효하지 않은 JSON 파일입니다.'); console.error(error); }
             };
             reader.readAsText(file);
         });
@@ -466,41 +499,51 @@
         charPfpUpload.addEventListener('change', (e) => handlePfpUpload(e, 'char'));
         userPfpUpload.addEventListener('change', (e) => handlePfpUpload(e, 'user'));
 
-        chatBgColorInput.addEventListener('input', (e) => {
-            chatContainer.style.backgroundColor = e.target.value;
-        });
-        document.getElementById('char-bubble-color').addEventListener('input', (e) => {
-            root.style.setProperty('--char-bubble-bg', e.target.value);
-        });
-        document.getElementById('user-bubble-color').addEventListener('input', (e) => {
-            root.style.setProperty('--user-bubble-bg', e.target.value);
-        });
+        chatBgColorInput.addEventListener('input', (e) => { chatContainer.style.backgroundColor = e.target.value; });
+        document.getElementById('char-bubble-color').addEventListener('input', (e) => { root.style.setProperty('--char-bubble-bg', e.target.value); });
+        document.getElementById('user-bubble-color').addEventListener('input', (e) => { root.style.setProperty('--user-bubble-bg', e.target.value); });
         
-        openRegexModalBtn.onclick = () => { regexModal.style.display = 'flex'; };
-        closeBtn.onclick = () => { regexModal.style.display = 'none'; };
-        window.onclick = (event) => { if (event.target == regexModal) { regexModal.style.display = 'none'; } };
-        addRegexBtn.onclick = () => addRegexRule();
+        function setupModal(modal, openBtn) {
+            const closeBtn = modal.querySelector('.close-button');
+            openBtn.onclick = () => { modal.style.display = 'flex'; };
+            closeBtn.onclick = () => { modal.style.display = 'none'; };
+            window.addEventListener('click', (event) => { if (event.target == modal) { modal.style.display = 'none'; } });
+        }
+        setupModal(regexModal, openRegexModalBtn);
+        setupModal(fontModal, openFontModalBtn);
+
+        document.getElementById('add-regex-btn').onclick = () => addRegexRule();
         saveRegexBtn.onclick = () => {
             saveRegexRules();
             regexModal.style.display = 'none';
             renderChat();
         };
 
+        openFontModalBtn.onclick = () => {
+            fontCssInput.value = customFontCss;
+            fontModal.style.display = 'flex';
+        };
+
+        saveFontBtn.onclick = () => {
+            customFontCss = fontCssInput.value;
+            document.getElementById('custom-font-styles').textContent = customFontCss;
+            updateFontDropdowns();
+            fontModal.style.display = 'none';
+        };
+
         toggleCaptureBtn.addEventListener('click', () => {
             isCaptureMode = !isCaptureMode;
             document.body.classList.toggle('capture-mode', isCaptureMode);
             clearAllSelections();
-            if (!isCaptureMode) {
-                captureStartElement = null;
+            if(isCaptureMode){
+                 captureStatusText.textContent = "캡쳐 모드 활성 중: 시작 블록을 선택하세요.";
+                 captureStatusSaveBtn.style.display = 'none';
             }
         });
 
         saveCaptureBtn.addEventListener('click', exportToPng);
-
-        // 가로 사이즈 커스텀 체크박스 이벤트 리스너
-        customWidthToggle.addEventListener('change', () => {
-            customWidthInput.disabled = !customWidthToggle.checked;
-        });
+        captureStatusSaveBtn.addEventListener('click', exportToPng); // 상태바 버튼에도 동일 기능 연결
+        customWidthToggle.addEventListener('change', () => { customWidthInput.disabled = !customWidthToggle.checked; });
 
         chatContainer.addEventListener('click', (e) => {
             if (!isCaptureMode) return;
@@ -508,37 +551,44 @@
             if (!clickedMessage) return;
 
             if (!captureStartElement) {
-                captureStartElement = clickedMessage;
                 clearAllSelections();
+                captureStartElement = clickedMessage;
                 captureStartElement.classList.add('capture-start');
-                captureStatus.textContent = "캡쳐 모드 활성 중: 끝 블록을 선택하세요.";
+                captureStatusText.textContent = "캡쳐 모드 활성 중: 끝 블록을 선택하세요.";
+                captureStatusSaveBtn.style.display = 'none';
             } else {
                 const allMessages = Array.from(chatContainer.querySelectorAll('.message-container'));
                 const startIndex = allMessages.indexOf(captureStartElement);
                 const endIndex = allMessages.indexOf(clickedMessage);
-                clearAllSelections();
+                
+                // 기존 선택 초기화 (시작 블록 표시만 제거)
+                document.querySelectorAll('.capture-start').forEach(el => el.classList.remove('capture-start'));
+                
                 const start = Math.min(startIndex, endIndex);
                 const end = Math.max(startIndex, endIndex);
-                for (let i = start; i <= end; i++) {
+                
+                let selectedCount = 0;
+                for (let i = start; i <= end; i++) { 
                     allMessages[i].classList.add('selected-for-capture');
+                    selectedCount++;
                 }
-                captureStartElement = null;
-                captureStatus.textContent = "캡쳐 모드 활성 중: 시작 블록을 선택하세요.";
+                
+                captureStatusText.textContent = `${selectedCount}개 블록 선택됨`;
+                captureStatusSaveBtn.style.display = 'inline-block';
+                captureStartElement = null; // 선택 완료, 다음 클릭은 새 선택 시작
             }
         });
-
 
         // --- Core Functions ---
 
         function loadChat(json) {
             if (json.type === 'risuChat' && json.data && Array.isArray(json.data.message)) {
                 chatData = json.data.message;
-                renderChat();
             } else {
                 alert('지원하지 않는 형식의 파일입니다.');
                 chatData = [];
-                renderChat();
             }
+            renderChat();
         }
         
         function handlePfpUpload(event, role) {
@@ -557,8 +607,7 @@
             let processedText = text;
             regexRules.forEach(rule => {
                 try {
-                    const regex = new RegExp(rule.in, 'g');
-                    processedText = processedText.replace(regex, rule.out);
+                    processedText = processedText.replace(new RegExp(rule.in, 'g'), rule.out);
                 } catch (e) { console.error("Invalid Regex:", rule.in, e); }
             });
             processedText = processedText.trim();
@@ -577,7 +626,6 @@
                 chatContainer.innerHTML = '<p style="text-align: center; color: #555;">왼쪽 컨트롤 패널에서 채팅 파일(.json)을 업로드해주세요.</p>';
                 return;
             }
-
             let lastRole = null;
             chatData.forEach((msg) => {
                 const isConsecutive = msg.role === lastRole;
@@ -590,24 +638,42 @@
                 const bubble = document.createElement('div');
                 bubble.classList.add('message-bubble');
                 bubble.innerHTML = processText(msg.data);
-                
-                if (msg.role === 'user') {
-                    container.appendChild(bubble);
-                    container.appendChild(pfp);
-                } else {
-                    container.appendChild(pfp);
-                    container.appendChild(bubble);
-                }
-                
+                if (msg.role === 'user') { container.appendChild(bubble); container.appendChild(pfp); }
+                else { container.appendChild(pfp); container.appendChild(bubble); }
                 chatContainer.appendChild(container);
                 lastRole = msg.role;
             });
         }
         
+        function updateFontDropdowns() {
+            const baseFonts = ['Malgun Gothic', 'Gulim', 'Dotum', 'Arial', 'Verdana'];
+            const customFonts = new Set();
+            const fontRegex = /font-family:\s*['"]([^'"]+)['"]/g;
+            let match;
+            while ((match = fontRegex.exec(customFontCss)) !== null) {
+                customFonts.add(match[1]);
+            }
+            
+            const allFonts = [...baseFonts, ...Array.from(customFonts)];
+            const allSelects = document.querySelectorAll('#style-accordion select');
+            
+            allSelects.forEach(select => {
+                const currentValue = select.value;
+                select.innerHTML = '';
+                allFonts.forEach(fontName => {
+                    const option = document.createElement('option');
+                    option.value = fontName;
+                    option.textContent = fontName;
+                    select.appendChild(option);
+                });
+                select.value = allFonts.includes(currentValue) ? currentValue : allFonts[0];
+            });
+        }
+
         function createStyleControls() {
             const container = document.getElementById('style-accordion');
             const roles = [{ id: 'char', name: '캐릭터' }, { id: 'user', name: '사용자' }];
-            const textTypes = [{ id: '', name: '일반' }, { id: 'italic', name: '기울임 (*)' }, { id: 'double-quote', name: '큰따옴표 ("")' }, { id: 'single-quote', name: "작은따옴표 ('')" }, ];
+            const textTypes = [{ id: '', name: '일반' }, { id: 'italic', name: '기울임 (*)' }, { id: 'double-quote', name: '큰따옴표 ("")' }, { id: 'single-quote', name: "작은따옴표 ('')" }];
             roles.forEach(role => {
                 const fieldset = document.createElement('fieldset');
                 const legend = document.createElement('legend');
@@ -619,7 +685,6 @@
                     const controlsWrapper = document.createElement('div');
                     const prefix = `--${role.id}${type.id ? '-' + type.id : ''}-`;
                     const fontSelect = document.createElement('select');
-                    fontSelect.innerHTML = `<option>Malgun Gothic</option><option>Gulim</option><option>Dotum</option><option>Arial</option><option>Verdana</option>`;
                     fontSelect.onchange = (e) => root.style.setProperty(prefix + 'font-family', e.target.value);
                     const sizeInput = document.createElement('input'); sizeInput.type = 'number'; sizeInput.min = 8; sizeInput.max = 32; sizeInput.value = 14;
                     sizeInput.oninput = (e) => root.style.setProperty(prefix + 'font-size', e.target.value + 'px');
@@ -633,31 +698,21 @@
                     fieldset.appendChild(row);
                 }); container.appendChild(fieldset);
             });
+            updateFontDropdowns();
         }
         
         function addRegexRule(inVal = '', outVal = '') {
-            const ruleDiv = document.createElement('div');
-            ruleDiv.className = 'regex-rule';
-            const inInput = document.createElement('input');
-            inInput.type = 'text';
-            inInput.placeholder = 'IN (찾을 패턴)';
-            inInput.value = inVal;
-            inInput.className = 'regex-in';
-            const outInput = document.createElement('textarea');
-            outInput.placeholder = 'OUT (바꿀 내용)';
-            outInput.value = outVal;
-            outInput.className = 'regex-out';
-            outInput.rows = 1;
-            const removeBtn = document.createElement('button');
-            removeBtn.innerHTML = '&times;';
-            removeBtn.onclick = () => ruleDiv.remove();
+            const ruleDiv = document.createElement('div'); ruleDiv.className = 'regex-rule';
+            const inInput = document.createElement('input'); inInput.type = 'text'; inInput.placeholder = 'IN (찾을 패턴)'; inInput.value = inVal; inInput.className = 'regex-in';
+            const outInput = document.createElement('textarea'); outInput.placeholder = 'OUT (바꿀 내용)'; outInput.value = outVal; outInput.className = 'regex-out'; outInput.rows = 1;
+            const removeBtn = document.createElement('button'); removeBtn.innerHTML = '&times;'; removeBtn.onclick = () => ruleDiv.remove();
             ruleDiv.append(inInput, '→', outInput, removeBtn);
             regexRulesContainer.appendChild(ruleDiv);
         }
 
         function updateRegexModal() {
             regexRulesContainer.innerHTML = '';
-            regexRules.forEach(rule => addRegexRule(rule.in.source, rule.out));
+            regexRules.forEach(rule => addRegexRule(rule.in, rule.out));
         }
 
         function saveRegexRules() {
@@ -667,7 +722,8 @@
                 const outVal = el.querySelector('.regex-out').value;
                 if (inVal) {
                     try {
-                        regexRules.push({ in: new RegExp(inVal, 'g'), out: outVal });
+                        new RegExp(inVal, 'g');
+                        regexRules.push({ in: inVal, out: outVal });
                     } catch (e) { alert(`잘못된 정규식입니다: ${inVal}`); }
                 }
             });
@@ -677,66 +733,35 @@
             document.querySelectorAll('.message-container').forEach(el => {
                 el.classList.remove('selected-for-capture', 'capture-start');
             });
+            captureStartElement = null;
         }
 
         async function exportToPng() {
             const messagesToCapture = document.querySelectorAll('.selected-for-capture');
-            if (messagesToCapture.length === 0) {
-                alert('저장할 채팅 블록을 먼저 선택해주세요.');
-                return;
-            }
-
-            // 캡쳐할 가로 사이즈 결정
-            let captureWidth;
-            if (customWidthToggle.checked && customWidthInput.value) {
-                captureWidth = parseInt(customWidthInput.value, 10) + 'px';
-            } else {
-                captureWidth = chatContainer.offsetWidth + 'px';
-            }
-
+            if (messagesToCapture.length === 0) { alert('저장할 채팅 블록을 먼저 선택해주세요.'); return; }
+            let captureWidth = (customWidthToggle.checked && customWidthInput.value) ? `${parseInt(customWidthInput.value, 10)}px` : `${chatContainer.offsetWidth}px`;
             const captureWrapper = document.createElement('div');
             const captureContent = document.createElement('div');
-            
             Object.assign(captureContent.style, {
-                width: captureWidth, // 결정된 가로 사이즈 적용
-                padding: '20px',
-                backgroundColor: window.getComputedStyle(chatContainer).backgroundColor,
-                boxSizing: 'border-box',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '15px',
+                width: captureWidth, padding: '20px', backgroundColor: window.getComputedStyle(chatContainer).backgroundColor,
+                boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '15px',
             });
-            
             messagesToCapture.forEach(node => {
                 const clone = node.cloneNode(true);
                 clone.classList.remove('selected-for-capture', 'capture-start');
                 captureContent.appendChild(clone);
             });
-            
-            Object.assign(captureWrapper.style, {
-                position: 'absolute',
-                left: '-9999px',
-                top: '0px',
-            });
-
+            Object.assign(captureWrapper.style, { position: 'absolute', left: '-9999px', top: '0px' });
             captureWrapper.appendChild(captureContent);
             document.body.appendChild(captureWrapper);
-            
             try {
-                const canvas = await html2canvas(captureContent, {
-                    backgroundColor: null,
-                    useCORS: true,
-                });
+                const canvas = await html2canvas(captureContent, { backgroundColor: null, useCORS: true });
                 const link = document.createElement('a');
                 link.download = 'chat-capture.png';
                 link.href = canvas.toDataURL('image/png');
                 link.click();
-            } catch (error) {
-                console.error('이미지 저장 중 오류 발생:', error);
-                alert('이미지 저장에 실패했습니다.');
-            } finally {
-                document.body.removeChild(captureWrapper);
-            }
+            } catch (error) { console.error('이미지 저장 중 오류 발생:', error); alert('이미지 저장에 실패했습니다.');
+            } finally { document.body.removeChild(captureWrapper); }
         }
     });
     </script>
