@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gemini Veo 비디오 생성기</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    .loading-spinner {
+      width: 64px;
+      height: 64px;
+      border: 4px dashed #8b5cf6;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .video-container {
+      aspect-ratio: 16/9;
+      background: #111827;
+    }
+    .video-container.square {
+      aspect-ratio: 1/1;
+    }
+    .video-container.vertical {
+      aspect-ratio: 9/16;
+    }
+  </style>
+</head>
+<body class="bg-gray-900 text-gray-100">
+  <div id="root"></div>
+  
+  <script type="module">
+    import React, { useState, useCallback, useEffect } from 'https://esm.sh/react@18';
+    import ReactDOM from 'https://esm.sh/react-dom@18/client';
+    import { GoogleGenAI } from 'https://esm.sh/@google/genai@1.20.0';
+
+    // Types
+    const GenerationMode = { T2V: 't2v', I2V: 'i2v' };
+    const AspectRatios = {
+      LANDSCAPE: { value: '16:9', name: '가로 (16:9)', className: '' },
+      PORTRAIT: { value: '9:16', name: '세로 (9:16)', className: 'vertical' }
+    };
+    const VeoModels = {
+      VEO3_STABLE: { id: 'veo-3.0-generate-001', name: 'Veo 3 (Stable)', description: '최고 품질 + 모든 기능 지원' },
+      VEO3_FAST_STABLE: { id: 'veo-3.0-fast-generate-001', name: 'Veo 3 Fast (Stable)', description: '빠른 속도 + 모든 기능 지원' },
+      VEO3_PREVIEW: { id: 'veo-3.0-generate-preview', name: 'Veo 3 (Preview)', description: '기능 제한 미리보기 버전' },
+    };
+    const loadingMessages = [ "요청을 처리하고 있습니다...", "AI가 시나리오를 구상 중입니다...", "비디오 생성을 시작합니다...", "장면을 구성하고 있습니다...", "비디오를 렌더링하고 있습니다...", "마무리 작업 중입니다..." ];
+
+    const generateVeoVideo = async ({ apiKey, params, onProgress }) => {
+      if (!apiKey) throw new Error("API 키가 설정되지 않았습니다.");
+      onProgress(loadingMessages[0]);
+      
+      const ai = new GoogleGenAI({ apiKey });
+      const isStable = params.model.includes('-001');
+      const config = { aspectRatio: params.aspectRatio || '16:9' };
+      
+      if (params.negativePrompt && params.negativePrompt.trim()) config.negativePrompt = params.negativePrompt.trim();
+      if (params.seed) config.seed = parseInt(params.seed, 10);
+      if (params.model.startsWith('veo-3.0')) config.people = params.personGeneration;
+      
+      if (isStable) {
+        config.numberOfVideos = params.responseCount || 1;
+        config.resolution = params.resolution || '720p';
+      }
+
+      const generateVideosParams = { model: params.model, prompt: params.prompt, config: config };
+      if (params.image) generateVideosParams.image = { imageBytes: params.image.data, mimeType: params.image.mimeType };
+      
+      let operation = await ai.models.generateVideos(generateVideosParams);
+
+      let messageIndex = 1;
+      while (!operation.done) {
+        onProgress(loadingMessages[messageIndex % loadingMessages.length]);
+        messageIndex++;
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        try {
+           operation = await ai.operations.getVideosOperation({ operation: operation });
+        } catch(e) { console.error("Polling failed, but will retry", e); }
+      }
+
+      onProgress("비디오를 다운로드 중입니다...");
+      
+      const generatedVideos = operation.response?.generatedVideos;
+      if (!generatedVideos || generatedVideos.length === 0) throw new Error("생성된 비디오를 찾을 수 없습니다.");
+
+      const downloadPromises = generatedVideos.map(async (videoInfo) => {
+        const downloadLink = videoInfo?.video?.uri;
+        if (!downloadLink) throw new Error("생성된 비디오의 다운로드 링크를 찾을 수 없습니다.");
+        const response = await fetch(`${downloadLink}&key=${apiKey}`);
+        if (!response.ok) throw new Error(`비디오 다운로드에 실패했습니다: ${response.statusText}`);
+        const videoBlob = await response.blob();
+        return URL.createObjectURL(videoBlob);
+      });
+
+      return Promise.all(downloadPromises);
+    };
+
+    // Components
+    const Header = () => React.createElement('header', { className: 'text-center' }, React.createElement('h1', { className: 'text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600' }, 'Gemini Veo 비디오 생성기'), React.createElement('p', { className: 'mt-3 text-lg text-gray-400' }, React.createElement('a', { href: 'https://ai.google.dev/gemini-api/docs/pricing?hl=ko', target: '_blank', rel: 'noopener noreferrer', className: 'text-purple-400 hover:text-purple-300 underline hover:no-underline transition-all duration-200' }, '여기'), '를 눌러서 가격 정책을 반드시 확인하세요.'));
+    const ApiKeyInput = ({ apiKey, setApiKey, disabled }) => React.createElement('div', { className: 'mb-6 p-4 bg-gray-800/50 rounded-lg border border-gray-700' }, React.createElement('label', { className: 'block text-sm font-medium text-gray-300 mb-2' }, 'Gemini API Key'), React.createElement('input', { type: 'password', value: apiKey, onChange: (e) => setApiKey(e.target.value), placeholder: 'Gemini API 키를 입력하세요', className: 'w-full p-3 bg-gray-900/70 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-300 placeholder-gray-500', disabled: disabled }), React.createElement('p', { className: 'mt-2 text-sm text-gray-400' }, 'API 키는 안전하게 브라우저에만 저장되며 서버로 전송되지 않습니다.'));
+    const ModelSelector = ({ selectedModel, onSelectModel }) => React.createElement('div', { className: 'mb-6' }, React.createElement('label', { className: 'block text-sm font-medium text-gray-300 mb-3' }, 'AI 모델 선택'), React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-3 gap-3' }, Object.entries(VeoModels).map(([key, model]) => React.createElement('button', { key: key, onClick: () => onSelectModel(model.id), className: `p-4 rounded-lg border transition-all duration-300 ${ selectedModel === model.id ? 'bg-purple-600/20 border-purple-500 text-white' : 'bg-gray-800/50 border-gray-600 text-gray-300 hover:border-gray-500' }` }, React.createElement('div', { className: 'text-left' }, React.createElement('h3', { className: 'font-semibold mb-1 text-sm' }, model.name), React.createElement('p', { className: 'text-xs opacity-75' }, model.description))))));
+    const ModeSelector = ({ selectedMode, onSelectMode }) => { const getButtonClasses = (mode) => `w-full py-3 px-4 rounded-lg text-center font-semibold transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 ${ selectedMode === mode ? 'bg-purple-600 text-white shadow-md' : 'bg-gray-700 text-gray-300 hover:bg-gray-600' }`; return React.createElement('div', { className: 'grid grid-cols-2 gap-4 p-1 bg-gray-900/50 rounded-xl mb-6' }, React.createElement('button', { onClick: () => onSelectMode(GenerationMode.T2V), className: getButtonClasses(GenerationMode.T2V) }, React.createElement('i', { className: 'fa-solid fa-font mr-2' }), '텍스트로 생성'), React.createElement('button', { onClick: () => onSelectMode(GenerationMode.I2V), className: getButtonClasses(GenerationMode.I2V) }, React.createElement('i', { className: 'fa-solid fa-image mr-2' }), '이미지로 생성')); };
+    const VideoSettings = ({ settings, setSettings, selectedModel, mode }) => {
+      const isStable = selectedModel.includes('-001');
+      return React.createElement('div', { className: 'mb-6 grid grid-cols-1 md:grid-cols-2 gap-4' },
+        React.createElement('div', { className: 'bg-gray-800/50 rounded-lg border border-gray-700 p-4' },
+          React.createElement('label', { className: 'block text-sm font-medium text-gray-300 mb-3' }, '비디오 기본 설정'),
+          React.createElement('div', { className: 'space-y-3 text-sm' },
+            React.createElement('div', { className: 'flex items-center justify-between' }, React.createElement('span', null, '비디오 비율'), React.createElement('select', { value: settings.aspectRatio, onChange: (e) => setSettings(s => ({...s, aspectRatio: e.target.value})), className: 'p-1 bg-gray-900/70 border border-gray-600 rounded-md focus:ring-1 focus:ring-purple-500 text-xs' }, Object.entries(AspectRatios).map(([key, ratio]) => React.createElement('option', { key: key, value: ratio.value }, ratio.name)))),
+            React.createElement('div', { className: 'flex items-center justify-between' }, React.createElement('span', null, '사람 생성'), React.createElement('select', { value: settings.personGeneration, onChange: (e) => setSettings(s => ({...s, personGeneration: e.target.value})), disabled: mode === GenerationMode.I2V, className: 'p-1 bg-gray-900/70 border border-gray-600 rounded-md focus:ring-1 focus:ring-purple-500 text-xs disabled:opacity-50' }, React.createElement('option', { value: 'allow_all' }, '모든 사람 허용'))),
+            React.createElement('div', { className: 'flex items-center justify-between' }, React.createElement('span', null, '시드 (선택사항)'), React.createElement('input', { type: 'number', placeholder: '무작위', value: settings.seed, onChange: (e) => setSettings(s => ({...s, seed: e.target.value})), className: 'w-24 p-1 bg-gray-900/70 border border-gray-600 rounded-md focus:ring-1 focus:ring-purple-500 text-xs text-right' }))
+          )
+        ),
+        React.createElement('div', { className: 'bg-gray-800/50 rounded-lg border border-gray-700 p-4' },
+          React.createElement('label', { className: `block text-sm font-medium mb-3 ${isStable ? 'text-gray-300' : 'text-gray-500'}` }, '상세 설정 (Stable 모델 전용)'),
+          React.createElement('div', { className: 'space-y-3 text-sm' },
+            React.createElement('div', { className: 'flex items-center justify-between' }, React.createElement('span', { className: `${!isStable ? 'text-gray-500' : ''}`}, '해상도'), React.createElement('select', { value: settings.resolution, onChange: (e) => setSettings(s => ({...s, resolution: e.target.value})), disabled: !isStable, className: 'p-1 bg-gray-900/70 border border-gray-600 rounded-md focus:ring-1 focus:ring-purple-500 text-xs disabled:opacity-50' }, React.createElement('option', { value: '720p' }, '720p'), React.createElement('option', { value: '1080p', disabled: settings.aspectRatio !== '16:9' }, '1080p (가로만)'))),
+            React.createElement('div', { className: 'flex items-center justify-between' }, React.createElement('span', { className: `${!isStable ? 'text-gray-500' : ''}`}, '영상 길이'), React.createElement('span', { className: `text-xs p-1 rounded-md ${isStable ? 'text-gray-200' : 'text-gray-500'}`}, '8초 (고정)')),
+            React.createElement('div', { className: 'pt-2' }, React.createElement('label', { className: `block mb-1 ${!isStable ? 'text-gray-500' : ''}` }, `생성 개수: ${settings.responseCount}`), React.createElement('input', { type: 'range', min: 1, max: 4, step: 1, value: settings.responseCount, onChange: (e) => setSettings(s => ({...s, responseCount: Number(e.target.value)})), disabled: !isStable, className: 'w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-purple-500 disabled:opacity-50' }))
+          )
+        )
+      );
+    };
+    const ImageUploader = ({ onImageUpload, disabled }) => {
+      const [preview, setPreview] = useState(null); const [error, setError] = useState(null);
+      const handleFileChange = useCallback((files) => {
+        setError(null);
+        if (!files || files.length === 0) { setPreview(null); onImageUpload(null); return; }
+        const file = files[0];
+        if (!file.type.startsWith('image/')) { setError('이미지 파일만 업로드할 수 있습니다.'); setPreview(null); onImageUpload(null); return; }
+        const reader = new FileReader();
+        reader.onloadend = () => { const base64String = reader.result.split(',')[1]; const previewUrl = URL.createObjectURL(file); setPreview(previewUrl); onImageUpload({ data: base64String, mimeType: file.type, previewUrl: previewUrl }); };
+        reader.onerror = () => { setError('파일을 읽는 중 오류가 발생했습니다.'); setPreview(null); onImageUpload(null); };
+        reader.readAsDataURL(file);
+      }, [onImageUpload]);
+      return React.createElement('div', { className: 'w-full' }, React.createElement('label', { htmlFor: 'file-upload', className: `relative flex flex-col items-center justify-center w-full h-40 border-2 border-dashed rounded-lg ${disabled ? 'bg-gray-800 cursor-not-allowed' : 'border-gray-600 hover:border-purple-500 bg-gray-900/70 cursor-pointer'} transition-all duration-300`}, preview ? React.createElement('img', { src: preview, alt: '미리보기', className: 'object-cover w-full h-full rounded-lg' }) : React.createElement('div', { className: 'text-center text-gray-500' }, React.createElement('i', { className: 'fa-solid fa-cloud-arrow-up text-3xl mb-2' }), React.createElement('p', { className: 'font-semibold' }, '이미지를 업로드하세요'), React.createElement('p', { className: 'text-sm' }, '클릭 또는 드래그 앤 드롭')), React.createElement('input', { id: 'file-upload', type: 'file', className: 'sr-only', accept: 'image/*', onChange: (e) => handleFileChange(e.target.files), disabled: disabled })), error && React.createElement('p', { className: 'mt-2 text-sm text-red-500' }, error));
+    };
+    const VideoResult = ({ isLoading, loadingMessage, videoUrls, error, aspectRatio }) => {
+      const LoadingIndicator = ({ message }) => React.createElement('div', { className: 'flex flex-col items-center justify-center h-full text-center' }, React.createElement('div', { className: 'loading-spinner' }), React.createElement('p', { className: 'mt-4 text-lg font-semibold text-purple-300' }, '비디오 생성 중...'), React.createElement('p', { className: 'mt-2 text-sm text-gray-400 px-4' }, message));
+      const VideoPlayer = ({ src }) => React.createElement('video', { src: src, controls: true, autoPlay: true, loop: true, className: 'w-full h-full rounded-lg object-contain bg-black' });
+      const VideoGrid = ({ urls }) => React.createElement('div', { className: `grid ${urls.length > 1 ? 'grid-cols-2' : 'grid-cols-1'} gap-2 w-full h-full`}, urls.map((src, index) => React.createElement(VideoPlayer, { key: index, src })));
+      const InitialState = () => React.createElement('div', { className: 'flex flex-col items-center justify-center h-full text-center text-gray-500 bg-gray-900/50 rounded-lg' }, React.createElement('i', { className: 'fa-solid fa-wand-magic-sparkles text-5xl mb-4' }), React.createElement('h3', { className: 'text-xl font-bold text-gray-300' }, 'AI로 멋진 비디오를 만들어보세요!'), React.createElement('p', { className: 'mt-2' }, '왼쪽에서 프롬프트를 입력하고 \'생성\' 버튼을 누르세요.'));
+      const ErrorDisplay = ({ message }) => React.createElement('div', { className: 'flex flex-col items-center justify-center h-full text-center text-red-400 bg-red-900/20 rounded-lg p-4' }, React.createElement('i', { className: 'fa-solid fa-triangle-exclamation text-4xl mb-3' }), React.createElement('h3', { className: 'font-bold' }, '오류 발생'), React.createElement('p', { className: 'text-sm mt-1' }, message));
+      const aspectRatioClass = Object.values(AspectRatios).find(ratio => ratio.value === aspectRatio)?.className || '';
+      return React.createElement('div', { className: `video-container ${aspectRatioClass} w-full bg-gray-900 rounded-lg flex items-center justify-center border border-gray-700 overflow-hidden` }, isLoading ? React.createElement(LoadingIndicator, { message: loadingMessage }) : error ? React.createElement(ErrorDisplay, { message: error }) : videoUrls && videoUrls.length > 0 ? React.createElement(VideoGrid, { urls: videoUrls }) : React.createElement(InitialState));
+    };
+    const RequestBodyModal = ({ content, onClose }) => React.createElement('div', { className: 'fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4', onClick: onClose }, React.createElement('div', { className: 'bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-2xl border border-gray-600', onClick: e => e.stopPropagation() }, React.createElement('h2', { className: 'text-lg font-bold text-purple-300 mb-4' }, 'API Request Body'), React.createElement('pre', { className: 'bg-gray-900 text-sm text-gray-200 p-4 rounded-md overflow-x-auto' }, content), React.createElement('button', { onClick: onClose, className: 'mt-6 w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-colors' }, '닫기')));
+
+    const App = () => {
+      const [apiKey, setApiKey] = useState(() => { try { return localStorage.getItem('gemini-api-key') || ''; } catch { return ''; } });
+      const [model, setModel] = useState(VeoModels.VEO3_STABLE.id);
+      const [mode, setMode] = useState(GenerationMode.T2V);
+      const [prompt, setPrompt] = useState('');
+      const [negativePrompt, setNegativePrompt] = useState('');
+      const [image, setImage] = useState(null);
+      const [settings, setSettings] = useState({ aspectRatio: AspectRatios.LANDSCAPE.value, seed: '', personGeneration: 'allow_all', resolution: '720p', responseCount: 1 });
+      const [isLoading, setIsLoading] = useState(false);
+      const [loadingMessage, setLoadingMessage] = useState('');
+      const [videoUrls, setVideoUrls] = useState([]);
+      const [error, setError] = useState(null);
+      const [showRequestBody, setShowRequestBody] = useState(false);
+      const [requestBodyContent, setRequestBodyContent] = useState('');
+
+      useEffect(() => { if (apiKey) { try { localStorage.setItem('gemini-api-key', apiKey); } catch {} } }, [apiKey]);
+      useEffect(() => { if (settings.aspectRatio !== '16:9' && settings.resolution === '1080p') { setSettings(s => ({...s, resolution: '720p'})); } }, [settings.aspectRatio]);
+      useEffect(() => { if (mode === GenerationMode.I2V) { setSettings(s => ({ ...s, personGeneration: 'allow_adult' })); } else { setSettings(s => ({ ...s, personGeneration: 'allow_all' })); } }, [mode]);
+      useEffect(() => { return () => { if (videoUrls.length > 0) { videoUrls.forEach(url => URL.revokeObjectURL(url)); } }; }, [videoUrls]);
+      
+      const handleGenerate = useCallback(async () => {
+        if (!apiKey) { setError('API 키를 입력해주세요.'); return; }
+        if (!prompt || (mode === GenerationMode.I2V && !image)) { setError(mode === GenerationMode.I2V ? '프롬프트와 이미지를 모두 입력해주세요.' : '프롬프트를 입력해주세요.'); return; }
+        setIsLoading(true); setError(null);
+        if (videoUrls.length > 0) { videoUrls.forEach(url => URL.revokeObjectURL(url)); setVideoUrls([]); }
+        try {
+          const generatedUrls = await generateVeoVideo({ apiKey, params: { prompt, negativePrompt, image: mode === GenerationMode.I2V ? image : undefined, model, ...settings }, onProgress: setLoadingMessage });
+          setVideoUrls(generatedUrls);
+        } catch (err) { console.error(err); setError(`비디오 생성 중 오류가 발생했습니다: ${err.message}`);
+        } finally { setIsLoading(false); setLoadingMessage(''); }
+      }, [apiKey, prompt, negativePrompt, image, mode, model, settings, videoUrls]);
+
+      const handleShowRequestBody = useCallback(() => {
+        const isStable = model.includes('-001');
+        const config = { aspectRatio: settings.aspectRatio };
+        if (negativePrompt && negativePrompt.trim()) config.negativePrompt = negativePrompt.trim();
+        if (settings.seed) config.seed = parseInt(settings.seed, 10);
+        if (model.startsWith('veo-3.0')) config.people = settings.personGeneration;
+        if (isStable) {
+          config.numberOfVideos = settings.responseCount;
+          config.resolution = settings.resolution;
+        }
+        const generateVideosParams = { model: model, prompt: prompt, config: config };
+        if (image) generateVideosParams.image = { imageBytes: '... (이미지 데이터 생략) ...', mimeType: image.mimeType };
+        setRequestBodyContent(JSON.stringify(generateVideosParams, null, 2));
+        setShowRequestBody(true);
+      }, [prompt, negativePrompt, model, settings, image]);
+
+      const canGenerate = apiKey.trim() && prompt.trim().length > 0 && !isLoading && (mode === GenerationMode.T2V || (mode === GenerationMode.I2V && image !== null));
+
+      return React.createElement('div', { className: 'min-h-screen bg-gray-900 text-gray-100 flex flex-col items-center p-4 sm:p-6 lg:p-8 font-sans' },
+        React.createElement('div', { className: 'w-full max-w-6xl' },
+          React.createElement(Header),
+          React.createElement('main', { className: 'mt-8 bg-gray-800/50 backdrop-blur-sm rounded-2xl shadow-2xl p-6 sm:p-8 border border-gray-700' },
+            React.createElement(ApiKeyInput, { apiKey, setApiKey, disabled: isLoading }),
+            React.createElement(ModelSelector, { selectedModel: model, onSelectModel: setModel }),
+            React.createElement(ModeSelector, { selectedMode: mode, onSelectMode: setMode }),
+            React.createElement(VideoSettings, { settings, setSettings, selectedModel: model, mode: mode }),
+            React.createElement('div', { className: 'mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6' },
+              React.createElement('div', { className: 'flex flex-col space-y-4' },
+                React.createElement('div', { className: 'space-y-4' },
+                  React.createElement('div', {}, React.createElement('label', { className: 'block text-sm font-medium text-gray-300 mb-2' }, '메인 프롬프트'), React.createElement('textarea', { value: prompt, onChange: (e) => setPrompt(e.target.value), placeholder: "생성하고 싶은 비디오에 대해 자세히 설명해주세요. 예: '달 위를 걷고 있는 우주비행사, 시네마틱 스타일'", className: 'w-full h-32 p-4 bg-gray-900/70 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-300 placeholder-gray-500 resize-none', disabled: isLoading })),
+                  React.createElement('div', {}, React.createElement('label', { className: 'block text-sm font-medium text-gray-300 mb-2' }, 'Negative 프롬프트 (선택사항)'), React.createElement('textarea', { value: negativePrompt, onChange: (e) => setNegativePrompt(e.target.value), placeholder: "생성하지 않았으면 하는 요소들을 입력하세요. 예: '흐릿한, 저화질, 왜곡된'", className: 'w-full h-24 p-4 bg-gray-900/70 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-300 placeholder-gray-500 resize-none', disabled: isLoading }))
+                ),
+                mode === GenerationMode.I2V && React.createElement(ImageUploader, { onImageUpload: setImage, disabled: isLoading })
+              ),
+              React.createElement(VideoResult, { isLoading, loadingMessage, videoUrls, error, aspectRatio: settings.aspectRatio })
+            ),
+            React.createElement('div', { className: 'mt-8 flex justify-center items-center gap-4' },
+              React.createElement('button', { onClick: handleGenerate, disabled: !canGenerate, className: `px-8 py-3 text-lg font-bold rounded-full transition-all duration-300 ease-in-out ${canGenerate ? 'bg-purple-600 hover:bg-purple-700 text-white shadow-lg transform hover:scale-105' : 'bg-gray-600 text-gray-400 cursor-not-allowed'}` }, React.createElement('i', { className: `fa-solid ${isLoading ? 'fa-spinner fa-spin' : 'fa-film'} mr-2` }), isLoading ? '생성 중...' : '비디오 생성'),
+              React.createElement('button', { onClick: handleShowRequestBody, className: 'px-6 py-3 text-lg font-bold rounded-full transition-all duration-300 ease-in-out bg-gray-700 hover:bg-gray-600 text-gray-200' }, React.createElement('i', { className: 'fa-solid fa-code mr-2' }), 'Request 확인')
+            )
+          ),
+          showRequestBody && React.createElement(RequestBodyModal, { content: requestBodyContent, onClose: () => setShowRequestBody(false) })
+        )
+      );
+    };
+    ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
+  </script>
+</body>
+</html>
