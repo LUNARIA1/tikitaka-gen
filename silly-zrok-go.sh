@@ -144,7 +144,7 @@ if [ $? -ne 0 ]; then
     echo "[오류] 커스텀 config.yaml 다운로드에 실패했습니다. URL을 확인해주세요: $CONFIG_URL"
     exit 1
 fi
-echo "Whitelist 비활성화 설정이 적용되었습니다.
+echo "Whitelist 비활성화 설정이 적용되었습니다."
 
 
 # 향상된 실행 스크립트 생성
