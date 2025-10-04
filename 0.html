@@ -1,199 +1,207 @@
-
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HTML/CSS로 앱 화면 전환</title>
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
-
-    <!-- 스마트폰 모양의 프레임 -->
-    <div class="smartphone">
-        <div class="screen-content">
-
-            <!-- 1. 홈 화면 -->
-            <div class="screen home-screen">
-                <div class="app-grid">
-                    <!-- 다른 아이콘들 ... -->
-                    <div class="app-icon"></div>
-                    <div class="app-icon"></div>
-                    <div class="app-icon"></div>
-                    <!-- 카카오톡 아이콘 (클릭 가능한 링크) -->
-                    <a href="#kakaotalk-app" class="app-icon kakao-icon">
-                        <span>카카오톡</span>
-                    </a>
-                    <!-- 다른 아이콘들 ... -->
-                    <div class="app-icon"></div>
-                    <div class="app-icon"></div>
-                </div>
-            </div>
-
-            <!-- 2. 카카오톡 앱 화면 (처음엔 숨겨져 있음) -->
-            <div id="kakaotalk-app" class="screen app-screen">
-                <header class="app-header">
-                    <h1>채팅</h1>
-                    <!-- 뒤로가기 버튼 (URL의 #을 없애줌) -->
-                    <a href="#" class="back-button">홈으로</a>
-                </header>
-                <ul class="chat-list">
-                    <li class="chat-item">
-                        <div class="profile"></div>
-                        <div class="chat-info">
-                            <span class="name">친구 1</span>
-                            <span class="message">새로운 메시지입니다.</span>
-                        </div>
-                    </li>
-                    <li class="chat-item">
-                        <div class="profile"></div>
-                        <div class="chat-info">
-                            <span class="name">가족 단톡방</span>
-                            <span class="message">사진을 보냈습니다.</span>
-                        </div>
-                    </li>
-                    <li class="chat-item">
-                        <div class="profile"></div>
-                        <div class="chat-info">
-                            <span class="name">친구 2</span>
-                            <span class="message">오늘 저녁 약속 잊지 않았지?</span>
-                        </div>
-                    </li>
-                </ul>
-            </div>
-
-        </div>
-    </div>
-
-</body>
-</html>
 <style>
+    /* 기본 설정 */
 body {
+    background-color: #f0f0f0;
     display: flex;
     justify-content: center;
     align-items: center;
     height: 100vh;
-    background-color: #f0f0f0;
-    font-family: sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
-/* 스마트폰 프레임 */
+/* 스마트폰 외형 */
 .smartphone {
-    width: 360px;
-    height: 740px;
-    border: 12px solid #111;
+    width: 375px;
+    height: 812px;
+    border: 10px solid #111;
     border-radius: 40px;
-    background-color: #fff;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    background: #fff;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
     position: relative;
-    overflow: hidden; /* 중요: 화면 밖으로 나간 요소를 숨김 */
+    overflow: hidden; /* 화면 밖으로 나가는 컨텐츠 숨김 */
 }
 
-.screen-content {
-    width: 100%;
-    height: 100%;
-    position: relative;
-}
-
-/* 모든 화면의 공통 스타일 */
+/* 스크린 영역 */
 .screen {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: #ace5ff; /* 홈 화면 배경 */
-    box-sizing: border-box;
 }
 
-/* 홈 화면 아이콘 */
-.home-screen .app-grid {
+/* 모든 앱 화면의 공통 스타일 */
+.app-screen {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background-color: #fff;
+    /* ✨ 부드러운 애니메이션의 핵심! */
+    transition: transform 0.4s ease-in-out, opacity 0.4s ease-in-out;
+}
+
+/* 홈 화면 스타일 */
+.home-screen {
+    padding: 20px;
+}
+.app-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 20px;
-    padding: 30px;
 }
-.home-screen .app-icon {
-    width: 60px;
-    height: 60px;
-    background-color: #ccc;
-    border-radius: 15px;
-    margin: 0 auto;
-    text-decoration: none;
-    color: #333;
+.app-icon {
     display: flex;
     flex-direction: column;
-    justify-content: center;
     align-items: center;
+    text-align: center;
+    cursor: pointer;
+}
+.app-icon img {
+    width: 60px;
+    height: 60px;
+    border-radius: 15px;
+    margin-bottom: 5px;
+}
+.app-icon span {
     font-size: 12px;
 }
-.home-screen .kakao-icon {
-    background-color: #FEE500;
-}
 
-/* ---------------------------------------------------- */
-/* 여기가 가장 중요한 애니메이션 부분입니다! */
-/* ---------------------------------------------------- */
-
-.app-screen {
-    background-color: #ffffff;
-    /* 1. 평소에는 화면 오른쪽 밖에 위치시킴 */
-    transform: translateX(100%); 
-    /* 2. transform 속성이 변할 때 0.4초 동안 부드럽게 애니메이션 적용 */
-    transition: transform 0.4s ease-in-out;
-    z-index: 10; /* 다른 화면보다 위에 있도록 설정 */
-}
-
-/* 3. #kakaotalk-app 링크가 클릭되었을 때 (URL에 #kakaotalk-app이 붙었을 때) */
-.app-screen:target {
-    /* 4. 원래 위치(화면 안)로 이동시킴 */
-    transform: translateX(0);
-}
-
-
-/* 카카오톡 화면 내부 스타일 (꾸미기용) */
-.app-header {
+/* 카카오톡 화면 스타일 */
+.kakao-screen {
     background-color: #f9f9f9;
-    padding: 15px;
-    border-bottom: 1px solid #e0e0e0;
+    /* 처음에는 화면 오른쪽에 숨겨둠 */
+    transform: translateX(100%);
+    opacity: 0;
+    pointer-events: none; /* 숨겨져 있을 때 클릭 방지 */
+}
+.kakao-header {
+    background-color: #f0f0f0;
+    padding: 20px;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    border-bottom: 1px solid #e0e0e0;
 }
-.app-header h1 {
+.kakao-header h1 {
     margin: 0;
-    font-size: 20px;
+    font-size: 24px;
 }
 .back-button {
-    text-decoration: none;
-    color: #007bff;
-    font-size: 16px;
+    font-size: 24px;
+    cursor: pointer;
+    font-weight: bold;
 }
-
 .chat-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
+    padding: 10px;
 }
 .chat-item {
     display: flex;
-    padding: 15px;
-    border-bottom: 1px solid #f0f0f0;
     align-items: center;
+    padding: 10px;
 }
-.chat-item .profile {
+.chat-item img {
     width: 50px;
     height: 50px;
-    background-color: #ddd;
-    border-radius: 18px;
+    border-radius: 50%;
     margin-right: 15px;
 }
-.chat-info .name {
-    font-weight: bold;
-    display: block;
+.chat-info {
+    flex-grow: 1;
 }
-.chat-info .message {
+.chat-name {
+    font-weight: bold;
+}
+.chat-preview {
     color: #888;
+    margin: 4px 0 0;
     font-size: 14px;
 }
+
+/* --------------------------------- */
+/* ✨ JavaScript 없는 애니메이션의 핵심 로직 ✨ */
+/* --------------------------------- */
+
+/* 1. 실제 체크박스는 화면에서 숨김 */
+.app-toggle-checkbox {
+    display: none;
+}
+
+/* 2. 체크박스가 체크되면(:checked) ~ (물결표시: 뒤따라오는 모든 형제) */
+/*    홈 화면을 왼쪽으로 밀어내고 투명하게 만듦 */
+.app-toggle-checkbox:checked ~ .screen .home-screen {
+    transform: translateX(-100%);
+    opacity: 0;
+}
+
+/* 3. 체크박스가 체크되면 카카오톡 화면을 제자리로 가져오고 보이게 함 */
+.app-toggle-checkbox:checked ~ .screen .kakao-screen {
+    transform: translateX(0);
+    opacity: 1;
+    pointer-events: auto; /* 다시 클릭 가능하게 설정 */
+}
 </style>
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTML/CSS 스마트폰</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="smartphone">
+    <!-- 상태를 저장할 보이지 않는 체크박스 -->
+    <input type="checkbox" id="app-toggle" class="app-toggle-checkbox">
+
+    <div class="screen">
+        <!-- 1. 홈 화면 -->
+        <div class="app-screen home-screen">
+            <div class="app-grid">
+                <!-- 카카오톡 아이콘 (체크박스를 토글하는 라벨) -->
+                <label for="app-toggle" class="app-icon">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/e/e3/KakaoTalk_logo.svg" alt="카카오톡 아이콘">
+                    <span>카카오톡</span>
+                </label>
+                <!-- 다른 앱 아이콘들 (예시) -->
+                <div class="app-icon"><img src="https://upload.wikimedia.org/wikipedia/commons/a/a5/Instagram_icon.png" alt="인스타그램"><span>인스타그램</span></div>
+                <div class="app-icon"><img src="https://upload.wikimedia.org/wikipedia/commons/0/09/YouTube_full-color_icon_%282017%29.svg" alt="유튜브"><span>유튜브</span></div>
+            </div>
+        </div>
+
+        <!-- 2. 카카오톡 화면 (처음에는 숨겨져 있음) -->
+        <div class="app-screen kakao-screen">
+            <header class="kakao-header">
+                <h1>채팅</h1>
+                <!-- 앱을 닫는(체크박스를 해제하는) '뒤로 가기' 라벨 -->
+                <label for="app-toggle" class="back-button">✕</label>
+            </header>
+            <main class="chat-list">
+                <div class="chat-item">
+                    <img src="https://i.pravatar.cc/150?img=1" alt="프로필 사진">
+                    <div class="chat-info">
+                        <span class="chat-name">김철수</span>
+                        <p class="chat-preview">주말에 뭐해?</p>
+                    </div>
+                </div>
+                <div class="chat-item">
+                    <img src="https://i.pravatar.cc/150?img=2" alt="프로필 사진">
+                    <div class="chat-info">
+                        <span class="chat-name">이영희</span>
+                        <p class="chat-preview">오늘 저녁에 시간 괜찮으세요?</p>
+                    </div>
+                </div>
+                <div class="chat-item">
+                    <img src="https://i.pravatar.cc/150?img=3" alt="프로필 사진">
+                    <div class="chat-info">
+                        <span class="chat-name">스터디 그룹 (3)</span>
+                        <p class="chat-preview">자료 공유합니다.</p>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>
