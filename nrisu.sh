@@ -4,10 +4,17 @@ set -e  # 에러 발생 시 중단
 
 echo "🚀 RisuAI 설치를 시작합니다..."
 
+# sudo 사용 여부 확인
+if command -v sudo &> /dev/null; then
+    SUDO="sudo"
+else
+    SUDO=""
+fi
+
 # 시스템 업데이트
 echo "📦 시스템 업데이트 중..."
-sudo apt-get update -y
-sudo apt-get upgrade -y
+$SUDO apt-get update -y
+$SUDO apt-get upgrade -y
 
 # NVM 설치
 echo "📥 NVM 설치 중..."
