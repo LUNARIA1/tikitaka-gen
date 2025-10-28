@@ -25,14 +25,11 @@ nvm install node
 echo "📥 pnpm 설치 중..."
 npm install -g pnpm
 
-# 작업 디렉토리 생성 및 이동
+# Git 클론 (디렉토리 자동 생성)
 INSTALL_DIR="$HOME/Risu-AI"
-mkdir -p "$INSTALL_DIR"
-cd "$INSTALL_DIR"
-
-# Git 클론
 echo "📥 RisuAI 다운로드 중..."
 git clone "https://github.com/kwaroran/RisuAI.git" "$INSTALL_DIR"
+cd "$INSTALL_DIR"
 
 # NODE_OPTIONS 환경변수 설정 (.bashrc에 추가)
 echo "⚙️  환경변수 설정 중..."
@@ -59,6 +56,11 @@ pnpm run build
 echo "🚀 서버 시작 중..."
 pm2 start server/node/server.cjs
 
+echo ""
 echo "✅ 설치 완료!"
-echo "서버 상태 확인: pm2 status"
-echo "서버 로그 확인: pm2 logs"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "📍 설치 위치: $INSTALL_DIR"
+echo "🔍 서버 상태: pm2 status"
+echo "📋 서버 로그: pm2 logs"
+echo "🔄 서버 재시작: pm2 restart server"
+echo "⏹️  서버 중지: pm2 stop server"
