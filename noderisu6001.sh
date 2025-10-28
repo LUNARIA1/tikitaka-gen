@@ -1,0 +1,2 @@
+pkg install iproute2
+ifconfig
