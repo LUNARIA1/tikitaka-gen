@@ -33,16 +33,21 @@ if ! command -v zrok &> /dev/null; then
     # 디바이스 아키텍처 감지
     ARCH=$(uname -m)
     if [ "$ARCH" = "aarch64" ]; then
-        ZROK_URL="https://github.com/openziti/zrok/releases/download/v1.0.6/zrok_1.0.6_linux_arm64.tar.gz"
+        ZROK_FILE="zrok_1.0.6_linux_arm64.tar.gz"
     elif [ "$ARCH" = "armv7l" ] || [ "$ARCH" = "armv8l" ]; then
-        ZROK_URL="https://github.com/openziti/zrok/releases/download/v1.0.6/zrok_1.0.6_linux_armv7.tar.gz"
+        ZROK_FILE="zrok_1.0.6_linux_armv7.tar.gz"
     else
         echo -e "${RED}❌ 지원하지 않는 아키텍처: $ARCH${NC}"
         exit 1
     fi
     
+    ZROK_URL="https://github.com/openziti/zrok/releases/download/v1.0.6/$ZROK_FILE"
+    
     cd ~
-    wget -q --show-progress "$ZROK_URL" -O zrok.tar.gz
+    echo "다운로드 중: $ZROK_FILE"
+    curl -L -o zrok.tar.gz "$ZROK_URL"
+    
+    echo "압축 해제 중..."
     tar -xf zrok.tar.gz
     mkdir -p $HOME/bin
     mv zrok $HOME/bin/
