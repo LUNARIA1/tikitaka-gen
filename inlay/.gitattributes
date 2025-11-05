@@ -1,4 +1,0 @@
-# Unix 줄바꿈 강제
-*.sh text eol=lf
-*.md text eol=lf
-*.ts text eol=lf
