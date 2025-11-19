@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Memoverse Final Fix - 로딩탈출</title>
+    <title>Memoverse Final - Font Fix</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -36,6 +36,7 @@
             transition: opacity 0.3s;
         }
     </style>
+    <!-- 사용자 폰트가 로드될 공간 -->
     <div id="dynamic-fonts"></div>
 </head>
 <body class="text-slate-800 h-screen flex flex-col overflow-hidden">
@@ -84,7 +85,7 @@
                         <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 w-8 h-8 rounded-full hover:bg-slate-50 flex items-center justify-center shrink-0 ml-2"><i class="fa-solid fa-xmark text-xl"></i></button>
                     </div>
                     <div id="toolbar" class="px-4 py-2 border-b border-slate-100 bg-slate-50/80 flex flex-wrap gap-1 items-center sticky top-0 z-20 backdrop-blur-sm transition-all duration-200">
-                        <select id="fontFamilySelect" onchange="formatDoc('fontName', this.value); this.selectedIndex=0;" class="h-9 text-sm border border-slate-200 rounded-md px-2 w-32 outline-none bg-white mr-1"><option value="" disabled selected>폰트</option></select>
+                        <select id="fontFamilySelect" onchange="formatDoc('fontName', this.value);" class="h-9 text-sm border border-slate-200 rounded-md px-2 w-32 outline-none bg-white mr-1"><option value="" disabled selected>폰트</option></select>
                         <select onchange="changeFontSize(this.value); this.selectedIndex=0;" class="h-9 text-sm border border-slate-200 rounded-md px-2 w-20 outline-none bg-white mr-2"><option value="" disabled selected>크기</option><option value="12">12</option><option value="14">14</option><option value="18">18</option><option value="24">24</option><option value="36">36</option><option value="custom">입력</option></select>
                         <div class="w-px h-5 bg-slate-300 mx-1"></div>
                         <button onclick="formatDoc('bold')" class="toolbar-btn"><i class="fa-solid fa-bold"></i></button>
@@ -133,37 +134,52 @@
     <div id="settings-modal" class="fixed inset-0 z-50 hidden">
         <div class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm" onclick="closeSettings()"></div>
         <div class="fixed inset-0 flex items-center justify-center p-4">
-            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 relative">
-                <h3 class="text-lg font-bold mb-4">설정</h3>
-                <div class="space-y-6">
+            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 relative flex flex-col max-h-[90vh]">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-bold">환경 설정</h3>
+                    <button onclick="closeSettings()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
+                </div>
+                
+                <div class="space-y-6 overflow-y-auto pr-2 custom-scrollbar">
+                    <!-- 백업 섹션 -->
                     <div>
-                        <h4 class="text-sm font-bold mb-2">백업/복구</h4>
+                        <h4 class="text-sm font-bold mb-2 text-slate-700">💾 데이터 백업/복구</h4>
                         <div class="flex gap-2">
-                            <button onclick="exportData()" class="flex-1 bg-slate-100 hover:bg-slate-200 py-2 rounded-lg text-sm font-medium">내보내기</button>
-                            <button onclick="triggerImport()" class="flex-1 bg-slate-100 hover:bg-slate-200 py-2 rounded-lg text-sm font-medium">불러오기</button>
+                            <button onclick="exportData()" class="flex-1 bg-slate-100 hover:bg-slate-200 py-2.5 rounded-lg text-sm font-medium transition-colors">내보내기</button>
+                            <button onclick="triggerImport()" class="flex-1 bg-slate-100 hover:bg-slate-200 py-2.5 rounded-lg text-sm font-medium transition-colors">불러오기</button>
                             <input type="file" id="import-file-input" class="hidden" accept=".json" onchange="importData(this)">
                         </div>
                     </div>
+
+                    <!-- 폰트 섹션 -->
                     <div>
-                        <h4 class="text-sm font-bold mb-2">폰트 추가</h4>
-                        <div class="space-y-2">
-                            <input type="text" id="font-name-input" class="w-full border border-slate-200 rounded p-2 text-sm" placeholder="이름">
-                            <input type="text" id="font-url-input" class="w-full border border-slate-200 rounded p-2 text-sm" placeholder="CSS URL">
-                            <button onclick="addCustomFont()" class="w-full bg-indigo-600 text-white py-2 rounded text-sm font-bold">추가</button>
+                        <h4 class="text-sm font-bold mb-2 text-slate-700">🅰️ 커스텀 폰트 추가</h4>
+                        <div class="space-y-3">
+                            <div>
+                                <label class="block text-xs text-slate-500 mb-1">폰트 이름 (CSS의 font-family와 일치해야 함!)</label>
+                                <input type="text" id="font-name-input" class="w-full border border-slate-200 rounded p-2.5 text-sm focus:border-indigo-500 outline-none" placeholder="예: Paperozi">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-slate-500 mb-1">CSS 코드 또는 URL</label>
+                                <textarea id="font-url-input" class="w-full border border-slate-200 rounded p-2.5 text-sm focus:border-indigo-500 outline-none h-24 resize-none" placeholder="@font-face { font-family: 'Paperozi'; ... }"></textarea>
+                            </div>
+                            <button onclick="addCustomFont()" class="w-full bg-indigo-600 text-white py-2.5 rounded-lg text-sm font-bold hover:bg-indigo-700 transition-all">폰트 추가하기</button>
                         </div>
-                        <ul id="saved-font-list" class="mt-2 text-xs text-slate-500 space-y-1"></ul>
+                        
+                        <div class="mt-4">
+                            <p class="text-xs font-bold text-slate-400 mb-2">등록된 폰트</p>
+                            <ul id="saved-font-list" class="text-xs text-slate-600 space-y-2"></ul>
+                        </div>
                     </div>
                 </div>
-                <button onclick="closeSettings()" class="absolute top-4 right-4 text-slate-400"><i class="fa-solid fa-xmark"></i></button>
             </div>
         </div>
     </div>
 
     <script>
-        // --- 시스템 설정 ---
         const DB_NAME = 'MemoverseDB';
         const STORE_NAME = 'memos';
-        const DB_VERSION = 3; // 버전 업그레이드 (중요)
+        const DB_VERSION = 3;
         
         let db;
         let useLocalStorage = false;
@@ -175,46 +191,35 @@
         let savedRange = null;
         let isEditMode = false;
 
-        // --- 초기화 (타임아웃 강제 적용) ---
+        // --- 초기화 ---
         document.addEventListener('DOMContentLoaded', async () => {
-            
-            // 1. DB 초기화 시도 (Promise.race로 0.8초 내 미응답 시 포기)
             const dbPromise = initDB();
             const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve('TIMEOUT'), 800));
 
             try {
                 const result = await Promise.race([dbPromise, timeoutPromise]);
                 if (result === 'TIMEOUT') {
-                    console.warn('DB Init timed out. Force switching to LocalStorage.');
+                    console.warn('DB Init timed out. Switching to LocalStorage.');
                     useLocalStorage = true;
-                } else {
-                    console.log('DB Init Success.');
                 }
             } catch (e) {
                 console.error('DB Init Failed:', e);
                 useLocalStorage = true;
             }
 
-            // 2. 데이터 로드
             await loadMemosGeneric();
             loadCustomFonts();
             
-            // 3. 로딩창 제거 (무조건 실행)
             const loader = document.getElementById('loading-screen');
-            if(loader) loader.style.opacity = '0';
-            setTimeout(() => { if(loader) loader.remove(); }, 500);
-            
+            if(loader) { loader.style.opacity = '0'; setTimeout(() => loader.remove(), 500); }
             updateStorageBadge();
 
-            // 이벤트 리스너
             document.addEventListener('selectionchange', () => {
                 const sel = window.getSelection();
                 const editor = document.getElementById('editor');
                 if (sel && sel.rangeCount > 0) {
                     const range = sel.getRangeAt(0);
-                    if (editor && editor.contains(range.commonAncestorContainer)) {
-                        savedRange = range.cloneRange();
-                    }
+                    if (editor && editor.contains(range.commonAncestorContainer)) savedRange = range.cloneRange();
                 }
             });
         });
@@ -222,99 +227,59 @@
         function updateStorageBadge() {
             const badge = document.getElementById('storage-badge');
             if(useLocalStorage) {
-                badge.innerText = 'Lite (Local)';
-                badge.className = 'text-xs font-normal bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full';
-                badge.title = 'DB 연결 실패. LocalStorage를 사용합니다.';
+                badge.innerText = 'Lite (Local)'; badge.className = 'text-xs font-normal bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full';
             } else {
-                badge.innerText = 'Pro (DB)';
-                badge.className = 'text-xs font-normal bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded-full';
+                badge.innerText = 'Pro (DB)'; badge.className = 'text-xs font-normal bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded-full';
             }
         }
 
-        // --- DB 로직 (안전장치 추가) ---
         function initDB() {
             return new Promise((resolve, reject) => {
                 if (!window.indexedDB) return reject("IndexedDB not supported");
-                
                 const request = indexedDB.open(DB_NAME, DB_VERSION);
-                
                 request.onupgradeneeded = (e) => {
                     const d = e.target.result;
-                    if (d.objectStoreNames.contains(STORE_NAME)) {
-                        d.deleteObjectStore(STORE_NAME); // 기존 스토어 삭제 후 재생성 (안전)
-                    }
+                    if (d.objectStoreNames.contains(STORE_NAME)) d.deleteObjectStore(STORE_NAME);
                     d.createObjectStore(STORE_NAME, { keyPath: 'id' });
                 };
-                
-                request.onsuccess = (e) => {
-                    db = e.target.result;
-                    resolve(db);
-                };
-                
+                request.onsuccess = (e) => { db = e.target.result; resolve(db); };
                 request.onerror = (e) => reject(e);
             });
         }
 
         async function loadMemosGeneric() {
             if (useLocalStorage) {
-                try {
-                    memos = JSON.parse(localStorage.getItem('memoverse_final_memos')) || [];
-                } catch(e) { memos = []; }
-            } else {
-                await loadMemosFromDB();
-            }
+                try { memos = JSON.parse(localStorage.getItem('memoverse_final_memos')) || []; } catch(e) { memos = []; }
+            } else { await loadMemosFromDB(); }
             renderMemos();
         }
 
         function loadMemosFromDB() {
             return new Promise((resolve) => {
                 if(!db) { resolve(); return; }
-                
                 try {
                     const tx = db.transaction(STORE_NAME, 'readonly');
-                    const store = tx.objectStore(STORE_NAME);
-                    const request = store.getAll();
-                    
-                    request.onsuccess = () => {
-                        memos = request.result ? request.result.sort((a, b) => b.id - a.id) : [];
-                        resolve();
-                    };
-                    
-                    request.onerror = (e) => {
-                        console.error("Load Error", e);
-                        useLocalStorage = true; // 에러나면 바로 로컬 모드
-                        resolve();
-                    };
-                } catch (err) {
-                    console.error("Transaction Error", err);
-                    useLocalStorage = true;
-                    resolve();
-                }
+                    const req = tx.objectStore(STORE_NAME).getAll();
+                    req.onsuccess = () => { memos = req.result ? req.result.sort((a, b) => b.id - a.id) : []; resolve(); };
+                    req.onerror = () => { useLocalStorage = true; loadMemosGeneric(); resolve(); };
+                } catch (e) { useLocalStorage = true; resolve(); }
             });
         }
 
         async function saveMemoGeneric(memo) {
             if (useLocalStorage) {
                 const idx = memos.findIndex(m => m.id === memo.id);
-                if (idx !== -1) memos[idx] = memo;
-                else memos.unshift(memo);
-                try {
-                    localStorage.setItem('memoverse_final_memos', JSON.stringify(memos));
-                } catch(e) { alert('저장 공간 부족!'); }
-            } else {
-                await saveMemoToDB(memo);
-                await loadMemosFromDB();
-            }
+                if (idx !== -1) memos[idx] = memo; else memos.unshift(memo);
+                try { localStorage.setItem('memoverse_final_memos', JSON.stringify(memos)); } catch(e) { alert('저장 용량 부족!'); }
+            } else { await saveMemoToDB(memo); await loadMemosFromDB(); }
         }
 
         function saveMemoToDB(memo) {
             return new Promise((resolve, reject) => {
                 try {
                     const tx = db.transaction(STORE_NAME, 'readwrite');
-                    const store = tx.objectStore(STORE_NAME);
-                    const request = store.put(memo);
-                    request.onsuccess = () => resolve();
-                    request.onerror = (e) => reject(e);
+                    tx.objectStore(STORE_NAME).put(memo).onsuccess = () => resolve();
+                    tx.onerror = (e) => reject(e);
                 } catch(e) { reject(e); }
             });
         }
@@ -324,241 +289,166 @@
                 memos = memos.filter(m => m.id !== id);
                 localStorage.setItem('memoverse_final_memos', JSON.stringify(memos));
             } else {
-                await deleteMemoFromDB(id);
+                await new Promise((resolve) => {
+                    const tx = db.transaction(STORE_NAME, 'readwrite');
+                    tx.objectStore(STORE_NAME).delete(id).onsuccess = () => resolve();
+                });
                 await loadMemosFromDB();
             }
         }
 
-        function deleteMemoFromDB(id) {
-            return new Promise((resolve, reject) => {
-                const tx = db.transaction(STORE_NAME, 'readwrite');
-                const store = tx.objectStore(STORE_NAME);
-                const request = store.delete(id);
-                request.onsuccess = () => resolve();
-                request.onerror = (e) => reject(e);
+        // --- 폰트 기능 (수정됨: 스타일 태그 주입) ---
+        function addCustomFont() { 
+            const n = document.getElementById('font-name-input').value.trim();
+            const u = document.getElementById('font-url-input').value.trim();
+            if(!n || !u) return alert('이름과 코드를 모두 입력해주세요.');
+            
+            customFonts.push({name: n, url: u});
+            localStorage.setItem('memoverse_custom_fonts', JSON.stringify(customFonts));
+            
+            loadCustomFonts();
+            renderFonts();
+            document.getElementById('font-name-input').value = '';
+            document.getElementById('font-url-input').value = '';
+        }
+
+        function loadCustomFonts() {
+            const container = document.getElementById('dynamic-fonts');
+            const select = document.getElementById('fontFamilySelect');
+            
+            container.innerHTML = '';
+            select.innerHTML = '<option value="" disabled selected>폰트</option><option value="Noto Sans KR">기본 (Noto)</option><option value="serif">바탕 (Serif)</option>';
+            
+            customFonts.forEach(f => {
+                // [핵심 수정] @font-face나 { 가 포함되어 있으면 <style>로 처리
+                if (f.url.includes('@font-face') || f.url.includes('{') || f.url.trim().startsWith('<')) {
+                    const style = document.createElement('style');
+                    style.innerHTML = f.url;
+                    container.appendChild(style);
+                } else {
+                    // 아니면 기존처럼 링크로 처리
+                    const link = document.createElement('link');
+                    link.rel = 'stylesheet';
+                    link.href = f.url;
+                    container.appendChild(link);
+                }
+                
+                const option = document.createElement('option');
+                option.value = f.name; // 여기서 f.name은 반드시 CSS 내부 font-family와 일치해야 함
+                option.innerText = f.name;
+                select.appendChild(option);
             });
         }
 
+        function renderFonts() {
+            const l = document.getElementById('saved-font-list'); l.innerHTML='';
+            customFonts.forEach((f,i)=> l.innerHTML+=`<li class="flex justify-between bg-slate-100 p-2 rounded"><span>${f.name}</span><button onclick="delFont(${i})" class="text-red-400"><i class="fa-solid fa-trash"></i></button></li>`);
+        }
+        function delFont(i){ customFonts.splice(i,1); localStorage.setItem('memoverse_custom_fonts',JSON.stringify(customFonts)); loadCustomFonts(); renderFonts(); }
+
         // --- UI 로직 ---
         function openCreateModal() {
-            editingId = null;
-            document.getElementById('input-title').value = '';
-            document.getElementById('editor').innerHTML = '';
-            currentAssets = []; currentCoverIndex = 0; savedRange = null;
-            renderAssetList();
-            document.getElementById('memo-modal').classList.remove('hidden');
-            switchToEditMode();
+            editingId = null; document.getElementById('input-title').value = ''; document.getElementById('editor').innerHTML = '';
+            currentAssets = []; currentCoverIndex = 0; savedRange = null; renderAssetList();
+            document.getElementById('memo-modal').classList.remove('hidden'); switchToEditMode();
         }
-
         function openViewModal(id) {
-            const m = memos.find(x => x.id === id);
-            if (!m) return;
-            editingId = id;
-            document.getElementById('input-title').value = m.title;
-            document.getElementById('editor').innerHTML = m.content;
-            currentAssets = m.assets || []; currentCoverIndex = m.coverIndex || 0;
-            renderAssetList();
-            document.getElementById('memo-modal').classList.remove('hidden');
-            switchToReadMode();
+            const m = memos.find(x => x.id === id); if (!m) return;
+            editingId = id; document.getElementById('input-title').value = m.title; document.getElementById('editor').innerHTML = m.content;
+            currentAssets = m.assets || []; currentCoverIndex = m.coverIndex || 0; renderAssetList();
+            document.getElementById('memo-modal').classList.remove('hidden'); switchToReadMode();
         }
-
         function switchToEditMode() {
-            isEditMode = true;
-            const editor = document.getElementById('editor');
-            document.getElementById('toolbar').classList.remove('hidden');
-            document.getElementById('btn-group-edit').classList.remove('hidden');
-            document.getElementById('btn-group-read').classList.add('hidden');
+            isEditMode = true; document.getElementById('toolbar').classList.remove('hidden');
+            document.getElementById('btn-group-edit').classList.remove('hidden'); document.getElementById('btn-group-read').classList.add('hidden');
             document.getElementById('asset-hint').innerText = "(수정 모드에서 클릭하여 삽입)";
-            editor.contentEditable = "true";
-            document.getElementById('input-title').readOnly = false;
-            renderAssetList();
+            document.getElementById('editor').contentEditable = "true"; document.getElementById('input-title').readOnly = false; renderAssetList();
         }
-
         function switchToReadMode() {
             isEditMode = false;
-            const editor = document.getElementById('editor');
-            if (editingId) {
-                const m = memos.find(x => x.id === editingId);
-                if(m) {
-                    document.getElementById('input-title').value = m.title;
-                    document.getElementById('editor').innerHTML = m.content;
-                }
-            }
+            if(editingId) { const m = memos.find(x=>x.id===editingId); if(m){ document.getElementById('input-title').value=m.title; document.getElementById('editor').innerHTML=m.content; }}
             document.getElementById('toolbar').classList.add('hidden');
-            document.getElementById('btn-group-edit').classList.add('hidden');
-            document.getElementById('btn-group-read').classList.remove('hidden');
+            document.getElementById('btn-group-edit').classList.add('hidden'); document.getElementById('btn-group-read').classList.remove('hidden');
             document.getElementById('asset-hint').innerText = "(읽기 모드)";
-            editor.contentEditable = "false";
-            document.getElementById('input-title').readOnly = true;
-            renderAssetList();
+            document.getElementById('editor').contentEditable = "false"; document.getElementById('input-title').readOnly = true; renderAssetList();
         }
-
         function closeModal() { document.getElementById('memo-modal').classList.add('hidden'); }
 
         function uploadToAssets(input) {
             if (input.files && input.files.length > 0) {
                 Array.from(input.files).forEach(file => {
                     const reader = new FileReader();
-                    reader.onload = function(e) {
-                        currentAssets.push(e.target.result);
-                        renderAssetList();
-                    };
+                    reader.onload = e => { currentAssets.push(e.target.result); renderAssetList(); };
                     reader.readAsDataURL(file);
                 });
                 input.value = '';
             }
         }
-
         function renderAssetList() {
             const list = document.getElementById('asset-list');
-            const countSpan = document.getElementById('asset-count');
-            countSpan.innerText = `${currentAssets.length}개`;
+            document.getElementById('asset-count').innerText = `${currentAssets.length}개`;
             list.innerHTML = '';
-
             if (currentAssets.length === 0) {
-                list.innerHTML = isEditMode 
-                    ? `<div class="text-sm text-slate-400 w-full text-center py-4 border-2 border-dashed border-slate-200 rounded-lg">상단 <i class="fa-solid fa-cloud-arrow-up text-indigo-400"></i> 버튼으로 추가</div>`
-                    : `<div class="text-sm text-slate-400 w-full text-center py-2">첨부된 이미지가 없습니다.</div>`;
+                list.innerHTML = isEditMode ? `<div class="text-sm text-slate-400 w-full text-center py-4 border-2 border-dashed border-slate-200 rounded-lg">이미지 추가</div>` : `<div class="text-sm text-slate-400 w-full text-center py-2">이미지 없음</div>`;
                 return;
             }
-
             if (currentCoverIndex >= currentAssets.length) currentCoverIndex = 0;
-
             let html = '';
             currentAssets.forEach((src, idx) => {
                 const isCover = (idx === currentCoverIndex);
-                const onClickAttr = isEditMode ? `onclick="insertImageFromAsset(${idx})"` : `onclick="alert('수정 모드에서만 가능합니다.')"`;
-                const cursorClass = isEditMode ? 'cursor-pointer' : 'cursor-default';
-                let buttons = '';
-                if (isEditMode) {
-                    buttons = `<button onclick="setCover(${idx}, event)" class="absolute top-1 left-1 w-6 h-6 rounded-full flex items-center justify-center transition-all ${isCover ? 'bg-indigo-600 text-white' : 'bg-black/50 text-slate-300 hover:bg-indigo-500 hover:text-white'}"><i class="fa-solid fa-star text-[10px]"></i></button><button onclick="removeAsset(${idx}, event)" class="absolute top-1 right-1 bg-black/50 hover:bg-red-500 text-white w-5 h-5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><i class="fa-solid fa-xmark text-[10px]"></i></button>`;
-                } else if (isCover) {
-                    buttons = `<div class="absolute top-1 left-1 bg-indigo-600 text-white text-[10px] px-2 py-0.5 rounded shadow-sm">대표</div>`;
-                }
-                html += `<div class="asset-item relative shrink-0 group w-20 h-20 rounded-lg overflow-hidden bg-slate-200 ${cursorClass} ${isCover ? 'is-cover ring-2 ring-indigo-600' : ''}" ${onClickAttr}><img src="${src}" class="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity">${buttons}</div>`;
+                const onClick = isEditMode ? `onclick="insertImageFromAsset(${idx})"` : `onclick="alert('수정 모드에서만 가능합니다.')"`;
+                const cursor = isEditMode ? 'cursor-pointer' : 'cursor-default';
+                let btns = '';
+                if (isEditMode) btns = `<button onclick="setCover(${idx}, event)" class="absolute top-1 left-1 w-6 h-6 rounded-full flex items-center justify-center ${isCover?'bg-indigo-600 text-white':'bg-black/50 text-slate-300'}"><i class="fa-solid fa-star text-[10px]"></i></button><button onclick="removeAsset(${idx}, event)" class="absolute top-1 right-1 bg-black/50 hover:bg-red-500 text-white w-5 h-5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100"><i class="fa-solid fa-xmark text-[10px]"></i></button>`;
+                else if(isCover) btns = `<div class="absolute top-1 left-1 bg-indigo-600 text-white text-[10px] px-2 py-0.5 rounded">대표</div>`;
+                html += `<div class="asset-item relative shrink-0 group w-20 h-20 rounded-lg overflow-hidden bg-slate-200 ${cursor} ${isCover?'ring-2 ring-indigo-600':''}" ${onClick}><img src="${src}" class="w-full h-full object-cover opacity-90 hover:opacity-100 transition-opacity">${btns}</div>`;
             });
             list.innerHTML = html;
         }
-
-        function insertImageFromAsset(idx) {
-            const src = currentAssets[idx];
-            restoreSelection();
-            document.execCommand('insertHTML', false, `<img src="${src}"><br>`);
-        }
+        function insertImageFromAsset(idx) { restoreSelection(); document.execCommand('insertHTML', false, `<img src="${currentAssets[idx]}"><br>`); }
         function setCover(idx, e) { e.stopPropagation(); currentCoverIndex = idx; renderAssetList(); }
-        function removeAsset(idx, e) {
-            e.stopPropagation(); if(!confirm('제거?')) return;
-            currentAssets.splice(idx, 1);
-            if(currentCoverIndex >= currentAssets.length) currentCoverIndex = 0;
-            renderAssetList();
-        }
+        function removeAsset(idx, e) { e.stopPropagation(); if(!confirm('제거?')) return; currentAssets.splice(idx, 1); if(currentCoverIndex>=currentAssets.length) currentCoverIndex=0; renderAssetList(); }
 
         function restoreSelection() {
-            const editor = document.getElementById('editor');
-            editor.focus();
-            if (savedRange) {
-                const sel = window.getSelection();
-                sel.removeAllRanges();
-                sel.addRange(savedRange);
-            }
+            const editor = document.getElementById('editor'); editor.focus();
+            if (savedRange) { const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(savedRange); }
         }
         function formatDoc(cmd, val) { restoreSelection(); document.execCommand(cmd, false, val); document.getElementById('editor').focus(); }
-        function applyColor(color) { restoreSelection(); document.execCommand('foreColor', false, color); }
-        function changeFontSize(size) {
-            restoreSelection();
-            if(size==='custom') size=prompt('크기(px)', 16); 
-            if(!size) return;
+        function applyColor(c) { restoreSelection(); document.execCommand('foreColor', false, c); }
+        function changeFontSize(s) {
+            restoreSelection(); if(s==='custom') s=prompt('크기(px)', 16); if(!s) return;
             document.execCommand('fontSize', false, '7');
             const fonts = document.getElementById('editor').getElementsByTagName('font');
-            for(let i=fonts.length-1; i>=0; i--){ 
-                if(fonts[i].getAttribute('size')==='7'){
-                    const s=document.createElement('span'); s.style.fontSize=size+'px'; s.innerHTML=fonts[i].innerHTML;
-                    fonts[i].parentNode.replaceChild(s, fonts[i]);
-                }
-            }
+            for(let i=fonts.length-1; i>=0; i--){ if(fonts[i].getAttribute('size')==='7'){ const sp=document.createElement('span'); sp.style.fontSize=s+'px'; sp.innerHTML=fonts[i].innerHTML; fonts[i].parentNode.replaceChild(sp, fonts[i]); }}
         }
 
         async function saveMemo() {
-            const title = document.getElementById('input-title').value.trim();
-            const content = document.getElementById('editor').innerHTML;
-            const textContent = document.getElementById('editor').innerText.trim();
-
-            if (!title && !textContent && currentAssets.length === 0) return alert('내용 입력 필요');
-
-            const memo = {
-                id: editingId || Date.now(),
-                title, content, assets: currentAssets, coverIndex: currentCoverIndex,
-                date: new Date().toLocaleString('ko-KR', { year: '2-digit', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
-            };
-
-            await saveMemoGeneric(memo);
-            renderMemos();
-            closeModal();
+            const t = document.getElementById('input-title').value.trim();
+            const c = document.getElementById('editor').innerHTML;
+            const tc = document.getElementById('editor').innerText.trim();
+            if (!t && !tc && currentAssets.length === 0) return alert('내용 입력 필요');
+            const memo = { id: editingId || Date.now(), title: t, content: c, assets: currentAssets, coverIndex: currentCoverIndex, date: new Date().toLocaleString('ko-KR', { year: '2-digit', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) };
+            await saveMemoGeneric(memo); renderMemos(); closeModal();
         }
-
-        async function deleteMemo(id, e) {
-            e.stopPropagation(); if(!confirm('삭제?')) return;
-            await deleteMemoGeneric(id);
-            renderMemos();
-        }
-
+        async function deleteMemo(id, e) { e.stopPropagation(); if(!confirm('삭제?')) return; await deleteMemoGeneric(id); renderMemos(); }
         function renderMemos() {
-            const grid = document.getElementById('memo-grid'); grid.innerHTML = '';
-            const empty = document.getElementById('empty-state');
+            const grid = document.getElementById('memo-grid'), empty = document.getElementById('empty-state'); grid.innerHTML = '';
             if(memos.length===0) { grid.classList.add('hidden'); empty.classList.remove('hidden'); return; }
             grid.classList.remove('hidden'); empty.classList.add('hidden');
-
             memos.forEach(m => {
                 const div = document.createElement('div'); div.innerHTML = m.content;
-                const txt = div.innerText || "";
-                let coverHtml = '';
-                if (m.assets && m.assets.length > 0) {
-                    const idx = (m.coverIndex >= 0 && m.coverIndex < m.assets.length) ? m.coverIndex : 0;
-                    const extra = m.assets.length - 1;
-                    coverHtml = `<div class="h-44 w-full bg-slate-100 relative overflow-hidden border-b border-slate-100"><img src="${m.assets[idx]}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">${extra > 0 ? `<div class="absolute bottom-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded">+${extra}</div>` : ''}</div>`;
-                }
-                const card = document.createElement('div');
-                card.className = 'bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all h-[320px] flex flex-col cursor-pointer group';
-                card.onclick = () => openViewModal(m.id);
-                card.innerHTML = `${coverHtml}<div class="p-5 flex flex-col flex-1"><h3 class="font-bold text-lg mb-2 text-slate-900 line-clamp-1">${m.title || '무제'}</h3><div class="text-sm text-slate-500 line-clamp-3 flex-1 leading-relaxed">${txt.substring(0,150) || '<span class="text-slate-300">내용 없음</span>'}</div><div class="flex justify-between items-center text-xs text-slate-400 mt-3 pt-3 border-t border-slate-50"><span>${m.date}</span><button onclick="deleteMemo(${m.id}, event)" class="hover:text-red-500 p-1.5 rounded-full"><i class="fa-regular fa-trash-can"></i></button></div></div>`;
+                let cv = ''; if(m.assets?.length){ const i = (m.coverIndex>=0 && m.coverIndex<m.assets.length)?m.coverIndex:0; const ex = m.assets.length-1; cv=`<div class="h-44 w-full bg-slate-100 relative overflow-hidden border-b border-slate-100"><img src="${m.assets[i]}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">${ex>0?`<div class="absolute bottom-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded">+${ex}</div>`:''}</div>`; }
+                const card = document.createElement('div'); card.className = 'bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all h-[320px] flex flex-col cursor-pointer group'; card.onclick = () => openViewModal(m.id);
+                card.innerHTML = `${cv}<div class="p-5 flex flex-col flex-1"><h3 class="font-bold text-lg mb-2 text-slate-900 line-clamp-1">${m.title||'무제'}</h3><div class="text-sm text-slate-500 line-clamp-3 flex-1 leading-relaxed">${div.innerText.substring(0,150)||'<span class="text-slate-300">내용 없음</span>'}</div><div class="flex justify-between items-center text-xs text-slate-400 mt-3 pt-3 border-t border-slate-50"><span>${m.date}</span><button onclick="deleteMemo(${m.id}, event)" class="hover:text-red-500 p-1.5 rounded-full"><i class="fa-regular fa-trash-can"></i></button></div></div>`;
                 grid.appendChild(card);
             });
         }
-
-        // 설정 & 백업
+        // 설정
         function openSettings(){ document.getElementById('settings-modal').classList.remove('hidden'); renderFonts(); }
         function closeSettings(){ document.getElementById('settings-modal').classList.add('hidden'); }
-        function exportData(){
-            if(memos.length===0) return alert('데이터 없음');
-            const b = new Blob([JSON.stringify(memos,null,2)],{type:'application/json'});
-            const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=`memo_backup_${Date.now()}.json`; a.click();
-        }
+        function exportData(){ if(memos.length===0) return alert('없음'); const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(memos)],{type:'application/json'})); a.download=`backup_${Date.now()}.json`; a.click(); }
         function triggerImport(){ document.getElementById('import-file-input').click(); }
-        function importData(inp){
-            if(!inp.files[0]) return;
-            const r=new FileReader(); r.onload=async e=>{
-                try{ 
-                    const imported = JSON.parse(e.target.result);
-                    if(useLocalStorage) { memos = imported; localStorage.setItem('memoverse_final_memos', JSON.stringify(memos)); }
-                    else { const tx = db.transaction(STORE_NAME, 'readwrite'); const store = tx.objectStore(STORE_NAME); imported.forEach(m => store.put(m)); }
-                    await loadMemosGeneric(); alert('복구 완료'); closeSettings();
-                } catch(e){ alert('파일 오류'); }
-            }; r.readAsText(inp.files[0]); inp.value='';
-        }
-        function addCustomFont(){ 
-            const n=document.getElementById('font-name-input').value, u=document.getElementById('font-url-input').value;
-            if(!n||!u)return; customFonts.push({name:n,url:u}); localStorage.setItem('memoverse_custom_fonts',JSON.stringify(customFonts)); loadCustomFonts(); renderFonts();
-        }
-        function loadCustomFonts(){
-            const c=document.getElementById('dynamic-fonts'), s=document.getElementById('fontFamilySelect');
-            c.innerHTML=''; s.innerHTML='<option value="" disabled selected>폰트</option><option value="Noto Sans KR">기본</option><option value="serif">바탕</option>';
-            customFonts.forEach(f=>{ const l=document.createElement('link');l.rel='stylesheet';l.href=f.url;c.appendChild(l); const o=document.createElement('option');o.value=f.name;o.innerText=f.name;s.appendChild(o); });
-        }
-        function renderFonts(){
-            const l=document.getElementById('saved-font-list'); l.innerHTML='';
-            customFonts.forEach((f,i)=> l.innerHTML+=`<li class="flex justify-between"><span>${f.name}</span><button onclick="delFont(${i})" class="text-red-400">삭제</button></li>`);
-        }
-        function delFont(i){ customFonts.splice(i,1); localStorage.setItem('memoverse_custom_fonts',JSON.stringify(customFonts)); loadCustomFonts(); renderFonts(); }
+        function importData(i){ if(!i.files[0])return; const r=new FileReader(); r.onload=async e=>{ try{ const d=JSON.parse(e.target.result); if(useLocalStorage){memos=d;localStorage.setItem('memoverse_final_memos',JSON.stringify(memos));}else{const tx=db.transaction(STORE_NAME,'readwrite');d.forEach(m=>tx.objectStore(STORE_NAME).put(m));} await loadMemosGeneric(); alert('완료'); closeSettings(); }catch(e){alert('오류');} }; r.readAsText(i.files[0]); i.value=''; }
     </script>
 </body>
 </html>
