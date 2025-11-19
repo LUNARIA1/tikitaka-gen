@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Memoverse Pro - 리치 텍스트 메모</title>
+    <title>Memoverse DB Edition - 용량무제한</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -13,368 +13,527 @@
         
         /* 에디터 스타일 */
         .editor-content {
-            min-height: 200px;
+            min-height: 300px;
             outline: none;
-            line-height: 1.6;
+            line-height: 1.7;
+            padding: 1rem;
+            font-size: 16px;
+            color: #334155;
+        }
+        .editor-content[contenteditable="false"] {
+            background-color: #fff;
+            cursor: default;
         }
         .editor-content img {
             max-width: 100%;
             border-radius: 8px;
-            margin: 10px 0;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            cursor: default; /* 에디터 내에서는 클릭 이벤트 방지 */
+            margin: 12px 0;
+            box-shadow: 0 4px 10px -1px rgba(0, 0, 0, 0.1);
+            display: inline-block;
         }
-        .editor-content p { margin-bottom: 0.5rem; }
+        .editor-content img:hover { box-shadow: 0 0 0 3px #6366f1; }
         
-        /* 스크롤바 */
-        ::-webkit-scrollbar { width: 6px; }
+        .toolbar-btn {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 36px; height: 36px; border-radius: 6px;
+            color: #475569; transition: all 0.2s; font-size: 15px; cursor: pointer;
+        }
+        .toolbar-btn:hover { background-color: #e2e8f0; color: #0f172a; }
+        
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
         
-        /* 대표 이미지 선택 스타일 */
-        .cover-option {
-            border: 3px solid transparent;
-            transition: all 0.2s;
-        }
-        .cover-option.selected {
-            border-color: #4f46e5; /* Indigo-600 */
-            transform: scale(1.05);
+        .asset-item { transition: all 0.2s; border: 2px solid transparent; }
+        .asset-item:hover { transform: translateY(-2px); }
+        .asset-item.is-cover { border-color: #4f46e5; }
+
+        .color-picker-wrapper { position: relative; overflow: hidden; }
+        .color-picker-input { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+        
+        /* 로딩 인디케이터 */
+        #loading-screen {
+            position: fixed; inset: 0; background: rgba(255,255,255,0.8); backdrop-filter: blur(2px);
+            z-index: 100; display: flex; justify-content: center; align-items: center;
         }
     </style>
+    <div id="dynamic-fonts"></div>
 </head>
-<body class="text-slate-800">
+<body class="text-slate-800 h-screen flex flex-col overflow-hidden">
 
-    <!-- 헤더 -->
-    <nav class="fixed top-0 w-full bg-white/90 backdrop-blur-md border-b border-slate-200 z-40 shadow-sm">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-            <div class="flex items-center gap-2">
-                <div class="w-9 h-9 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center text-white font-bold shadow-lg shadow-indigo-200">M</div>
-                <span class="text-xl font-bold text-slate-900">Memoverse <span class="text-xs font-normal text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">Pro</span></span>
-            </div>
-            <button onclick="openModal()" class="bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-lg shadow-slate-200 transform hover:-translate-y-0.5 flex items-center gap-2">
-                <i class="fa-solid fa-plus"></i> 작성하기
+    <!-- 로딩 화면 -->
+    <div id="loading-screen">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+    </div>
+
+    <!-- 상단 네비게이션 -->
+    <nav class="h-16 bg-white/90 backdrop-blur-sm border-b border-slate-200 flex items-center justify-between px-6 shrink-0 z-20">
+        <div class="flex items-center gap-3">
+            <div class="w-9 h-9 bg-indigo-900 rounded-lg flex items-center justify-center text-white font-bold shadow-md">M</div>
+            <h1 class="text-xl font-bold tracking-tight text-slate-900">Memoverse <span class="text-xs font-normal bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded-full">IndexedDB</span></h1>
+        </div>
+        <div class="flex gap-3">
+            <button onclick="openSettings()" class="text-slate-500 hover:text-slate-800 w-10 h-10 rounded-full hover:bg-slate-100 transition-all">
+                <i class="fa-solid fa-gear"></i>
+            </button>
+            <button onclick="openCreateModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-lg text-sm font-bold transition-all shadow-lg hover:-translate-y-0.5 flex items-center gap-2">
+                <i class="fa-solid fa-pen"></i> 새 메모
             </button>
         </div>
     </nav>
 
-    <!-- 메인 그리드 -->
-    <main class="pt-24 pb-12 px-4 max-w-7xl mx-auto min-h-screen">
-        <div id="memo-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            <!-- 카드가 렌더링되는 곳 -->
-        </div>
-
-        <div id="empty-state" class="hidden flex flex-col items-center justify-center py-32 text-slate-400">
+    <!-- 메인 컨텐츠 -->
+    <main class="flex-1 overflow-y-auto p-6">
+        <div id="memo-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 max-w-7xl mx-auto"></div>
+        <div id="empty-state" class="hidden h-full flex flex-col items-center justify-center text-slate-400 mt-20">
             <div class="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-4">
                 <i class="fa-regular fa-folder-open text-3xl text-slate-300"></i>
             </div>
-            <p class="text-lg font-medium text-slate-500">아직 기록된 메모가 없습니다.</p>
-            <p class="text-sm">사진과 글을 자유롭게 남겨보세요.</p>
+            <p class="text-lg font-medium">작성된 메모가 없습니다.</p>
         </div>
     </main>
 
-    <!-- 작성/수정 모달 -->
-    <div id="memo-modal" class="fixed inset-0 z-50 hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <!-- 모달 -->
+    <div id="memo-modal" class="fixed inset-0 z-50 hidden" role="dialog" aria-modal="true">
         <div class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" onclick="closeModal()"></div>
         <div class="fixed inset-0 z-10 overflow-y-auto">
-            <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
-                <div class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-2xl border border-slate-100">
+            <div class="flex min-h-full items-center justify-center p-4">
+                <div class="relative w-full max-w-5xl bg-white rounded-2xl shadow-2xl flex flex-col max-h-[90vh] border border-slate-100">
                     
-                    <!-- 모달 헤더 -->
-                    <div class="bg-white px-6 pt-6 pb-4 border-b border-slate-100 flex justify-between items-center">
-                        <h3 class="text-xl font-bold text-slate-900" id="modal-title">메모 작성</h3>
-                        <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-100 transition-colors"><i class="fa-solid fa-xmark text-lg"></i></button>
+                    <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-white rounded-t-2xl">
+                        <input type="text" id="input-title" class="bg-transparent text-xl font-bold text-slate-900 placeholder:text-slate-300 outline-none w-full" placeholder="제목 입력">
+                        <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 w-8 h-8 rounded-full hover:bg-slate-50 flex items-center justify-center shrink-0 ml-2"><i class="fa-solid fa-xmark text-xl"></i></button>
                     </div>
-                    
-                    <div class="px-6 py-4 space-y-4">
-                        <!-- 제목 -->
-                        <input type="text" id="input-title" class="block w-full text-lg font-bold border-none focus:ring-0 p-0 placeholder:text-slate-300 text-slate-900" placeholder="제목을 입력하세요">
 
-                        <!-- 툴바 -->
-                        <div class="flex items-center gap-1 bg-slate-50 p-1.5 rounded-lg border border-slate-200 sticky top-0 z-10">
-                            <button onclick="execCmd('bold')" class="p-2 rounded hover:bg-white hover:shadow-sm text-slate-600 transition-all" title="굵게"><i class="fa-solid fa-bold"></i></button>
-                            <button onclick="execCmd('italic')" class="p-2 rounded hover:bg-white hover:shadow-sm text-slate-600 transition-all" title="기울임"><i class="fa-solid fa-italic"></i></button>
-                            <div class="w-px h-5 bg-slate-300 mx-1"></div>
-                            <label class="cursor-pointer p-2 rounded hover:bg-white hover:shadow-sm text-indigo-600 transition-all flex items-center gap-2" title="사진 추가">
-                                <i class="fa-regular fa-image"></i>
-                                <span class="text-xs font-bold">사진 추가</span>
-                                <input type="file" accept="image/*" multiple class="hidden" onchange="handleImageInsert(this)">
-                            </label>
+                    <div id="toolbar" class="px-4 py-2 border-b border-slate-100 bg-slate-50/80 flex flex-wrap gap-1 items-center sticky top-0 z-20 backdrop-blur-sm transition-all duration-200">
+                        <select id="fontFamilySelect" onchange="formatDoc('fontName', this.value); this.selectedIndex=0;" class="h-9 text-sm border border-slate-200 rounded-md px-2 w-32 outline-none bg-white mr-1"><option value="" disabled selected>폰트</option></select>
+                        <select onchange="changeFontSize(this.value); this.selectedIndex=0;" class="h-9 text-sm border border-slate-200 rounded-md px-2 w-20 outline-none bg-white mr-2"><option value="" disabled selected>크기</option><option value="12">12</option><option value="14">14</option><option value="18">18</option><option value="24">24</option><option value="36">36</option><option value="custom">입력</option></select>
+                        <div class="w-px h-5 bg-slate-300 mx-1"></div>
+                        <button onclick="formatDoc('bold')" class="toolbar-btn"><i class="fa-solid fa-bold"></i></button>
+                        <button onclick="formatDoc('italic')" class="toolbar-btn"><i class="fa-solid fa-italic"></i></button>
+                        <button onclick="formatDoc('underline')" class="toolbar-btn"><i class="fa-solid fa-underline"></i></button>
+                        <button onclick="formatDoc('strikeThrough')" class="toolbar-btn"><i class="fa-solid fa-strikethrough"></i></button>
+                        <div class="w-px h-5 bg-slate-300 mx-1"></div>
+                        <div class="toolbar-btn color-picker-wrapper" title="글자색 변경">
+                            <i class="fa-solid fa-font"></i><div class="w-1 h-1 rounded-full bg-indigo-500 absolute bottom-1.5 right-1.5"></div>
+                            <input type="color" id="color-input" class="color-picker-input" oninput="applyColor(this.value)">
                         </div>
-
-                        <!-- 에디터 본문 (contenteditable) -->
-                        <div id="editor" class="editor-content w-full text-slate-700 placeholder:text-slate-400 empty:before:content-[attr(placeholder)] empty:before:text-slate-300 cursor-text" contenteditable="true" placeholder="내용을 자유롭게 작성하세요..." oninput="detectImages()"></div>
-
-                        <!-- 대표 이미지 선택 영역 -->
-                        <div id="cover-selection-area" class="hidden pt-4 border-t border-slate-100">
-                            <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">대표 이미지 선택</p>
-                            <div id="image-list" class="flex gap-3 overflow-x-auto pb-2">
-                                <!-- 이미지들이 여기에 나열됨 -->
-                            </div>
-                        </div>
+                        <div class="w-px h-5 bg-slate-300 mx-1"></div>
+                        <button onclick="formatDoc('justifyLeft')" class="toolbar-btn"><i class="fa-solid fa-align-left"></i></button>
+                        <button onclick="formatDoc('justifyCenter')" class="toolbar-btn"><i class="fa-solid fa-align-center"></i></button>
+                        <button onclick="formatDoc('justifyRight')" class="toolbar-btn"><i class="fa-solid fa-align-right"></i></button>
+                        <div class="w-px h-5 bg-slate-300 mx-1"></div>
+                        <label class="toolbar-btn text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100" title="이미지 추가">
+                            <i class="fa-solid fa-cloud-arrow-up"></i>
+                            <input type="file" accept="image/*" multiple class="hidden" onchange="uploadToAssets(this)">
+                        </label>
                     </div>
-                    
-                    <!-- 하단 버튼 -->
-                    <div class="bg-slate-50 px-6 py-4 flex flex-row-reverse gap-3">
-                        <button type="button" onclick="saveMemo()" class="rounded-xl bg-slate-900 px-6 py-2.5 text-sm font-bold text-white shadow-md hover:bg-slate-800 hover:shadow-lg transition-all">저장 완료</button>
-                        <button type="button" onclick="closeModal()" class="rounded-xl bg-white border border-slate-200 px-6 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all">취소</button>
+
+                    <div id="editor" class="editor-content flex-1 overflow-y-auto bg-white" contenteditable="true" placeholder="내용을 입력하세요..."></div>
+
+                    <div id="asset-area" class="px-6 py-4 border-t border-slate-200 bg-slate-50/50 flex flex-col gap-2">
+                        <div class="flex justify-between items-end">
+                            <p class="text-xs font-bold text-slate-500 uppercase tracking-wide flex items-center gap-2">
+                                <i class="fa-regular fa-images"></i> 첨부된 이미지 
+                                <span id="asset-hint" class="text-[10px] font-normal text-slate-400 normal-case">(수정 모드에서 클릭하여 삽입)</span>
+                            </p>
+                            <span id="asset-count" class="text-xs text-slate-400">0개</span>
+                        </div>
+                        <div id="asset-list" class="flex gap-3 overflow-x-auto pb-2 pt-1 scrollbar-thin min-h-[90px] items-center"></div>
+                    </div>
+
+                    <div class="px-6 py-4 border-t border-slate-100 bg-white rounded-b-2xl flex flex-row-reverse gap-2">
+                        <div id="btn-group-edit" class="flex gap-2 hidden">
+                            <button onclick="saveMemo()" class="bg-slate-900 text-white px-6 py-2.5 rounded-xl font-bold hover:bg-slate-800 transition-all shadow-lg">저장하기</button>
+                            <button onclick="switchToReadMode()" class="bg-white border border-slate-200 text-slate-600 px-6 py-2.5 rounded-xl font-bold hover:bg-slate-50 transition-all">취소</button>
+                        </div>
+                        <div id="btn-group-read" class="flex gap-2">
+                            <button onclick="switchToEditMode()" class="bg-indigo-600 text-white px-6 py-2.5 rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg flex items-center gap-2">
+                                <i class="fa-solid fa-pen"></i> 수정하기
+                            </button>
+                            <button onclick="closeModal()" class="bg-white border border-slate-200 text-slate-600 px-6 py-2.5 rounded-xl font-bold hover:bg-slate-50 transition-all">닫기</button>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- 설정 모달 -->
+    <div id="settings-modal" class="fixed inset-0 z-50 hidden">
+        <div class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm" onclick="closeSettings()"></div>
+        <div class="fixed inset-0 flex items-center justify-center p-4">
+            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 relative">
+                <h3 class="text-lg font-bold mb-4">설정</h3>
+                <div class="space-y-6">
+                    <div>
+                        <h4 class="text-sm font-bold mb-2">백업/복구 (대용량 지원)</h4>
+                        <div class="flex gap-2">
+                            <button onclick="exportData()" class="flex-1 bg-slate-100 hover:bg-slate-200 py-2 rounded-lg text-sm font-medium">내보내기</button>
+                            <button onclick="triggerImport()" class="flex-1 bg-slate-100 hover:bg-slate-200 py-2 rounded-lg text-sm font-medium">불러오기</button>
+                            <input type="file" id="import-file-input" class="hidden" accept=".json" onchange="importData(this)">
+                        </div>
+                    </div>
+                    <div>
+                        <h4 class="text-sm font-bold mb-2">폰트 추가</h4>
+                        <div class="space-y-2">
+                            <input type="text" id="font-name-input" class="w-full border border-slate-200 rounded p-2 text-sm" placeholder="이름">
+                            <input type="text" id="font-url-input" class="w-full border border-slate-200 rounded p-2 text-sm" placeholder="CSS URL">
+                            <button onclick="addCustomFont()" class="w-full bg-indigo-600 text-white py-2 rounded text-sm font-bold">추가</button>
+                        </div>
+                        <ul id="saved-font-list" class="mt-2 text-xs text-slate-500 space-y-1"></ul>
+                    </div>
+                </div>
+                <button onclick="closeSettings()" class="absolute top-4 right-4 text-slate-400"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+        </div>
+    </div>
+
     <script>
-        // --- 전역 변수 ---
-        let memos = JSON.parse(localStorage.getItem('memoverse_pro_memos')) || [];
-        let editingId = null;
-        let selectedCoverSrc = null; // 현재 선택된 대표 이미지 소스
-
-        const grid = document.getElementById('memo-grid');
-        const emptyState = document.getElementById('empty-state');
-        const modal = document.getElementById('memo-modal');
-        const editor = document.getElementById('editor');
-        const imageList = document.getElementById('image-list');
-        const coverArea = document.getElementById('cover-selection-area');
-
-        // --- 초기화 ---
-        document.addEventListener('DOMContentLoaded', renderMemos);
-
-        // --- 에디터 기능 ---
+        // --- IndexedDB 관련 로직 ---
+        const DB_NAME = 'MemoverseDB';
+        const STORE_NAME = 'memos';
+        let db;
         
-        // 텍스트 스타일 적용 (굵게, 기울임 등)
-        function execCmd(command) {
-            document.execCommand(command, false, null);
-            editor.focus();
+        // 메모 데이터는 이제 메모리(배열)가 아닌 DB에서 직접 관리하지만, 렌더링을 위해 임시 캐싱
+        let memos = []; 
+        let customFonts = JSON.parse(localStorage.getItem('memoverse_custom_fonts')) || [];
+        
+        let editingId = null;
+        let currentAssets = [];
+        let currentCoverIndex = 0;
+        let savedRange = null;
+        let isEditMode = false;
+
+        // 초기화
+        document.addEventListener('DOMContentLoaded', async () => {
+            await initDB(); // DB 연결
+            loadCustomFonts();
+            await loadMemosFromDB(); // 데이터 로드
+            document.getElementById('loading-screen').classList.add('hidden'); // 로딩 제거
+            
+            document.addEventListener('selectionchange', () => {
+                const sel = window.getSelection();
+                const editor = document.getElementById('editor');
+                if (sel.rangeCount > 0) {
+                    const range = sel.getRangeAt(0);
+                    if (editor.contains(range.commonAncestorContainer)) {
+                        savedRange = range.cloneRange();
+                    }
+                }
+            });
+        });
+
+        // --- IndexedDB Core ---
+        function initDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, 1);
+                request.onupgradeneeded = (e) => {
+                    const d = e.target.result;
+                    if (!d.objectStoreNames.contains(STORE_NAME)) {
+                        d.createObjectStore(STORE_NAME, { keyPath: 'id' });
+                    }
+                };
+                request.onsuccess = (e) => {
+                    db = e.target.result;
+                    resolve(db);
+                };
+                request.onerror = (e) => reject(e);
+            });
         }
 
-        // 이미지 파일 삽입 처리
-        function handleImageInsert(input) {
-            if (input.files) {
+        function loadMemosFromDB() {
+            return new Promise((resolve) => {
+                const tx = db.transaction(STORE_NAME, 'readonly');
+                const store = tx.objectStore(STORE_NAME);
+                const request = store.getAll();
+                request.onsuccess = () => {
+                    // 날짜 내림차순 정렬
+                    memos = request.result.sort((a, b) => b.id - a.id);
+                    renderMemos();
+                    resolve();
+                };
+            });
+        }
+
+        function saveMemoToDB(memo) {
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(STORE_NAME, 'readwrite');
+                const store = tx.objectStore(STORE_NAME);
+                const request = store.put(memo);
+                request.onsuccess = () => resolve();
+                request.onerror = (e) => reject(e);
+            });
+        }
+
+        function deleteMemoFromDB(id) {
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(STORE_NAME, 'readwrite');
+                const store = tx.objectStore(STORE_NAME);
+                const request = store.delete(id);
+                request.onsuccess = () => resolve();
+                request.onerror = (e) => reject(e);
+            });
+        }
+
+        // --- 기능 로직 ---
+
+        function openCreateModal() {
+            editingId = null;
+            document.getElementById('input-title').value = '';
+            document.getElementById('editor').innerHTML = '';
+            currentAssets = [];
+            currentCoverIndex = 0;
+            savedRange = null;
+            renderAssetList();
+            document.getElementById('memo-modal').classList.remove('hidden');
+            switchToEditMode();
+        }
+
+        function openViewModal(id) {
+            const m = memos.find(x => x.id === id);
+            if (!m) return;
+            editingId = id;
+            document.getElementById('input-title').value = m.title;
+            document.getElementById('editor').innerHTML = m.content;
+            currentAssets = m.assets || [];
+            currentCoverIndex = m.coverIndex || 0;
+            renderAssetList();
+            document.getElementById('memo-modal').classList.remove('hidden');
+            switchToReadMode();
+        }
+
+        function switchToEditMode() {
+            isEditMode = true;
+            const editor = document.getElementById('editor');
+            const titleInput = document.getElementById('input-title');
+            document.getElementById('toolbar').classList.remove('hidden');
+            document.getElementById('btn-group-edit').classList.remove('hidden');
+            document.getElementById('btn-group-read').classList.add('hidden');
+            document.getElementById('asset-hint').innerText = "(수정 모드에서 클릭하여 삽입)";
+            editor.contentEditable = "true";
+            titleInput.readOnly = false;
+            titleInput.classList.remove('cursor-default');
+            renderAssetList();
+        }
+
+        function switchToReadMode() {
+            isEditMode = false;
+            const editor = document.getElementById('editor');
+            const titleInput = document.getElementById('input-title');
+            if (editingId) {
+                const m = memos.find(x => x.id === editingId);
+                if(m) {
+                    document.getElementById('input-title').value = m.title;
+                    document.getElementById('editor').innerHTML = m.content;
+                }
+            }
+            document.getElementById('toolbar').classList.add('hidden');
+            document.getElementById('btn-group-edit').classList.add('hidden');
+            document.getElementById('btn-group-read').classList.remove('hidden');
+            document.getElementById('asset-hint').innerText = "(읽기 모드)";
+            editor.contentEditable = "false";
+            titleInput.readOnly = true;
+            titleInput.classList.add('cursor-default');
+            renderAssetList();
+        }
+
+        function closeModal() { document.getElementById('memo-modal').classList.add('hidden'); }
+
+        // --- 에셋 관리 ---
+        function uploadToAssets(input) {
+            if (input.files && input.files.length > 0) {
                 Array.from(input.files).forEach(file => {
                     const reader = new FileReader();
                     reader.onload = function(e) {
-                        const imgHtml = `<img src="${e.target.result}" class="mx-auto">`;
-                        insertHtmlAtCursor(imgHtml);
-                        detectImages(); // 이미지 삽입 후 목록 갱신
+                        currentAssets.push(e.target.result);
+                        renderAssetList();
                     };
                     reader.readAsDataURL(file);
                 });
-                input.value = ''; // 초기화
+                input.value = '';
             }
         }
 
-        // 커서 위치에 HTML 삽입 (핵심)
-        function insertHtmlAtCursor(html) {
-            editor.focus();
-            const sel = window.getSelection();
-            if (sel.getRangeAt && sel.rangeCount) {
-                const range = sel.getRangeAt(0);
-                range.deleteContents();
-                const el = document.createElement("div");
-                el.innerHTML = html;
-                const frag = document.createDocumentFragment();
-                let node, lastNode;
-                while ((node = el.firstChild)) {
-                    lastNode = frag.appendChild(node);
-                }
-                range.insertNode(frag);
-                
-                // 커서를 삽입된 요소 뒤로 이동
-                if (lastNode) {
-                    range.setStartAfter(lastNode);
-                    range.collapse(true);
-                    sel.removeAllRanges();
-                    sel.addRange(range);
-                }
-            } else {
-                // 포커스가 없으면 맨 뒤에 추가
-                editor.innerHTML += html;
-            }
-        }
+        function renderAssetList() {
+            const list = document.getElementById('asset-list');
+            const countSpan = document.getElementById('asset-count');
+            countSpan.innerText = `${currentAssets.length}개`;
+            list.innerHTML = '';
 
-        // 에디터 내 이미지 감지 및 대표 이미지 UI 생성
-        function detectImages() {
-            const imgs = editor.getElementsByTagName('img');
-            const srcList = Array.from(imgs).map(img => img.src);
-
-            if (srcList.length > 0) {
-                coverArea.classList.remove('hidden');
-                renderCoverSelector(srcList);
-            } else {
-                coverArea.classList.add('hidden');
-                selectedCoverSrc = null;
-            }
-        }
-
-        // 대표 이미지 선택 UI 렌더링
-        function renderCoverSelector(srcList) {
-            imageList.innerHTML = '';
-            
-            // 만약 선택된 이미지가 없거나, 삭제되어 목록에 없다면 첫번째를 기본값으로
-            if (!selectedCoverSrc || !srcList.includes(selectedCoverSrc)) {
-                selectedCoverSrc = srcList[0];
-            }
-
-            srcList.forEach((src, index) => {
-                const wrapper = document.createElement('div');
-                wrapper.className = `flex-shrink-0 cursor-pointer relative group`;
-                wrapper.onclick = () => {
-                    selectedCoverSrc = src;
-                    renderCoverSelector(srcList); // 다시 그려서 스타일 업데이트
-                };
-
-                const isSelected = (src === selectedCoverSrc);
-                
-                wrapper.innerHTML = `
-                    <img src="${src}" class="w-16 h-16 object-cover rounded-lg cover-option ${isSelected ? 'selected' : 'opacity-70 hover:opacity-100'}">
-                    ${isSelected ? '<div class="absolute -top-2 -right-2 bg-indigo-600 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full shadow-sm"><i class="fa-solid fa-check"></i></div>' : ''}
-                `;
-                imageList.appendChild(wrapper);
-            });
-        }
-
-
-        // --- 모달 관련 ---
-        function openModal(id = null) {
-            editingId = id;
-            document.getElementById('input-title').value = '';
-            editor.innerHTML = '';
-            selectedCoverSrc = null;
-            coverArea.classList.add('hidden');
-
-            if (id) {
-                const memo = memos.find(m => m.id === id);
-                if (memo) {
-                    document.getElementById('modal-title').innerText = '메모 수정';
-                    document.getElementById('input-title').value = memo.title;
-                    editor.innerHTML = memo.content;
-                    selectedCoverSrc = memo.coverImage || null;
-                    detectImages(); // 기존 이미지 로드 및 선택 상태 복구
-                }
-            } else {
-                document.getElementById('modal-title').innerText = '새 메모 작성';
-            }
-            
-            modal.classList.remove('hidden');
-        }
-
-        function closeModal() {
-            modal.classList.add('hidden');
-        }
-
-        // --- 저장 및 삭제 ---
-        function saveMemo() {
-            const title = document.getElementById('input-title').value.trim();
-            const content = editor.innerHTML;
-            const textContent = editor.innerText.trim();
-
-            // 이미지가 있는지 확인
-            const imgs = editor.getElementsByTagName('img');
-            const hasImage = imgs.length > 0;
-
-            if (!title && !textContent && !hasImage) {
-                alert('내용을 입력해주세요.');
+            if (currentAssets.length === 0) {
+                list.innerHTML = isEditMode 
+                    ? `<div class="text-sm text-slate-400 w-full text-center py-4 border-2 border-dashed border-slate-200 rounded-lg">상단 <i class="fa-solid fa-cloud-arrow-up text-indigo-400"></i> 버튼으로 추가</div>`
+                    : `<div class="text-sm text-slate-400 w-full text-center py-2">첨부된 이미지가 없습니다.</div>`;
                 return;
             }
 
-            // 대표 이미지 확정 (UI에서 선택된 것, 없으면 첫번째)
-            let finalCover = null;
-            if (hasImage) {
-                finalCover = selectedCoverSrc || imgs[0].src;
+            if (currentCoverIndex >= currentAssets.length) currentCoverIndex = 0;
+
+            let html = '';
+            currentAssets.forEach((src, idx) => {
+                const isCover = (idx === currentCoverIndex);
+                const onClickAttr = isEditMode ? `onclick="insertImageFromAsset(${idx})"` : `onclick="alert('수정 모드에서만 가능합니다.')"`;
+                const cursorClass = isEditMode ? 'cursor-pointer' : 'cursor-default';
+                let buttons = '';
+                if (isEditMode) {
+                    buttons = `
+                        <button onclick="setCover(${idx}, event)" class="absolute top-1 left-1 w-6 h-6 rounded-full flex items-center justify-center transition-all ${isCover ? 'bg-indigo-600 text-white' : 'bg-black/50 text-slate-300 hover:bg-indigo-500 hover:text-white'}" title="대표"><i class="fa-solid fa-star text-[10px]"></i></button>
+                        <button onclick="removeAsset(${idx}, event)" class="absolute top-1 right-1 bg-black/50 hover:bg-red-500 text-white w-5 h-5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity" title="삭제"><i class="fa-solid fa-xmark text-[10px]"></i></button>
+                    `;
+                } else if (isCover) {
+                    buttons = `<div class="absolute top-1 left-1 bg-indigo-600 text-white text-[10px] px-2 py-0.5 rounded shadow-sm">대표</div>`;
+                }
+                html += `<div class="asset-item relative shrink-0 group w-20 h-20 rounded-lg overflow-hidden bg-slate-200 ${cursorClass} ${isCover ? 'is-cover ring-2 ring-indigo-600' : ''}" ${onClickAttr}><img src="${src}" class="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity">${buttons}</div>`;
+            });
+            list.innerHTML = html;
+        }
+
+        function insertImageFromAsset(idx) {
+            const src = currentAssets[idx];
+            restoreSelection();
+            document.execCommand('insertHTML', false, `<img src="${src}"><br>`);
+        }
+        function setCover(idx, e) { e.stopPropagation(); currentCoverIndex = idx; renderAssetList(); }
+        function removeAsset(idx, e) {
+            e.stopPropagation();
+            if(!confirm('목록에서 제거하시겠습니까?')) return;
+            currentAssets.splice(idx, 1);
+            if(currentCoverIndex >= currentAssets.length) currentCoverIndex = 0;
+            renderAssetList();
+        }
+
+        function restoreSelection() {
+            const editor = document.getElementById('editor');
+            editor.focus();
+            if (savedRange) {
+                const sel = window.getSelection();
+                sel.removeAllRanges();
+                sel.addRange(savedRange);
+            }
+        }
+
+        function formatDoc(cmd, val) { restoreSelection(); document.execCommand(cmd, false, val); document.getElementById('editor').focus(); }
+        function applyColor(color) { restoreSelection(); document.execCommand('foreColor', false, color); }
+        function changeFontSize(size) {
+            restoreSelection();
+            if(size==='custom') size=prompt('크기(px)', 16); 
+            if(!size) return;
+            document.execCommand('fontSize', false, '7');
+            const fonts = document.getElementById('editor').getElementsByTagName('font');
+            for(let i=fonts.length-1; i>=0; i--){ 
+                if(fonts[i].getAttribute('size')==='7'){
+                    const s=document.createElement('span'); s.style.fontSize=size+'px'; s.innerHTML=fonts[i].innerHTML;
+                    fonts[i].parentNode.replaceChild(s, fonts[i]);
+                }
+            }
+        }
+
+        // --- 저장/삭제 (DB 연동) ---
+        async function saveMemo() {
+            const title = document.getElementById('input-title').value.trim();
+            const content = document.getElementById('editor').innerHTML;
+            const textContent = document.getElementById('editor').innerText.trim();
+
+            if (!title && !textContent && currentAssets.length === 0) {
+                return alert('내용을 입력해주세요.');
             }
 
-            const now = new Date().toLocaleString('ko-KR', {
-                year: '2-digit', month: '2-digit', day: '2-digit', 
-                hour: '2-digit', minute: '2-digit'
-            });
-
-            const memoData = {
+            const memo = {
                 id: editingId || Date.now(),
-                title,
-                content, // HTML 전체 저장
-                coverImage: finalCover,
-                date: now
+                title, content, 
+                assets: currentAssets, 
+                coverIndex: currentCoverIndex,
+                date: new Date().toLocaleString('ko-KR', { year: '2-digit', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
             };
 
-            if (editingId) {
-                const index = memos.findIndex(m => m.id === editingId);
-                memos[index] = memoData;
-            } else {
-                memos.unshift(memoData);
+            try {
+                await saveMemoToDB(memo); // IndexedDB에 저장
+                await loadMemosFromDB(); // 목록 갱신
+                closeModal();
+            } catch (e) {
+                alert('저장 중 오류가 발생했습니다: ' + e.message);
             }
-
-            localStorage.setItem('memoverse_pro_memos', JSON.stringify(memos));
-            renderMemos();
-            closeModal();
         }
 
-        function deleteMemo(id, e) {
+        async function deleteMemo(id, e) {
             e.stopPropagation();
-            if(confirm('이 메모를 삭제하시겠습니까?')) {
-                memos = memos.filter(m => m.id !== id);
-                localStorage.setItem('memoverse_pro_memos', JSON.stringify(memos));
-                renderMemos();
+            if(!confirm('삭제하시겠습니까?')) return;
+            try {
+                await deleteMemoFromDB(id);
+                await loadMemosFromDB();
+            } catch (e) {
+                alert('삭제 중 오류 발생');
             }
         }
 
-        // --- 리스트 렌더링 (핵심 로직) ---
         function renderMemos() {
-            grid.innerHTML = '';
-            if (memos.length === 0) {
-                grid.classList.add('hidden');
-                emptyState.classList.remove('hidden');
-                return;
-            }
-            grid.classList.remove('hidden');
-            emptyState.classList.add('hidden');
+            const grid = document.getElementById('memo-grid'); grid.innerHTML = '';
+            const empty = document.getElementById('empty-state');
+            if(memos.length===0) { grid.classList.add('hidden'); empty.classList.remove('hidden'); return; }
+            grid.classList.remove('hidden'); empty.classList.add('hidden');
 
-            memos.forEach(memo => {
-                // 1. HTML 파싱하여 실제 이미지 개수 파악
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(memo.content, 'text/html');
-                const imgs = doc.getElementsByTagName('img');
-                const imgCount = imgs.length;
-                
-                // 2. 본문 텍스트만 추출 (미리보기용)
-                const plainText = doc.body.textContent || "";
-
-                // 3. 이미지 렌더링 로직
-                let imageSection = '';
-                if (imgCount > 0 && memo.coverImage) {
-                    const extraCount = imgCount - 1;
-                    const badgeHtml = extraCount > 0 
-                        ? `<div class="absolute bottom-2 right-2 bg-black/60 backdrop-blur-sm text-white text-xs font-bold px-2 py-1 rounded-md">+${extraCount}</div>` 
-                        : '';
-                    
-                    imageSection = `
-                        <div class="relative h-48 w-full bg-slate-100 overflow-hidden border-b border-slate-100">
-                            <img src="${memo.coverImage}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105">
-                            ${badgeHtml}
-                        </div>
-                    `;
+            memos.forEach(m => {
+                const div = document.createElement('div'); div.innerHTML = m.content;
+                const txt = div.innerText || "";
+                let coverHtml = '';
+                if (m.assets && m.assets.length > 0) {
+                    const idx = (m.coverIndex >= 0 && m.coverIndex < m.assets.length) ? m.coverIndex : 0;
+                    const extra = m.assets.length - 1;
+                    coverHtml = `<div class="h-44 w-full bg-slate-100 relative overflow-hidden border-b border-slate-100"><img src="${m.assets[idx]}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">${extra > 0 ? `<div class="absolute bottom-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded">+${extra}</div>` : ''}</div>`;
                 }
-
                 const card = document.createElement('div');
-                card.className = 'group bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-300 cursor-pointer hover:-translate-y-1 flex flex-col';
-                card.onclick = () => openModal(memo.id);
-
-                card.innerHTML = `
-                    ${imageSection}
-                    <div class="p-5 flex-1 flex flex-col">
-                        <h3 class="text-lg font-bold text-slate-900 mb-2 line-clamp-1">${memo.title || '제목 없음'}</h3>
-                        <p class="text-slate-500 text-sm line-clamp-3 mb-4 flex-1 leading-relaxed">${plainText || (imgCount > 0 ? '(사진만 있는 메모)' : '내용 없음')}</p>
-                        
-                        <div class="flex items-center justify-between mt-auto pt-4 border-t border-slate-50">
-                            <span class="text-xs font-medium text-slate-400 bg-slate-50 px-2 py-1 rounded-md">${memo.date}</span>
-                            <button onclick="deleteMemo(${memo.id}, event)" class="w-8 h-8 rounded-full flex items-center justify-center text-slate-300 hover:text-red-500 hover:bg-red-50 transition-all">
-                                <i class="fa-regular fa-trash-can"></i>
-                            </button>
-                        </div>
-                    </div>
-                `;
+                card.className = 'bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all h-[320px] flex flex-col cursor-pointer group';
+                card.onclick = () => openViewModal(m.id);
+                card.innerHTML = `${coverHtml}<div class="p-5 flex flex-col flex-1"><h3 class="font-bold text-lg mb-2 text-slate-900 line-clamp-1">${m.title || '제목 없음'}</h3><div class="text-sm text-slate-500 line-clamp-3 flex-1 leading-relaxed">${txt.substring(0,150) || '<span class="text-slate-300">내용 없음</span>'}</div><div class="flex justify-between items-center text-xs text-slate-400 mt-3 pt-3 border-t border-slate-50"><span>${m.date}</span><button onclick="deleteMemo(${m.id}, event)" class="hover:text-red-500 p-1.5 rounded-full hover:bg-red-50"><i class="fa-regular fa-trash-can"></i></button></div></div>`;
                 grid.appendChild(card);
             });
         }
+
+        // --- 설정 ---
+        function openSettings(){ document.getElementById('settings-modal').classList.remove('hidden'); renderFonts(); }
+        function closeSettings(){ document.getElementById('settings-modal').classList.add('hidden'); }
+        function exportData(){
+            if(memos.length===0) return alert('데이터 없음');
+            const b = new Blob([JSON.stringify(memos,null,2)],{type:'application/json'});
+            const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=`memo_backup_${Date.now()}.json`; a.click();
+        }
+        function triggerImport(){ document.getElementById('import-file-input').click(); }
+        function importData(inp){
+            if(!inp.files[0]) return;
+            const r=new FileReader(); r.onload=async e=>{
+                try{ 
+                    const imported = JSON.parse(e.target.result); 
+                    // DB 초기화 후 일괄 삽입
+                    const tx = db.transaction(STORE_NAME, 'readwrite');
+                    const store = tx.objectStore(STORE_NAME);
+                    // 기존 데이터 유지? 덮어쓰기? 여기선 병합(기존 같은 ID는 덮어쓰기)
+                    imported.forEach(m => store.put(m));
+                    tx.oncomplete = () => {
+                        loadMemosFromDB(); 
+                        alert('복구 완료'); closeSettings();
+                    };
+                } catch(e){ alert('파일 오류'); }
+            }; r.readAsText(inp.files[0]); inp.value='';
+        }
+        function addCustomFont(){ 
+            const n=document.getElementById('font-name-input').value, u=document.getElementById('font-url-input').value;
+            if(!n||!u)return; customFonts.push({name:n,url:u}); localStorage.setItem('memoverse_custom_fonts',JSON.stringify(customFonts));
+            loadCustomFonts(); renderFonts();
+        }
+        function loadCustomFonts(){
+            const c=document.getElementById('dynamic-fonts'), s=document.getElementById('fontFamilySelect');
+            c.innerHTML=''; s.innerHTML='<option value="" disabled selected>폰트</option><option value="Noto Sans KR">기본</option><option value="serif">바탕</option>';
+            customFonts.forEach(f=>{
+                const l=document.createElement('link');l.rel='stylesheet';l.href=f.url;c.appendChild(l);
+                const o=document.createElement('option');o.value=f.name;o.innerText=f.name;s.appendChild(o);
+            });
+        }
+        function renderFonts(){
+            const l=document.getElementById('saved-font-list'); l.innerHTML='';
+            customFonts.forEach((f,i)=> l.innerHTML+=`<li class="flex justify-between"><span>${f.name}</span><button onclick="delFont(${i})" class="text-red-400">삭제</button></li>`);
+        }
+        function delFont(i){ customFonts.splice(i,1); localStorage.setItem('memoverse_custom_fonts',JSON.stringify(customFonts)); loadCustomFonts(); renderFonts(); }
     </script>
 </body>
 </html>
